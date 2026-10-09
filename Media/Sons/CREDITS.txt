@@ -1,0 +1,39 @@
+Sons d'alerte de CorpUI (dissipation) - tous dans le domaine public (CC0 1.0)
+https://creativecommons.org/publicdomain/zero/1.0/
+
+ding.ogg, ding_grave.ogg, carillon.ogg, alarme.ogg, alarme_longue.ogg,
+tambour.ogg, refus.ogg
+    "UI Sound Effects (Button Clicks, User Feedback, Notifications)"
+    par Robin Lamb, CC0 - https://opengameart.org/content/ui-sound-effects-button-clicks-user-feedback-notifications
+    (fichiers d'origine : Ding, ding_deep, chimes, alarm, alarm2, dum, negative_sound)
+
+confirmation1.ogg, confirmation2.ogg, question.ogg, verre.ogg, montee.ogg,
+erreur1.ogg, erreur2.ogg, bong.ogg
+    "Interface Sounds" par Kenney (www.kenney.nl), CC0 - https://kenney.nl/assets/interface-sounds
+    (fichiers d'origine : confirmation_002, confirmation_004, question_001, glass_004,
+    maximize_005, error_003, error_005, bong_001)
+
+Sons rigolos :
+
+trombone.ogg
+    "Sad Trombone" par Joe Lamb, licence CC BY 3.0
+    https://commons.wikimedia.org/wiki/File:Sad_Trombone-Joe_Lamb-665429450.ogg
+    https://creativecommons.org/licenses/by/3.0/
+
+paon.ogg
+    "Peacock Scream" par dobroide (bruit de fond retire par AntumDeluge), licence CC BY 3.0
+    https://opengameart.org/content/peacock-scream-0
+    https://creativecommons.org/licenses/by/3.0/
+
+klaxon.ogg, sonnette.ogg
+    "Bicycle Sounds" par AntumDeluge, CC0 - https://opengameart.org/content/bicycle-sounds
+    (fichiers d'origine : bicycle_horn-1, rotating_bicycle_bell-1)
+
+sorciere.ogg
+    "Witch Cackle" par AntumDeluge, CC0 - https://opengameart.org/content/witch-cackle
+
+bizarre1.ogg a bizarre8.ogg
+    "30 Weird CC0 SFX" par rubberduck, CC0 - https://opengameart.org/content/30-weird-cc0-sfx
+    (fichiers d'origine : weird_12, 22, 30, 28, 18, 15, 07, 09)
+
+Merci a Kenney, Robin Lamb, Joe Lamb, dobroide, AntumDeluge et rubberduck.

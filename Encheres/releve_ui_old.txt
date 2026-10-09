@@ -1,0 +1,82 @@
+---------------------------------------------------------------------------
+-- Barre
+---------------------------------------------------------------------------
+
+local function buildBar()
+    bar = CreateFrame("Frame", "CorpUIMailBar", UIParent)
+    bar:SetSize(BAR_W, BAR_H)
+    bar:EnableMouse(true)
+    ns.UI.Skin(bar, 0.95, true)
+    local b = ns.UI.Button(bar, L.MAIL_GOLD, 110, start)
+    b:SetHeight(BAR_H - 4)
+    b:SetPoint("RIGHT", bar, "RIGHT", -2, 0)
+    b:SetMotionScriptsWhileDisabled(true)
+    b:HookScript("OnEnter", function(self)
+        local t = ns.Tooltip(self, "ANCHOR_TOP")
+        t:AddLine(L.MAIL_GOLD)
+        t:AddLine(L.MAIL_GOLD_TIP, 1, 1, 1, true)
+        t:Show()
+    end)
+    b:HookScript("OnLeave", function() ns.HideTooltip() end)
+    bar.button = b
+    local fs = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    fs:SetPoint("LEFT", bar, "LEFT", 8, 0)
+    fs:SetPoint("RIGHT", b, "LEFT", -8, 0)
+    fs:SetHeight(BAR_H - 4)
+    fs:SetJustifyH("LEFT")
+    fs:SetWordWrap(false)
+    bar.text = fs
+    -- texte coupe si la fenetre est etroite : en entier au survol
+    bar:SetScript("OnEnter", function(self)
+        local t = ns.Tooltip(self, "ANCHOR_BOTTOM")
+        t:AddLine(self.text:GetText() or "", 1, 1, 1, true)
+        t:Show()
+    end)
+    bar:SetScript("OnLeave", function() ns.HideTooltip() end)
+    bar:Hide()
+end
+
+local acc, sumAcc = 0, 0
+local function tick(dt)
+    local o = mailOpts()
+    if not (o and o.bar and inboxShown()) then
+        if bar and bar:IsShown() then bar:Hide() end
+        if run then stop() end
+        return
+    end
+    if not bar then buildBar() end
+    -- sous les onglets de Blizzard (Boite de reception / Envoyer), qui
+    -- pendent sous la fenetre : jamais par-dessus ; largeur de la fenetre
+    local mf = _G.MailFrame
+    local tab = _G.MailFrameTab1
+    local below = AH.visible(tab) and tab or mf
+    if bar.anchoredTo ~= below then
+        bar:ClearAllPoints()
+        bar:SetPoint("TOP", below, "BOTTOM", 0, -2)
+        bar:SetPoint("LEFT", mf, "LEFT", 0, 0)
+        bar.anchoredTo = below
+    end
+    local okW, w = pcall(mf.GetWidth, mf)
+    w = okW and num(w)
+    if w and w > 200 and math.abs((bar:GetWidth() or 0) - w) > 0.5 then bar:SetWidth(w) end
+    if ns.AHFollow then ns.AHFollow(bar, mf) end
+    if not bar:IsShown() then
+        bar:Show()
+        bar.dirty = true
+    end
+    step()
+    sumAcc = sumAcc + dt
+    if bar.dirty or sumAcc > 1 then
+        sumAcc, bar.dirty = 0, false
+        local gold, nGold, sales, items, n = summary()
+        if run then
+            bar.text:SetText(string.format(L.MAIL_TAKING, AH.Money(run.got)))
+        elseif n == 0 then
+            bar.text:SetText("|cff9d9d9d" .. L.MAIL_EMPTY .. "|r")
+        else
+            bar.text:SetText(string.format(L.MAIL_SUMMARY, AH.Money(gold), nGold, sales, items))
+        end
+        bar.button:SetEnabled(not run and gold > 0)
+    end
+end
+

@@ -1,0 +1,7 @@
+# fichiers du systeme et copies de travail
+Thumbs.db
+desktop.ini
+.DS_Store
+*.bak
+*.tmp
+*.orig

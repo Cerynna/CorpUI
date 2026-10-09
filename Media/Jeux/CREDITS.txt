@@ -1,0 +1,11 @@
+Images des mini-jeux de CorpUI
+
+Course du murloc : murloc.tga, obstacles.tga, bg.tga, ground.tga, icon.tga
+Vol du griffon : vol_griffon.tga, vol_wyverne.tga, vol_objets.tga, vol_ciel.tga, vol_icone.tga
+  Generees le 08/10/2026 avec Nano Banana Pro (Google, modele gemini-3-pro-image)
+  pour CorpUI, puis detourees (fond vert), decoupees en planches de 4 x 2 cases
+  de 256 px, et rendues raccordables horizontalement (fonds, sol).
+
+Les murlocs, griffons, wyvernes et dragonnets sont des creatures de World of
+Warcraft (Blizzard Entertainment) ; ces mini-jeux sont un clin d'oeil a usage
+personnel dans un addon.

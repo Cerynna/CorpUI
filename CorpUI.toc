@@ -1,0 +1,226 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r
+## Notes: Complete interface in modules: unit, party and raid frames, action bars, cast bars, info bar, buffs, characters, reagents, merchant, reminders. Type /corp
+## Notes-frFR: Interface complète en modules : cadres joueur, groupe et raid, barres d'action, barres de sort, barre d'infos, buffs, persos, réactifs, marchand, rappels. Tape /corp
+## Notes-deDE: Werkzeugkasten in Modulen: Buffs, Charaktere, Reagenzien, Händler, Erinnerungen, kommende Zauber. Gib /corp ein
+## Notes-esES: Caja de herramientas por módulos: beneficios, personajes, componentes, mercader, recordatorios, próximos hechizos. Escribe /corp
+## Notes-esMX: Caja de herramientas por módulos: beneficios, personajes, componentes, mercader, recordatorios, próximos hechizos. Escribe /corp
+## Notes-ptBR: Caixa de ferramentas em módulos: bônus, personagens, componentes, mercador, lembretes, próximos feitiços. Digite /corp
+## Notes-itIT: Cassetta degli attrezzi a moduli: potenziamenti, personaggi, reagenti, mercante, promemoria, prossimi incantesimi. Digita /corp
+## Notes-ruRU: Набор инструментов из модулей: баффы, персонажи, реагенты, торговец, напоминания, будущие заклинания. Введите /corp
+## Notes-zhCN: 模块化工具箱：增益、角色、施法材料、商人、提醒、即将学会的法术。输入 /corp
+## Notes-zhTW: 模組化工具箱：增益、角色、施法材料、商人、提醒、即將學會的法術。輸入 /corp
+## Notes-koKR: 모듈식 도구 모음: 강화 효과, 캐릭터, 재료, 상인, 알림, 배울 주문. /corp 입력
+## Author: ceryn
+## Version: 1.0
+## SavedVariables: CorpUIDB, SpellsAheadDB
+
+Locales.lua
+Strings.lua
+StringsExtra.lua
+Core.lua
+Movers.lua
+Media\Fonts\Fonts.lua
+Polices.lua
+
+# Communication entre CorpUI (ns.Comm : avant les modules qui l utilisent)
+Comm\Strings.lua
+Comm\Comm.lua
+Comm\Guilde.lua
+
+# Module Buffs
+Buffs\Data.lua
+Buffs\Buffs.lua
+Buffs\Assign.lua
+Buffs\BuffBar.lua
+
+# Module Persos
+Persos\Strings.lua
+Persos\Persos.lua
+
+# Module Reactifs
+Reactifs\Strings.lua
+Reactifs\Reactifs.lua
+
+# Module Metiers (file de fabrication, liste de courses)
+Metiers\Strings.lua
+Metiers\File.lua
+Metiers\Courses.lua
+
+# Module Marchand
+Marchand\Strings.lua
+Marchand\Marchand.lua
+
+# Module Rappels
+Rappels\Strings.lua
+Rappels\Rappels.lua
+
+# Module SpellsAhead
+SpellsAhead\Strings.lua
+SpellsAhead\SpellsAhead.lua
+
+# Module Cadres (essai)
+Cadres\Strings.lua
+Cadres\Cadres.lua
+Cadres\Ressources.lua
+
+# Module Groupe
+Groupe\Strings.lua
+Groupe\Groupe.lua
+
+# Module Barres
+Barres\Strings.lua
+Barres\Barres.lua
+Barres\QuickBind.lua
+
+# Module Incantations
+Incantations\Strings.lua
+Incantations\Incantations.lua
+
+# Module Infos
+Infos\Strings.lua
+Infos\Infos.lua
+
+# Module Sacs
+Sacs\Strings.lua
+Sacs\Sacs.lua
+Sacs\Banque.lua
+
+# Module Minicarte
+Minicarte\Strings.lua
+Minicarte\Minicarte.lua
+
+# Module Auras
+Auras\Strings.lua
+Auras\Auras.lua
+
+# Editeur des cadres : une liste de tous les cadres (apres Cadres, Groupe, Incantations, Auras)
+Cadres\Editeur.lua
+
+# Module Menus (postures, micro-menu, sacs)
+Menus\Strings.lua
+Menus\Menus.lua
+
+# Module Experience
+Experience\Strings.lua
+Experience\Experience.lua
+
+# Module Sorts au clic (apres Cadres et Groupe)
+Clics\Strings.lua
+Clics\ClickCast.lua
+
+# Module Barres de vie (plaques)
+Plaques\Strings.lua
+Plaques\Plaques.lua
+
+# Module Suivi de quetes
+Quetes\Strings.lua
+Quetes\Quetes.lua
+
+# Module Infobulles
+Infobulles\Strings.lua
+Infobulles\Tooltips.lua
+
+# Module Compteur de degats
+Degats\Strings.lua
+Degats\DamageMeter.lua
+Compteur\Strings.lua
+Compteur\Compteur.lua
+
+# Module Chat
+Discussion\Strings.lua
+Discussion\Chat.lua
+
+# Module Habillage (fenetres de Blizzard)
+Habillage\Strings.lua
+Habillage\Fenetres.lua
+Habillage\Communs.lua
+Habillage\Personnage.lua
+Habillage\Metiers.lua
+Habillage\HotelVentes.lua
+Habillage\Grimoire.lua
+Habillage\Talents.lua
+Habillage\JournalQuetes.lua
+Habillage\Communautes.lua
+Habillage\RechercheGroupe.lua
+Habillage\Collections.lua
+Habillage\Heritage.lua
+Habillage\PNJ.lua
+Habillage\Marchand.lua
+Habillage\Courrier.lua
+Habillage\Maitre.lua
+Habillage\Social.lua
+Habillage\Canaux.lua
+Habillage\Skins.lua
+
+# Module Talents (export / import, guide)
+Talents\Strings.lua
+Talents\Talents.lua
+
+# Profils (reglages par personnage, export / import)
+Profils\Strings.lua
+Profils\Profils.lua
+
+# Assistant d installation
+Installation\Strings.lua
+Installation\Assistant.lua
+
+# Module Butin
+Butin\Strings.lua
+Butin\Butin.lua
+
+# Module Hotel des ventes (scan, prix dans les infobulles ; fonctions facon
+# TSM : valeur marche, volet CorpUI a cote de l HV, vente, mes encheres,
+# listes d achats, comptabilite)
+Encheres\Strings.lua
+Encheres\StringsPrix.lua
+Encheres\StringsVente.lua
+Encheres\StringsMes.lua
+Encheres\StringsAchats.lua
+Encheres\StringsCompta.lua
+Encheres\StringsPlus.lua
+Encheres\StringsEnvoi.lua
+Encheres\Encheres.lua
+Encheres\Panneau.lua
+Encheres\Desenchant.lua
+Encheres\Vente.lua
+Encheres\Mes.lua
+Encheres\Achats.lua
+Encheres\Affaires.lua
+Encheres\Compta.lua
+Encheres\Releve.lua
+Encheres\Envoi.lua
+Encheres\Accepter.lua
+
+# Module Dez (icone de desenchantement, personnages enchanteurs ; bouton
+# securise ; valeur et table de desenchantement du module Encheres)
+Dez\Strings.lua
+Dez\Dez.lua
+
+# Module Jeux (mini-jeux : course du murloc, fusion des minerais ; images Media\Jeux)
+# Vol du griffon (Jeux\StringsVol.lua, Jeux\Vol.lua) : desactive le 08/10, fichiers gardes
+Jeux\Strings.lua
+Jeux\Jeux.lua
+Jeux\Murloc.lua
+Jeux\Minerais.lua
+
+# Module Raid (marqueurs, appel, roles, pull : boutons securises)
+Raid\Strings.lua
+Raid\Raid.lua
+
+# Module Invitations (inviter sur mot cle : +1)
+Invitations\Strings.lua
+Invitations\Invitations.lua
+
+# Module Notes de raid (facon MRT ; utilise ns.Comm, charge apres Comm\Comm.lua)
+Notes\Strings.lua
+Notes\Notes.lua
+
+# Module Recharges (CD de raid facon MRT + barre de CD perso ; utilise ns.Comm)
+Recharges\Strings.lua
+Recharges\Sorts.lua
+Recharges\Recharges.lua
+
+# Module Dissipation (alerte des cadres de groupe, repartition en raid ; page Intendance du raid)
+Dissipation\Strings.lua
+Dissipation\Dissipation.lua

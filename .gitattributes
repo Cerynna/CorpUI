@@ -1,0 +1,6 @@
+# fichiers gardes tels quels (aucune conversion des fins de ligne)
+* -text
+*.tga binary
+*.ogg binary
+*.ttf binary
+*.otf binary
