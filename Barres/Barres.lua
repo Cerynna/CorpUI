@@ -35,6 +35,9 @@
     fonction du bouton (type2 = "autocast", appelee hors du code securise,
     comme le fait Blizzard avec TogglePetAutocast).
 
+    Barres ajoutees par d autres fichiers (ns.AddButtonBarPlugin) : la
+    barre des totems du chaman (AppelTotems.lua), avec les memes reglages.
+
     Visibilite par barre (toujours, combat, cible, groupe, condition de
     macro) : pilote d etat "visibility", distinct du pilote "page" de la
     barre 1. Les poignees de deplacement affichees l ignorent. La barre de
@@ -76,7 +79,26 @@ local BARS = {
 local PANEL_ORDER = { "main", "bar9", "bl", "br", "right", "right2", "bar6", "bar7", "bar8" }
 -- barre du familier : 10 boutons, commandes BONUSACTIONBUTTON1..10
 local PET_BAR = { key = "pet", pet = true, count = 10, binding = "BONUSACTIONBUTTON" }
+
+-- Barres ajoutees par d autres fichiers du module (barre des totems :
+-- AppelTotems.lua), inscrites avant PLAYER_LOGIN. Reglages, affichage,
+-- deplacement, fondu et panneau d options comme les autres barres. p = {
+--   key        : cle des reglages (db.bar, db.show, db.pos),
+--   name()     : nom affiche,
+--   pos        : position de depart, defaults : reglages de depart (une fois),
+--   build(kit) : cree et renvoie le cadre (SecureHandlerStateTemplate),
+--   layout(h, c, kit) : disposition (hors combat),
+--   available() : faux = barre cachee (rien a y mettre),
+--   count()    : nombre de boutons (impose : pas de reglage "boutons"),
+--   only()     : faux = barre absente (autre classe : ni cadre ni reglages),
+--   hint()     : aide ajoutee en bas du panneau,
+--   blizzard   : cadres de Blizzard remplaces, caches avec l option
+--                "masquer les barres de Blizzard" si la notre est affichee }
+local PLUGINS = {}
+function ns.AddButtonBarPlugin(p) table.insert(PLUGINS, p) end
+
 local function barName(bar)
+    if bar.plugin then return bar.plugin.name() end
     if bar.pet then return L.BARS_PET end
     local text = L[bar.name]
     if bar.n then text = string.format(text, bar.n) end
@@ -211,6 +233,8 @@ end
 
 local function update(b)
     if b.isPet then return updatePet(b) end
+    -- boutons de sort des barres ajoutees (appel des totems...)
+    if b.customUpdate then return b.customUpdate(b) end
     local action = b:GetAttribute("action")
     if not action then return end
     local tex = GetActionTexture(action)
@@ -417,38 +441,60 @@ makeVisuals = function(b)
     b.macro:Hide()
 end
 
+-- Textes d un bouton affiche selon les reglages de sa barre
+local function styleButton(b, c)
+    local font = math.max(8, math.floor(c.size * 0.3 + 0.5))
+    b.hideEmpty = c.hideEmpty
+    b.hotkey:SetShown(c.hotkey)
+    b.count:SetShown(c.count)
+    b.macro:SetShown(c.macro)
+    -- textes a l echelle du bouton
+    local f, _, flags = b.hotkey:GetFont()
+    if f then b.hotkey:SetFont(f, font, flags) end
+    f, _, flags = b.macro:GetFont()
+    if f then b.macro:SetFont(f, math.max(7, font - 1), flags) end
+    -- chiffres de recharge : decompte natif du cadre Cooldown
+    pcall(b.cd.SetHideCountdownNumbers, b.cd, not c.cdText)
+    if c.cdText and b.cd.GetCountdownFontString then
+        local okF, fs = pcall(b.cd.GetCountdownFontString, b.cd)
+        if okF and fs and fs.SetFont then
+            local cf, _, cflags = fs:GetFont()
+            pcall(fs.SetFont, fs, cf or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF",
+                math.max(9, math.floor(c.size * 0.42 + 0.5)), cflags or "OUTLINE")
+        end
+    end
+end
+
+-- outils prets pour les barres ajoutees (ns.AddButtonBarPlugin)
+local kit
+
 -- Disposition d une barre selon ses reglages (hors combat : boutons securises)
 local function layout(h)
     local c = conf(h.bar.key)
+    if h.bar.plugin then return h.bar.plugin.layout(h, c, kit) end
     ns.LayoutButtonBar(h, h.buttons, c.buttons, c, db.pos[h.bar.key])
-    local font = math.max(8, math.floor(c.size * 0.3 + 0.5))
     for j, b in ipairs(h.buttons) do
         if j <= c.buttons then
             b:Show()
-            b.hideEmpty = c.hideEmpty
-            b.hotkey:SetShown(c.hotkey)
-            b.count:SetShown(c.count)
-            b.macro:SetShown(c.macro)
-            -- textes a l echelle du bouton
-            local f, _, flags = b.hotkey:GetFont()
-            if f then b.hotkey:SetFont(f, font, flags) end
-            f, _, flags = b.macro:GetFont()
-            if f then b.macro:SetFont(f, math.max(7, font - 1), flags) end
-            -- chiffres de recharge : decompte natif du cadre Cooldown
-            pcall(b.cd.SetHideCountdownNumbers, b.cd, not c.cdText)
-            if c.cdText and b.cd.GetCountdownFontString then
-                local okF, fs = pcall(b.cd.GetCountdownFontString, b.cd)
-                if okF and fs and fs.SetFont then
-                    local cf, _, cflags = fs:GetFont()
-                    pcall(fs.SetFont, fs, cf or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF",
-                        math.max(9, math.floor(c.size * 0.42 + 0.5)), cflags or "OUTLINE")
-                end
-            end
+            styleButton(b, c)
             update(b)
         else
             b:Hide()
         end
     end
+end
+
+local function buildPlugin(p)
+    db.pos[p.key] = db.pos[p.key] or { point = p.pos.point, x = p.pos.x, y = p.pos.y }
+    local ok, h = pcall(p.build, kit)
+    if not ok then geterrorhandler()(h) return end
+    if not h then return end
+    h.bar = { key = p.key, plugin = p }
+    ns.ApplyPos(h, db.pos[p.key])
+    layout(h)
+    ns.UI.Mover(h, db.pos[p.key], p.name())
+    table.insert(ns.ButtonBars, { frame = h, conf = function() return conf(p.key) end })
+    table.insert(headers, h)
 end
 
 local function build()
@@ -492,6 +538,10 @@ local function build()
     ns.UI.Mover(h, db.pos.pet, barName(bar))
     table.insert(ns.ButtonBars, { frame = h, conf = function() return conf(bar.key) end })
     table.insert(headers, h)
+    -- barres ajoutees (barre des totems...) ; celles d une autre classe : rien
+    for _, p in ipairs(PLUGINS) do
+        if not p.only or p.only() then buildPlugin(p) end
+    end
 end
 
 -- Condition choisie dans les reglages d une barre (nil : toujours visible)
@@ -633,6 +683,9 @@ end
 -- (poignees de deplacement affichees : barre visible pour la placer)
 local function applyVisibility(h)
     local on = db.enabled and db.show[h.bar.key]
+    -- barre ajoutee sans rien a montrer (pas chaman...) : cachee, meme
+    -- avec les poignees de deplacement
+    if on and h.bar.plugin and h.bar.plugin.available and not h.bar.plugin.available() then on = false end
     local cond = on and not ns.moversShown and visCondition(h.bar, conf(h.bar.key))
     if cond then
         RegisterStateDriver(h, "visibility", cond)
@@ -689,7 +742,36 @@ local function apply()
         ns.HideBlizzard({ "PetActionBar" }, hidePet)
         db.petBlizzHidden = hidePet
     end
+    -- barres ajoutees : leur equivalent de Blizzard, de meme
+    for _, p in ipairs(PLUGINS) do
+        if p.blizzard then
+            local hideP = db.enabled and db.hideBlizzard and db.show[p.key] and true or false
+            db.pluginBlizzHidden = db.pluginBlizzHidden or {}
+            if hideP or db.pluginBlizzHidden[p.key] then
+                ns.HideBlizzard(p.blizzard, hideP)
+                db.pluginBlizzHidden[p.key] = hideP or nil
+            end
+        end
+    end
 end
+
+kit = {
+    conf = conf,
+    makeVisuals = function(b) makeVisuals(b) end,
+    style = styleButton,
+    update = update,
+    -- bouton de barre : evenements des barres, raccourcis affiches, portee
+    addButton = function(b) table.insert(allButtons, b) end,
+    apply = function() apply() end,
+    -- une seule barre a revoir (ses boutons ont change) : hors combat
+    refresh = function(h)
+        if InCombatLockdown() then pending = true return end
+        applyVisibility(h)
+        layout(h)
+    end,
+    pos = function(key) return db.pos[key] end,
+    db = function() return db end,
+}
 
 -- poignees de deplacement affichees / masquees : visibilite a revoir
 local lastMovers = false
@@ -697,7 +779,11 @@ ns.Listen(function()
     if not db or (ns.moversShown and true or false) == lastMovers then return end
     lastMovers = ns.moversShown and true or false
     if InCombatLockdown() then pending = true return end
-    for _, h in ipairs(headers) do applyVisibility(h) end
+    for _, h in ipairs(headers) do
+        applyVisibility(h)
+        -- barres ajoutees : apercu complet pendant le deverrouillage
+        if h.bar.plugin then layout(h) end
+    end
     applyVehicle()
 end)
 
@@ -741,6 +827,14 @@ local function buildWindow()
         shown = function() return db.show.pet end,
         setShown = function(v) db.show.pet = v end,
     })
+    for _, p in ipairs(PLUGINS) do
+        if not p.only or p.only() then table.insert(targets, {
+            label = p.name(), plugin = p,
+            conf = function() return conf(p.key) end,
+            shown = function() return db.show[p.key] end,
+            setShown = function(v) db.show[p.key] = v end,
+        }) end
+    end
     -- barres du module Menus (formes, micro-menu, sacs) : pas de chiffres de recharge
     for _, x in ipairs(ns.ExtraButtonBars or {}) do
         table.insert(targets, {
@@ -819,7 +913,12 @@ local function buildWindow()
     end
     -- afficher ou non la barre : la grille "Barres affichees" plus haut
     form:Columns(2)
-    num(L.BARS_BUTTONS, "buttons", 1, 16)
+    -- barre ajoutee (totems) : ses boutons sont ceux que le jeu donne
+    form:Number(L.BARS_BUTTONS, function()
+        local p = targets[sel].plugin
+        if p and p.count then return p.count() end
+        return cur().buttons or 0
+    end, function(v) if not targets[sel].plugin then cur().buttons = v end end, 1, 16)
     num(L.BARS_PERROW, "perRow", 1, 16)
     num(L.BARS_SIZE, "size", 16, 64)
     num(L.BARS_SPACING, "spacing", 0, 20)
@@ -831,8 +930,9 @@ local function buildWindow()
     num(L.BARS_PADDING, "padding", 0, 20)
     chk(L.BARS_MOUSEOVER, "mouseover")
     chk(L.BARS_OOC_FADE, "oocFade")
-    -- cases vides : barres d action seulement (pas le familier ni les formes)
-    local function slots() return not targets[sel].stance and not targets[sel].pet end
+    -- cases vides : barres d action seulement (pas le familier, les formes
+    -- ni les totems : une case vide s y remplit par sa fleche)
+    local function slots() return not targets[sel].stance and not targets[sel].pet and not targets[sel].plugin end
     form:Check(L.BARS_HIDE_EMPTY, function() return slots() and cur().hideEmpty end,
         function(v) if slots() then cur().hideEmpty = v end end)
     chk(L.BARS_HOTKEY, "hotkey")
@@ -899,8 +999,12 @@ local function buildWindow()
     hint:SetWidth(420)
     hint:SetJustifyH("LEFT")
     -- MENUS_HINT : deplacer les barres, touches des postures (module Menus)
+    local extra = ""
+    for _, p in ipairs(PLUGINS) do
+        if p.hint then extra = extra .. " " .. p.hint() end
+    end
     hint:SetText(L.BARS_HINT .. " " .. L.BARS_STEP_HINT .. " " .. L.BARS_PET_HINT .. " " .. L.BARS_VEHICLE_HINT
-        .. " " .. L.MENUS_HINT)
+        .. extra .. " " .. L.MENUS_HINT)
     win:SetHeight(math.max(700, -form.y + 90))
 
     win:HookScript("OnShow", function() form:Refresh() end)
@@ -971,6 +1075,20 @@ ev:SetScript("OnEvent", function(_, event, arg)
         end
         for k, v in pairs(BAR_DEFAULTS) do
             if pc[k] == nil then pc[k] = v end
+        end
+        -- barres ajoutees (barre des totems, 09/10) : affichees, leurs
+        -- reglages de depart une fois
+        for _, p in ipairs(PLUGINS) do
+            if db.show[p.key] == nil then db.show[p.key] = true end
+            local c = db.bar[p.key] or {}
+            db.bar[p.key] = c
+            if not c._init then
+                c._init = true
+                for k, v in pairs(p.defaults or {}) do c[k] = v end
+            end
+            for k, v in pairs(BAR_DEFAULTS) do
+                if c[k] == nil then c[k] = v end
+            end
         end
         -- bouton de sortie de vehicule (ajoute le 05/10) : affiche, 36 px
         db.vehicle = db.vehicle or {}

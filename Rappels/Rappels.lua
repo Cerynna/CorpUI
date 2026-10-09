@@ -121,15 +121,50 @@ local function hasOffhandWeapon()
     return not ok or equipLoc ~= "INVTYPE_SHIELD" and equipLoc ~= "INVTYPE_HOLDABLE"
 end
 
-local function weaponState(def)
-    if not GetWeaponEnchantInfo then return nil end
-    if def.weapon == "off" and not hasOffhandWeapon() then return true, nil, true end
-    local ok, hasMH, mhExp, _, _, hasOH, ohExp = pcall(GetWeaponEnchantInfo)
-    if not ok or issecret(hasMH) then return nil end
-    if def.weapon == "main" then
-        return hasMH and true or false, mhExp and mhExp / 1000
+local function seconds(ms)
+    if type(ms) == "number" and not issecret(ms) and ms > 0 then return ms / 1000 end
+    return nil
+end
+
+-- Enchantement temporaire d une arme (pierre a aiguiser, poison, arme
+-- Croque-roc du chaman...) -> present, secondes restantes ; nil : illisible.
+-- Ce client : C_Item.GetWeaponEnchantInfo(emplacement) renvoie une liste
+-- { hasEnchant, timeLeft (ms)... }, comme pour le cadre des buffs de
+-- Blizzard ; l ancienne fonction globale n existe qu avec les fonctions
+-- depreciees (secours).
+local function weaponEnchant(off)
+    if C_Item and C_Item.GetWeaponEnchantInfo then
+        local slots = Enum and Enum.WeaponSlot
+        local slot
+        if off then slot = slots and slots.OffHand or 1 else slot = slots and slots.MainHand or 0 end
+        local ok, list = pcall(C_Item.GetWeaponEnchantInfo, slot)
+        if ok and type(list) == "table" then
+            local secret = false
+            for _, e in pairs(list) do
+                if type(e) == "table" then
+                    if issecret(e.hasEnchant) then
+                        secret = true
+                    elseif e.hasEnchant then
+                        return true, seconds(e.timeLeft)
+                    end
+                end
+            end
+            if secret then return nil end
+            return false
+        end
     end
-    return hasOH and true or false, ohExp and ohExp / 1000
+    if GetWeaponEnchantInfo then
+        local ok, hasMH, mhExp, _, _, hasOH, ohExp = pcall(GetWeaponEnchantInfo)
+        if not ok or issecret(hasMH) or issecret(hasOH) then return nil end
+        if off then return hasOH and true or false, seconds(ohExp) end
+        return hasMH and true or false, seconds(mhExp)
+    end
+    return nil
+end
+
+local function weaponState(def)
+    if def.weapon == "off" and not hasOffhandWeapon() then return true, nil, true end
+    return weaponEnchant(def.weapon == "off")
 end
 
 -- Ce rappel est-il a afficher ? -> besoin, secondes restantes

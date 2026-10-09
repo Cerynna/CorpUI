@@ -78,6 +78,7 @@ Groupe\Groupe.lua
 Barres\Strings.lua
 Barres\Barres.lua
 Barres\QuickBind.lua
+Barres\AppelTotems.lua
 
 # Module Incantations
 Incantations\Strings.lua

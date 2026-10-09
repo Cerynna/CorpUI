@@ -52,7 +52,9 @@ local function totem(slot)
     if not GetTotemInfo then return false end
     local ok, have, _, start, dur, icon = pcall(GetTotemInfo, slot)
     if not ok then return false end
-    local okA, active = pcall(function() return have and true or false end)
+    -- haveTotem : l element est disponible ; pose seulement avec une duree
+    -- (comme le cadre des totems de Blizzard)
+    local okA, active = pcall(function() return (have and dur and dur > 0) and true or false end)
     if not okA then active = type(icon) ~= "nil" end
     return active, icon, start, dur
 end
