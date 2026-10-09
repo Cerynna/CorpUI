@@ -88,6 +88,8 @@ function ns.ThemeColor(key)
 end
 
 local function applyTheme(key)
+    -- style Moderne (09/10) : plat, liserés noirs, fonds neutres
+    ns.MODERN = ns.root ~= nil and ns.root.style == "moderne"
     local a = ns.ThemeColor(key)
     local C = ns.COLORS
     C.violet = { a[1], a[2], a[3] }
@@ -105,13 +107,41 @@ local function applyTheme(key)
     end
     C.themeKey = key or "violet"
     C.tint = def and def.tint
+    if ns.MODERN then
+        C.border = { 0, 0, 0 }
+        C.panel  = { 0.07, 0.075, 0.09 }
+        C.bg     = { 0.035, 0.038, 0.047 }
+        C.tint   = nil
+    end
 end
 ns.ApplyTheme = applyTheme
 
+-- Style de l interface : "classique" (violet, images du theme) ou
+-- "moderne" (plat ; passe a la couleur de classe et a la police Saira, en
+-- gardant les choix d avant pour un retour au classique). Applique au
+-- prochain rechargement, comme la couleur du theme.
+function ns.SetStyle(v)
+    local db = ns.root
+    if not db or (db.style or "classique") == v then return end
+    if v == "moderne" then
+        db.styleBackup = { theme = db.theme, font = db.font }
+        db.theme, db.font = "class", "Saira"
+    else
+        local b = db.styleBackup
+        if type(b) == "table" then db.theme, db.font = b.theme, b.font end
+        db.styleBackup = nil
+    end
+    db.style = v
+end
+
 -- Les images du theme sont violettes : pour une autre couleur, on les
--- passe en gris puis on les teinte avec l accent
+-- passe en gris puis on les teinte avec l accent ; style Moderne : retirees
 function ns.TintThemeTexture(tex, strength)
     local C = ns.COLORS
+    if ns.MODERN then
+        tex:SetTexture(nil)
+        return
+    end
     if C.themeKey == "violet" then return end
     tex:SetDesaturated(true)
     if C.tint then tex:SetVertexColor(C.tint[1], C.tint[2], C.tint[3]) return end
@@ -513,9 +543,14 @@ ns.UI = {}
 local W8 = "Interface\\Buttons\\WHITE8X8"
 local C = ns.COLORS
 
--- Degrade (API du client moderne), sinon couleur unie
+-- Degrade (API du client moderne), sinon couleur unie ; style Moderne :
+-- toujours a plat (moyenne des deux bouts)
 function ns.UI.Gradient(tex, orientation, r1, g1, b1, a1, r2, g2, b2, a2)
     tex:SetTexture(W8)
+    if ns.MODERN then
+        tex:SetColorTexture((r1 + r2) / 2, (g1 + g2) / 2, (b1 + b2) / 2, (a1 + a2) / 2)
+        return
+    end
     local ok = pcall(tex.SetGradient, tex, orientation, CreateColor(r1, g1, b1, a1), CreateColor(r2, g2, b2, a2))
     if not ok then tex:SetColorTexture(r1, g1, b1, (a1 + a2) / 2) end
 end
@@ -2011,6 +2046,7 @@ local function buildMain()
     fili:SetPoint("TOPRIGHT", main, "TOPRIGHT", -6, -(HEAD_H - 14))
     fili:SetHeight(14)
     fili:SetTexture(MEDIA .. "theme_filigree")
+    if ns.MODERN then fili:Hide() end
 
     main:SetScript("OnSizeChanged", function(self, w, h)
         cover(bg, w, h, 1, 1)
@@ -2532,6 +2568,15 @@ local function buildGeneral()
     form:Gap(26)
 
     -- couleur du theme : une pastille par accent, la choisie entouree d or
+    -- style : classique ou moderne (plat, couleur de classe, police Saira)
+    local styleSel = form:Cycle(L.GEN_STYLE, { "classique", "moderne" },
+        { classique = L.STYLE_CLASSIC, moderne = L.STYLE_MODERN },
+        function() return ns.root.style or "classique" end,
+        function(v) ns.SetStyle(v) end)
+    local styleHint = general:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    styleHint:SetPoint("LEFT", styleSel, "RIGHT", 8, 0)
+    general.styleHint = styleHint
+    form:Gap(4)
     local themeTitle = form:Header(L.GEN_THEME)
     local themeHint = general:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     themeHint:SetPoint("LEFT", themeTitle, "RIGHT", 8, 0)
@@ -2589,6 +2634,7 @@ local function buildGeneral()
         for _, s in ipairs(general.swatches) do s.ring:SetShown(s.key == chosen) end
         -- choix different de la couleur en cours : il faut recharger
         general.themeHint:SetText(chosen ~= ns.COLORS.themeKey and L.GEN_THEME_HINT or "")
+        general.styleHint:SetText(((ns.root.style == "moderne") ~= (ns.MODERN and true or false)) and L.GEN_THEME_HINT or "")
     end
     general:SetScript("OnShow", function()
         update()

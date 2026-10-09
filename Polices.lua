@@ -46,6 +46,8 @@ end
 local function usable(f)
     if not f.regular then return false end
     if CJK[GetLocale()] and not f.cjk then return false end
+    -- police sans cyrillique (Saira) : le client russe garde la sienne
+    if f.latin and GetLocale() == "ruRU" then return false end
     return true
 end
 

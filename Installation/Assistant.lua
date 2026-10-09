@@ -88,6 +88,7 @@ local function build()
     fili:SetPoint("TOPRIGHT", -6, -(HEAD_H - 14))
     fili:SetHeight(14)
     fili:SetTexture(ns.MEDIA .. "theme_filigree")
+    if ns.MODERN then fili:Hide() end
     local logo = frame:CreateTexture(nil, "ARTWORK", nil, 2)
     logo:SetSize(38, 38)
     logo:SetPoint("TOPLEFT", 8, -3)
