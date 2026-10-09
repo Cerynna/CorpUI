@@ -372,6 +372,7 @@ function ns.UI.Mover(frame, store, label, target)
     local fs = m:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     fs:SetPoint("CENTER")
     fs:SetText(label or "")
+    m.text = fs
     m.target, m.store, m.label = target, store, label or ""
     m:EnableMouse(true)
     target:SetClampedToScreen(true)
@@ -392,7 +393,7 @@ function ns.UI.Mover(frame, store, label, target)
         guides.x:Hide()
         guides.y:Hide()
         if InCombatLockdown() then return end
-        ns.PinTop(target, store, true)
+        ns.PinTop(target, self.store, true)
         if self.onMoved then self.onMoved() end
         refreshPanel()
     end)
@@ -413,6 +414,16 @@ function ns.UI.Mover(frame, store, label, target)
     m:SetShown(ns.moversShown)
     table.insert(ns.movers, m)
     return m
+end
+
+-- poignee rattachee a une autre position enregistree (cadres dont les
+-- reglages changent de place : bandeaux d infos supprimes ou ajoutes)
+function ns.UI.MoverBind(m, store, label)
+    m.store = store
+    if label then
+        m.label = label
+        m.text:SetText(label)
+    end
 end
 
 local function setShown(v)

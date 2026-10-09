@@ -1,13 +1,19 @@
 --[[--------------------------------------------------------------------------
-    CorpUI - module Infos (barre d informations)
-    Une barre de textes, mise a jour chaque seconde :
+    CorpUI - module Infos (bandeaux d informations)
+    Jusqu a 10 bandeaux de textes, chacun avec ses infos, son ordre, son
+    apparence et sa place (le 1 : CorpUIDB.info, les autres :
+    CorpUIDB.info.extra), mis a jour chaque seconde :
       or, places libres dans les sacs, durabilite de l equipement (la plus
       basse), images par seconde, latence (domicile / monde), heure,
       coordonnees, amis et membres de guilde en ligne.
     Reglages : infos affichees et leur ordre, hauteur, taille du texte,
     espacement, largeur (auto ou fixe) et alignement, fond et son opacite,
     separateurs, visible au survol seulement, echelle.
-    Cadre ordinaire, deplacable avec "Deverrouiller l interface".
+    Cadres ordinaires, deplacables avec "Deverrouiller l interface" ;
+    "Sous le chat" le pose a la place de la zone de saisie du chat (a sa
+    largeur) et passe le chat en saisie "pendant la frappe" : la zone de
+    saisie s ouvre par-dessus (Entree, clic sur un canal ou un nom) et le
+    bandeau s efface le temps de la frappe (ns.ChatBox / ns.ChatEditShown).
     Clics et infobulles : un petit bouton SECURISE transparent par info,
     enfant d UIParent (pas de la barre : la barre change de largeur chaque
     seconde, meme en combat). Il est place hors combat sur le texte, avec
@@ -31,11 +37,10 @@ local DEFAULTS = {
     clicks = true, tooltips = true,
 }
 
-local db
-local bar
-local texts, seps = {}, {}
-local spots = {}        -- position de chaque texte affiche : { x, w } dans la barre
-local hot = {}          -- boutons securises par info
+local MAX_BARS = 10
+local db                -- CorpUIDB.info : bandeau 1, et .extra = les suivants
+local bars = {}         -- bandeaux construits, par numero : { index, conf, frame,
+                        -- texts, seps, spots (x, w de chaque texte), hot (zones) }
 
 local issecret = issecretvalue or function() return false end
 local unpack = unpack or table.unpack
@@ -393,6 +398,46 @@ TIP.guild = function(t, refreshing)
     if n > MAXLINES then t:AddLine(string.format(L.INFO_TIP_MORE, n - MAXLINES), C.text[1], C.text[2], C.text[3]) end
 end
 
+
+---------------------------------------------------------------------------
+-- Reglages des bandeaux : le 1 = CorpUIDB.info (comme avant), les autres
+-- dans CorpUIDB.info.extra (9 au plus). Un objet bandeau garde son numero ;
+-- quand un bandeau est supprime, les suivants reprennent les reglages
+-- decales d un cran (et leur poignee, leur position).
+---------------------------------------------------------------------------
+
+local function count() return 1 + #db.extra end
+local function confOf(i)
+    if i == 1 then return db end
+    return db.extra[i - 1]
+end
+local function barLabel(i)
+    if i == 1 then return L.MOD_INFO end
+    return string.format(L.INFO_BAR_N, i)
+end
+
+-- reglages complets (valeurs par defaut, infos, ordre)
+local function normalize(c, i)
+    for k, v in pairs(DEFAULTS) do if c[k] == nil then c[k] = v end end
+    if type(c.items) ~= "table" then
+        c.items = {}
+        if i == 1 then for key, on in pairs(DEFAULT_ON) do c.items[key] = on end end
+    end
+    if i == 1 then
+        for key, on in pairs(DEFAULT_ON) do if c.items[key] == nil then c.items[key] = on end end
+    end
+    -- ordre : celui enregistre, puis les infos ajoutees depuis
+    local seen, order = {}, {}
+    for _, key in ipairs(type(c.order) == "table" and c.order or {}) do
+        if VALUE[key] and not seen[key] then seen[key] = true table.insert(order, key) end
+    end
+    for _, key in ipairs(ITEMS) do if not seen[key] then table.insert(order, key) end end
+    c.order = order
+    if type(c.pos) ~= "table" then
+        c.pos = (i == 1) and { point = "TOP", x = 0, y = -86 } or { point = "CENTER", x = 0, y = 140 - 30 * i }
+    end
+end
+
 ---------------------------------------------------------------------------
 -- Zones cliquables (boutons securises)
 ---------------------------------------------------------------------------
@@ -430,24 +475,27 @@ local TARGETS = {
 local tipOwner
 
 local function showTip(b, refreshing)
+    local B = b.cuiBar
+    local c = B.conf
+    if not c then return end
     local key = b.cuiKey
     local t = ns.Tooltip(b, "ANCHOR_NONE")
     t:ClearAllPoints()
-    -- au-dessus ou en dessous de la barre selon sa place a l ecran
-    local _, cy = bar:GetCenter()
-    local h = UIParent:GetHeight() / (bar:GetScale() or 1)
+    -- au-dessus ou en dessous du bandeau selon sa place a l ecran
+    local _, cy = B.frame:GetCenter()
+    local h = UIParent:GetHeight() / (B.frame:GetScale() or 1)
     if cy and h and cy > h / 2 then
         t:SetPoint("TOP", b, "BOTTOM", 0, -4)
     else
         t:SetPoint("BOTTOM", b, "TOP", 0, 4)
     end
-    if db.tooltips and TIP[key] then
+    if c.tooltips and TIP[key] then
         local ok = pcall(TIP[key], t, refreshing)
         if not ok then t:AddLine("?") end
     else
         title(t, L["INFO_" .. strupper(key) .. "_NAME"])
     end
-    if db.clicks and (b.cuiHint1 or b.cuiHint2) then
+    if c.clicks and (b.cuiHint1 or b.cuiHint2) then
         t:AddLine(" ")
         if b.cuiHint1 then t:AddLine(L[b.cuiHint1], 0.5, 0.8, 1) end
         if b.cuiHint2 then t:AddLine(L[b.cuiHint2], 0.5, 0.8, 1) end
@@ -456,23 +504,25 @@ local function showTip(b, refreshing)
     tipOwner = b
 end
 
-local function makeHot(key)
-    local b = CreateFrame("Button", "CorpUIInfoClick" .. key, UIParent, "SecureActionButtonTemplate")
-    b.cuiKey = key
+local function makeHot(B, key)
+    -- bandeau 1 : memes noms qu avant (macros, autres addons)
+    local name = B.index == 1 and ("CorpUIInfoClick" .. key) or ("CorpUIInfo" .. B.index .. "Click" .. key)
+    local b = CreateFrame("Button", name, UIParent, "SecureActionButtonTemplate")
+    b.cuiKey, b.cuiBar = key, B
     -- appui ET relachement : l action securisee part sur l un ou l autre
     -- selon le reglage "action a l appui" (comme les boutons du micro-menu)
     b:RegisterForClicks("AnyUp", "AnyDown")
     b:Hide()
     b:SetScript("OnEnter", function(self) showTip(self) end)
     b:SetScript("OnLeave", function() tipOwner = nil ns.HideTooltip() end)
-    hot[key] = b
+    B.hot[key] = b
     return b
 end
 
 -- attributs du clic : hors combat seulement
-local function setTargets(b)
+local function setTargets(b, c)
     local t1, t2, h1, h2
-    if db.clicks and TARGETS[b.cuiKey] then t1, t2, h1, h2 = TARGETS[b.cuiKey]() end
+    if c.clicks and TARGETS[b.cuiKey] then t1, t2, h1, h2 = TARGETS[b.cuiKey]() end
     if t1 ~= b.cuiT1 then
         b:SetAttribute("type1", t1 and "click" or nil)
         b:SetAttribute("clickbutton1", t1)
@@ -489,23 +539,23 @@ end
 
 local hotPending
 
--- place les zones sur les textes ; en combat, attend la fin du combat
-local function syncHot()
-    if not bar then return end
+-- place les zones d un bandeau sur ses textes ; en combat, attend la fin
+local function syncHot(B)
     if InCombatLockdown() then hotPending = true return end
-    hotPending = false
-    local active = bar:IsShown() and (db.clicks or db.tooltips)
+    local c, bar = B.conf, B.frame
+    local active = c ~= nil and bar:IsShown() and (c.clicks or c.tooltips)
     local left, bottom = bar:GetLeft(), bar:GetBottom()
     if not left or not bottom then active = false end
     local scale = bar:GetScale() or 1
     local strata, level = bar:GetFrameStrata() or "MEDIUM", (bar:GetFrameLevel() or 1) + 5
     for _, key in ipairs(ITEMS) do
-        local b = hot[key] or makeHot(key)
-        local p = active and db.items[key] and spots[key]
+        local b = B.hot[key]
+        local p = active and c.items[key] and B.spots[key]
         if p then
-            -- meme echelle que la barre : coordonnees dans le repere de la barre
+            b = b or makeHot(B, key)
+            -- meme echelle que le bandeau : coordonnees dans son repere
             local x = math.floor(left + p.x + 0.5)
-            local sig = table.concat({ x, math.floor(bottom + 0.5), p.w, db.height, scale, strata, level }, ":")
+            local sig = table.concat({ x, math.floor(bottom + 0.5), p.w, c.height, scale, strata, level }, ":")
             if b.cuiSig ~= sig then
                 b.cuiSig = sig
                 b:SetScale(scale)
@@ -513,40 +563,45 @@ local function syncHot()
                 b:SetFrameLevel(level)
                 b:ClearAllPoints()
                 b:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, math.floor(bottom + 0.5))
-                b:SetSize(math.max(8, p.w), db.height)
+                b:SetSize(math.max(8, p.w), c.height)
             end
-            setTargets(b)
+            setTargets(b, c)
             if not b:IsShown() then b:Show() end
-        elseif b:IsShown() then
+        elseif b and b:IsShown() then
             b:Hide()
             b.cuiSig = nil
         end
     end
 end
 
----------------------------------------------------------------------------
--- Barre
----------------------------------------------------------------------------
-
-local function separator(i)
-    if not seps[i] then
-        local t = bar:CreateTexture(nil, "ARTWORK")
-        t:SetWidth(1)
-        ns.UI.Gradient(t, "VERTICAL", C.violet[1], C.violet[2], C.violet[3], 0, C.violet[1], C.violet[2], C.violet[3], 0.8)
-        seps[i] = t
-    end
-    return seps[i]
+local function syncAllHot()
+    hotPending = false
+    for _, B in pairs(bars) do syncHot(B) end
 end
 
-local function refresh()
-    if not bar then return end
-    if not bar:IsShown() then syncHot() return end
+---------------------------------------------------------------------------
+-- Bandeaux
+---------------------------------------------------------------------------
+
+local function separator(B, i)
+    if not B.seps[i] then
+        local t = B.frame:CreateTexture(nil, "ARTWORK")
+        t:SetWidth(1)
+        ns.UI.Gradient(t, "VERTICAL", C.violet[1], C.violet[2], C.violet[3], 0, C.violet[1], C.violet[2], C.violet[3], 0.8)
+        B.seps[i] = t
+    end
+    return B.seps[i]
+end
+
+local function refresh(B)
+    local c, bar = B.conf, B.frame
+    if not c or not bar:IsShown() then syncHot(B) return end
     -- textes visibles, dans l ordre choisi
     local shown, keys, total = {}, {}, 0
-    for k in pairs(spots) do spots[k] = nil end
-    for _, key in ipairs(db.order) do
-        local fs = texts[key]
-        if db.items[key] then
+    for k in pairs(B.spots) do B.spots[k] = nil end
+    for _, key in ipairs(c.order) do
+        local fs = B.texts[key]
+        if c.items[key] then
             local ok, txt = pcall(VALUE[key])
             fs:SetText(ok and txt or "?")
             fs:Show()
@@ -558,15 +613,15 @@ local function refresh()
         end
     end
     local n = #shown
-    local gap = db.spacing
+    local gap = c.spacing
     local width
     local x = PAD
-    if db.width > 0 then
-        width = db.width
+    if c.width > 0 then
+        width = c.width
         local used = total + gap * math.max(0, n - 1)
-        if db.align == "center" then
+        if c.align == "center" then
             x = math.max(PAD, (width - used) / 2)
-        elseif db.align == "spread" and n > 1 then
+        elseif c.align == "spread" and n > 1 then
             gap = math.max(4, (width - 2 * PAD - total) / (n - 1))
         end
     else
@@ -579,81 +634,168 @@ local function refresh()
         -- zone cliquable : le texte et la moitie des espaces qui l entourent
         local sw = fs:GetStringWidth()
         local zx = math.max(0, x - gap / 2)
-        spots[keys[i]] = { x = zx, w = math.floor(x + sw + gap / 2 - zx + 0.5) }
+        B.spots[keys[i]] = { x = zx, w = math.floor(x + sw + gap / 2 - zx + 0.5) }
         x = x + sw
         -- separateur au milieu de l espace qui suit
-        local s = separator(i)
-        if db.separators and i < n then
+        local s = separator(B, i)
+        if c.separators and i < n then
             s:ClearAllPoints()
             s:SetPoint("CENTER", bar, "LEFT", math.floor(x + gap / 2 + 0.5), 0)
-            s:SetHeight(math.max(8, db.height - 8))
+            s:SetHeight(math.max(8, c.height - 8))
             s:Show()
         else
             s:Hide()
         end
         x = x + gap
     end
-    for i = n + 1, #seps do seps[i]:Hide() end
-    syncHot()
+    for i = n + 1, #B.seps do B.seps[i]:Hide() end
+    syncHot(B)
     -- infobulle ouverte : contenu a jour (sans remesurer la memoire)
-    if tipOwner and tipOwner:IsShown() and tipOwner:IsMouseOver() then showTip(tipOwner, true) end
+    if tipOwner and tipOwner.cuiBar == B and tipOwner:IsShown() and tipOwner:IsMouseOver() then showTip(tipOwner, true) end
 end
 
-local function apply()
-    bar:SetShown(db.enabled)
-    bar:SetScale(db.scale)
-    bar:SetHeight(db.height)
-    local a = db.alpha / 100
-    bar.cuiBg:SetAlpha(a)
-    bar.cuiBg:SetShown(db.backdrop)
-    bar.cuiBorder:SetShown(db.backdrop)
-    for _, t in ipairs(bar.shadow) do t:SetShown(db.backdrop) end
+local function apply(B)
+    local c, bar = B.conf, B.frame
+    if not c then
+        bar:Hide()
+        syncHot(B)
+        return
+    end
+    bar:SetShown(c.enabled)
+    bar:SetScale(c.scale)
+    bar:SetHeight(c.height)
+    bar.cuiBg:SetAlpha(c.alpha / 100)
+    bar.cuiBg:SetShown(c.backdrop)
+    bar.cuiBorder:SetShown(c.backdrop)
+    for _, t in ipairs(bar.shadow) do t:SetShown(c.backdrop) end
     -- sans fond : contour pour rester lisible sur le decor
     local file = (ns.FontFile and ns.FontFile("regular")) or STANDARD_TEXT_FONT
-    for _, fs in pairs(texts) do
-        if not pcall(fs.SetFont, fs, file, db.fontSize, db.backdrop and "" or "OUTLINE") then
+    for _, fs in pairs(B.texts) do
+        if not pcall(fs.SetFont, fs, file, c.fontSize, c.backdrop and "" or "OUTLINE") then
             fs:SetFontObject("GameFontHighlightSmall")
         end
     end
-    if not db.mouseover then bar:SetAlpha(1) end
-    refresh()
+    if not c.mouseover then bar:SetAlpha(1) end
+    refresh(B)
 end
 
-local function build()
-    db.pos = db.pos or { point = "TOP", x = 0, y = -86 }
-    -- premiere position par defaut, sous une barre d XP courante : trop haute
-    if db.pos.point == "TOP" and db.pos.y == -64 and not db.pos.rel then db.pos.y = -86 end
-    bar = CreateFrame("Frame", "CorpUIInfoBar", UIParent)
-    bar:SetSize(300, db.height)
-    ns.ApplyPos(bar, db.pos)
-    -- fond, liseré et ombre (les textures d ombre sont gardees pour les masquer)
-    local before = { bar:GetRegions() }
-    ns.UI.Skin(bar, 1, true)
-    bar.shadow = {}
-    local known = {}
-    for _, r in ipairs(before) do known[r] = true end
-    for _, r in ipairs({ bar:GetRegions() }) do
-        if not known[r] and r ~= bar.cuiBg and r ~= bar.cuiBorder then table.insert(bar.shadow, r) end
+local function applyAll()
+    for i = 1, MAX_BARS do
+        local B = bars[i]
+        if B then apply(B) end
     end
-    for _, key in ipairs(ITEMS) do
-        texts[key] = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    end
-    ns.UI.Mover(bar, db.pos, L.MOD_INFO)
-    local elapsed = 1
-    bar:SetScript("OnUpdate", function(self, dt)
-        -- fondu "au survol"
-        if db.mouseover then
-            local want = (self:IsMouseOver() or ns.moversShown) and 1 or 0
-            local a = self:GetAlpha()
-            if a ~= want then self:SetAlpha(want > a and math.min(1, a + dt * 5) or math.max(0, a - dt * 3)) end
-        end
-        elapsed = elapsed + dt
-        if elapsed < 1 then return end
-        elapsed = 0
-        refresh()
-    end)
-    apply()
 end
+
+-- bandeau n° i : construit au besoin, rattache a ses reglages
+local function bind(i)
+    local c = confOf(i)
+    local B = bars[i]
+    if not B then
+        if not c then return end
+        B = { index = i, texts = {}, seps = {}, spots = {}, hot = {} }
+        local bar = CreateFrame("Frame", i == 1 and "CorpUIInfoBar" or ("CorpUIInfoBar" .. i), UIParent)
+        B.frame = bar
+        bar:SetSize(300, c.height)
+        -- fond, liseré et ombre (les textures d ombre sont gardees pour les masquer)
+        local before = { bar:GetRegions() }
+        ns.UI.Skin(bar, 1, true)
+        bar.shadow = {}
+        local known = {}
+        for _, r in ipairs(before) do known[r] = true end
+        for _, r in ipairs({ bar:GetRegions() }) do
+            if not known[r] and r ~= bar.cuiBg and r ~= bar.cuiBorder then table.insert(bar.shadow, r) end
+        end
+        for _, key in ipairs(ITEMS) do
+            B.texts[key] = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        end
+        B.mover = ns.UI.Mover(bar, c.pos, barLabel(i))
+        -- deplace a la main : plus lie a la zone de saisie du chat
+        B.mover.onMoved = function() if B.conf then B.conf.underChat = nil end end
+        local elapsed = 1
+        bar:SetScript("OnUpdate", function(self, dt)
+            local cc = B.conf
+            if not cc then return end
+            -- a la place de la zone de saisie : efface pendant la frappe ;
+            -- sinon fondu "au survol"
+            local typing = cc.underChat and not ns.moversShown and ns.ChatEditShown and ns.ChatEditShown()
+            if typing then
+                if self:GetAlpha() ~= 0 then self:SetAlpha(0) end
+            elseif cc.mouseover then
+                local want = (self:IsMouseOver() or ns.moversShown) and 1 or 0
+                local a = self:GetAlpha()
+                if a ~= want then self:SetAlpha(want > a and math.min(1, a + dt * 5) or math.max(0, a - dt * 3)) end
+            elseif cc.underChat and self:GetAlpha() ~= 1 then
+                self:SetAlpha(1)
+            end
+            elapsed = elapsed + dt
+            if elapsed < 1 then return end
+            elapsed = 0
+            refresh(B)
+        end)
+        bars[i] = B
+    end
+    B.conf = c
+    if c then
+        if ns.UI.MoverBind then ns.UI.MoverBind(B.mover, c.pos, barLabel(i)) end
+        ns.ApplyPos(B.frame, c.pos)
+    end
+    apply(B)
+    return B
+end
+
+-- nouveau bandeau (hors combat) : les infos que les autres ne montrent pas
+local function addBar()
+    if InCombatLockdown() then ns.Say(L.COMBAT_BLOCKED) return end
+    if count() >= MAX_BARS then ns.Say(string.format(L.INFO_MAX, MAX_BARS)) return end
+    local used = {}
+    for i = 1, count() do
+        for key, on in pairs(confOf(i).items) do if on and confOf(i).enabled then used[key] = true end end
+    end
+    local c = { items = {} }
+    for _, key in ipairs(ITEMS) do if not used[key] then c.items[key] = true end end
+    -- meme apparence que le bandeau 1 (pas sa place, sa largeur ni ses infos)
+    for _, k in ipairs({ "height", "fontSize", "spacing", "backdrop", "alpha", "separators", "scale", "clicks", "tooltips" }) do
+        c[k] = db[k]
+    end
+    if next(c.items) == nil then c.items.time = true end
+    table.insert(db.extra, c)
+    local i = count()
+    normalize(c, i)
+    bind(i)
+    return i
+end
+
+-- supprime le bandeau i (pas le 1) : les suivants descendent d un cran
+local function removeBar(i)
+    if i <= 1 or i > count() then return end
+    if InCombatLockdown() then ns.Say(L.COMBAT_BLOCKED) return end
+    local last = count()
+    table.remove(db.extra, i - 1)
+    for k = i, last do bind(k) end
+end
+
+-- pose le bandeau i a la place de la zone de saisie du chat (chat a sa
+-- place d origine, saisie seulement pendant la frappe, par-dessus le bandeau)
+local function underChat(i)
+    if InCombatLockdown() then ns.Say(L.COMBAT_BLOCKED) return end
+    local c = confOf(i)
+    if not c or not ns.ChatBox then ns.Say(L.INFO_NO_CHAT) return end
+    if ns.ChatSetLift then ns.ChatSetLift(0) end
+    local box = ns.ChatBox()
+    if not box then ns.Say(L.INFO_NO_CHAT) return end
+    if ns.ChatEditOnTyping then ns.ChatEditOnTyping(true) end
+    local s = c.scale or 1
+    -- meme table de position (la poignee la garde)
+    for k in pairs(c.pos) do c.pos[k] = nil end
+    c.pos.point, c.pos.x, c.pos.y = "BOTTOMLEFT", math.floor(box.left / s + 0.5), math.floor(box.bottom / s + 0.5)
+    c.width = math.floor(box.width / s + 0.5)
+    c.height = math.max(14, math.floor(box.height / s + 0.5))
+    c.underChat = true
+    bind(i)
+end
+
+-- pour la disposition Moderne et les tests
+ns.InfoBars = { Count = function() return db and count() or 0 end, Add = addBar, Remove = removeBar, UnderChat = underChat }
 
 ---------------------------------------------------------------------------
 -- Fenetre d options
@@ -662,42 +804,58 @@ end
 local win
 
 local function buildWindow()
-    win = ns.UI.Window("CorpUIInfoOptions", ns.TITLE .. " - " .. L.MOD_INFO, nil, 440, 680)
+    win = ns.UI.Window("CorpUIInfoOptions", ns.TITLE .. " - " .. L.MOD_INFO, nil, 440, 710)
     local refreshers = {}
     local function redraw() for _, r in ipairs(refreshers) do r() end end
     local y = -34
+    -- bandeau regle (liste), ajouter / supprimer / sous le chat
+    local sel = 1
+    local function cur()
+        if sel > count() then sel = count() end
+        return confOf(sel)
+    end
+    local function changed() bind(sel) redraw() end
+
+    local pick = ns.UI.Select(win, 150, function()
+        local list = {}
+        for i = 1, count() do table.insert(list, { value = i, text = barLabel(i) }) end
+        return list
+    end, function() return sel end, function(v) sel = v end, function() redraw() end)
+    pick:SetPoint("TOPLEFT", 8, y)
+    local add = ns.UI.Button(win, L.INFO_ADD, 80, function()
+        local i = addBar()
+        if i then sel = i end
+        redraw()
+    end)
+    add:SetPoint("LEFT", pick, "RIGHT", 6, 0)
+    local del = ns.UI.Button(win, L.INFO_DEL, 80, function()
+        removeBar(sel)
+        if sel > count() then sel = count() end
+        redraw()
+    end)
+    del:SetPoint("LEFT", add, "RIGHT", 4, 0)
+    local chat = ns.UI.Button(win, L.INFO_UNDER_CHAT, 112, function()
+        underChat(sel)
+        redraw()
+    end)
+    chat:SetPoint("LEFT", del, "RIGHT", 4, 0)
+    table.insert(refreshers, function()
+        if sel > count() then sel = count() end
+        if pick.Refresh then pick:Refresh() end
+        add:SetEnabled(count() < MAX_BARS)
+        del:SetEnabled(sel > 1)
+    end)
+    y = y - 30
 
     local function check(text, get, set, x)
-        local c = ns.UI.Check(win, text, function(v) set(v) apply() redraw() end)
+        local c = ns.UI.Check(win, text, function(v) set(v) changed() end)
         c:SetPoint("TOPLEFT", x or 4, y)
         y = y - 24
         table.insert(refreshers, function() c:SetChecked(get()) end)
         return c
     end
-    local function stepper(textFn, change)
-        local fs = win:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        fs:SetPoint("TOPLEFT", 8, y - 5)
-        local function go(d)
-            change(d * (IsShiftKeyDown() and 5 or 1))
-            apply()
-            redraw()
-        end
-        local minus = ns.UI.Button(win, "-", 24, function() go(-1) end)
-        minus:SetPoint("TOPLEFT", 230, y)
-        local plus = ns.UI.Button(win, "+", 24, function() go(1) end)
-        plus:SetPoint("LEFT", minus, "RIGHT", 2, 0)
-        y = y - 26
-        table.insert(refreshers, function() fs:SetText(textFn()) end)
-    end
-    local function num(key, fmt, lo, hi, step)
-        stepper(function() return string.format(fmt, db[key]) end,
-            function(d)
-                local v = math.floor((db[key] + d * (step or 1)) * 100 + 0.5) / 100
-                db[key] = math.max(lo, math.min(hi, v))
-            end)
-    end
 
-    check(L.INFO_OPT_ENABLE, function() return db.enabled end, function(v) db.enabled = v end)
+    check(L.INFO_OPT_ENABLE, function() return cur().enabled end, function(v) cur().enabled = v end)
 
     -- infos affichees, avec fleches pour l ordre
     y = y - 6
@@ -708,17 +866,19 @@ local function buildWindow()
     local rows = {}
     for i = 1, #ITEMS do
         local row = {}
-        row.check = ns.UI.Check(win, "", function(v) db.items[db.order[i]] = v apply() redraw() end)
+        row.check = ns.UI.Check(win, "", function(v) cur().items[cur().order[i]] = v changed() end)
         row.check:SetPoint("TOPLEFT", 4, y)
         row.up = ns.UI.Button(win, "^", 22, function()
-            if i > 1 then db.order[i], db.order[i - 1] = db.order[i - 1], db.order[i] end
-            apply() redraw()
+            local o = cur().order
+            if i > 1 then o[i], o[i - 1] = o[i - 1], o[i] end
+            changed()
         end)
         row.up:SetSize(22, 20)
         row.up:SetPoint("TOPLEFT", 230, y - 1)
         row.down = ns.UI.Button(win, "v", 22, function()
-            if i < #db.order then db.order[i], db.order[i + 1] = db.order[i + 1], db.order[i] end
-            apply() redraw()
+            local o = cur().order
+            if i < #o then o[i], o[i + 1] = o[i + 1], o[i] end
+            changed()
         end)
         row.down:SetSize(22, 20)
         row.down:SetPoint("LEFT", row.up, "RIGHT", 2, 0)
@@ -726,49 +886,51 @@ local function buildWindow()
         y = y - 22
     end
     table.insert(refreshers, function()
+        local c = cur()
         for i, row in ipairs(rows) do
-            local key = db.order[i]
+            local key = c.order[i]
             row.check.label:SetText(L["INFO_" .. strupper(key) .. "_NAME"])
             row.check:SetHitRectInsets(0, -(row.check.label:GetStringWidth() + 4), 0, 0)
-            row.check:SetChecked(db.items[key])
+            row.check:SetChecked(c.items[key])
             row.up:SetEnabled(i > 1)
-            row.down:SetEnabled(i < #db.order)
+            row.down:SetEnabled(i < #c.order)
         end
     end)
 
     -- apparence : formulaire commun (curseurs, listes, deux colonnes)
-    local form = ns.UI.Form(win, y - 4, function() apply() redraw() end)
+    local form = ns.UI.Form(win, y - 4, function() changed() end)
     form:Header(L.INFO_LAYOUT)
     form:Columns(2)
     local function fnum(fmt, key, lo, hi, step)
-        form:Number(fmt, function() return db[key] end, function(v) db[key] = v end, lo, hi, step)
+        form:Number(fmt, function() return cur()[key] end, function(v) cur()[key] = v end, lo, hi, step)
     end
     fnum(L.INFO_HEIGHT, "height", 14, 40)
     fnum(L.INFO_FONT, "fontSize", 8, 18)
     fnum(L.INFO_SPACING, "spacing", 4, 60)
     -- largeur : 0 = automatique
-    form:Number(ns.UI.LabelOf(L.INFO_WIDTH) .. " (0 = " .. L.INFO_AUTO .. ")", function() return db.width end,
-        function(v) db.width = v < 100 and 0 or v end, 0, 1600, 10)
+    form:Number(ns.UI.LabelOf(L.INFO_WIDTH) .. " (0 = " .. L.INFO_AUTO .. ")", function() return cur().width end,
+        function(v) cur().width = v < 100 and 0 or v end, 0, 1600, 10)
     form:Cycle(L.INFO_ALIGN, ALIGNS, { left = L.INFO_ALIGN_LEFT, center = L.INFO_ALIGN_CENTER, spread = L.INFO_ALIGN_SPREAD },
-        function() return db.align end, function(v) db.align = v end)
+        function() return cur().align end, function(v) cur().align = v end)
     fnum(L.FRAMES_SCALE, "scale", 0.6, 1.6, 0.1)
     fnum(L.INFO_ALPHA, "alpha", 10, 100, 5)
-    form:Check(L.INFO_BACKDROP, function() return db.backdrop end, function(v) db.backdrop = v end)
-    form:Check(L.INFO_SEPARATORS, function() return db.separators end, function(v) db.separators = v end)
-    form:Check(L.INFO_MOUSEOVER, function() return db.mouseover end, function(v) db.mouseover = v end)
+    form:Check(L.INFO_BACKDROP, function() return cur().backdrop end, function(v) cur().backdrop = v end)
+    form:Check(L.INFO_SEPARATORS, function() return cur().separators end, function(v) cur().separators = v end)
+    form:Check(L.INFO_MOUSEOVER, function() return cur().mouseover end, function(v) cur().mouseover = v end)
     form:EndColumns()
     -- clics et infobulles (les zones cliquables sont replacees hors combat)
     form:Header(L.INFO_INTERACT)
-    form:Check(L.INFO_OPT_CLICKS, function() return db.clicks end, function(v) db.clicks = v end)
-    form:Check(L.INFO_OPT_TIPS, function() return db.tooltips end, function(v) db.tooltips = v end)
+    form:Check(L.INFO_OPT_CLICKS, function() return cur().clicks end, function(v) cur().clicks = v end)
+    form:Check(L.INFO_OPT_TIPS, function() return cur().tooltips end, function(v) cur().tooltips = v end)
+    table.insert(refreshers, function() form:Refresh() end)
 
     local hint = win:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("TOPLEFT", 8, form.y - 6)
     hint:SetWidth(420)
     hint:SetJustifyH("LEFT")
-    hint:SetText(L.INFO_HINT)
+    hint:SetText(L.INFO_HINT .. "\n" .. string.format(L.INFO_BARS_HINT, MAX_BARS))
 
-    win:HookScript("OnShow", function() redraw() form:Refresh() end)
+    win:HookScript("OnShow", function() redraw() end)
 end
 
 local function toggle()
@@ -782,27 +944,24 @@ local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
     if event == "PLAYER_MONEY" then trackMoney() return end
     if event == "PLAYER_REGEN_ENABLED" then
-        if hotPending and db then syncHot() end
+        if hotPending and db then syncAllHot() end
         return
     end
     if event ~= "PLAYER_LOGIN" then return end
     local root = ns.InitRoot()
     root.info = root.info or {}
     db = root.info
-    for k, v in pairs(DEFAULTS) do if db[k] == nil then db[k] = v end end
-    db.items = db.items or {}
-    for key, on in pairs(DEFAULT_ON) do if db.items[key] == nil then db.items[key] = on end end
-    -- ordre : celui enregistre, puis les infos ajoutees depuis
-    db.order = db.order or {}
-    local seen = {}
-    local order = {}
-    for _, key in ipairs(db.order) do
-        if VALUE[key] and not seen[key] then seen[key] = true table.insert(order, key) end
+    if type(db.extra) ~= "table" then db.extra = {} end
+    -- reglages abimes ecartes, 9 bandeaux en plus au plus
+    for i = #db.extra, 1, -1 do
+        if type(db.extra[i]) ~= "table" or i > MAX_BARS - 1 then table.remove(db.extra, i) end
     end
-    for _, key in ipairs(ITEMS) do if not seen[key] then table.insert(order, key) end end
-    db.order = order
+    normalize(db, 1)
+    -- premiere position par defaut, sous une barre d XP courante : trop haute
+    if db.pos.point == "TOP" and db.pos.y == -64 and not db.pos.rel then db.pos.y = -86 end
+    for i = 2, count() do normalize(db.extra[i - 1], i) end
     trackMoney()
-    build()
+    for i = 1, count() do bind(i) end
 end)
 pcall(ev.RegisterEvent, ev, "PLAYER_LOGIN")
 pcall(ev.RegisterEvent, ev, "PLAYER_MONEY")

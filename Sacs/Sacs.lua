@@ -255,6 +255,19 @@ local function useItem(self)
     end
 end
 
+-- Hotel des ventes : le clic droit du jeu (mettre l objet en vente) appelle
+-- AuctionHouseFrame:SetPostItem. Appele par l addon, il marquerait la vente
+-- (bouton "Creer une vente" bloque ensuite), et UseContainerItem y est
+-- refuse aux addons. Le bouton du sac de Blizzard (cache, mais ses sacs
+-- sont ouverts par le jeu a l HV) est donc clique par l action securisee
+-- "click" : son propre code met l objet en vente, sans trace de l addon.
+local function blizzardItemButton(bag, slot)
+    local find = ContainerFrameUtil_GetItemButtonAndContainer
+    if type(find) ~= "function" then return nil end
+    local ok, b = pcall(find, bag, slot)
+    if ok and type(b) == "table" and b.Click then return b end
+end
+
 -- Bouton d objet commun aux sacs et a la banque.
 --   secure : bouton d action securise (sacs : clic droit "utiliser" en
 --            combat, sort qui attend une cible). Sinon bouton simple
@@ -326,7 +339,22 @@ local function createItemButton(parent, bag, slot, secure, name, size)
     -- applique aussi un sort en attente, comme la banque de Blizzard)
     if secure then
         b:SetScript("PreClick", function(self, button, down)
-            if button ~= "LeftButton" or InCombatLockdown() then return end
+            if InCombatLockdown() then return end
+            -- clic droit : a l HV par le bouton du jeu ; ailleurs comme avant
+            -- (utiliser hors PNJ, sinon l addon s en charge a la fin du clic)
+            if button == "RightButton" then
+                local target = contexts.auction and blizzardItemButton(self.bag, self.slot) or nil
+                self.viaBlizzard = target ~= nil
+                if target then
+                    self:SetAttribute("type2", "click")
+                    self:SetAttribute("clickbutton2", target)
+                else
+                    self:SetAttribute("type2", atNPC() and "" or "item")
+                    self:SetAttribute("clickbutton2", nil)
+                end
+                return
+            end
+            if button ~= "LeftButton" then return end
             if down or self.targeting == nil then
                 local t = (SpellCanTargetItem and SpellCanTargetItem())
                     or (SpellCanTargetItemID and SpellCanTargetItemID())
@@ -353,7 +381,14 @@ local function createItemButton(parent, bag, slot, secure, name, size)
         -- clic droit : sacs chez un PNJ (sinon l action securisee s en
         -- charge) ; banque : toujours (ranger dans les sacs)
         if button == "RightButton" then
-            if not down and (not self.secure or atNPC()) then useItem(self) end
+            if down or self.viaBlizzard then return end
+            if contexts.auction and self.secure then
+                -- bouton du jeu introuvable : l objet passe au curseur, a
+                -- poser dans la case de vente (UseContainerItem est refuse)
+                if not InCombatLockdown() then pcall(C_Container.PickupContainerItem, self.bag, self.slot) end
+                return
+            end
+            if not self.secure or atNPC() then useItem(self) end
             return
         end
         if button ~= "LeftButton" or down then return end

@@ -202,3 +202,31 @@ ns.AddStrings({
         CHAT_HINT = "위치, 크기, 글자 크기와 채널은 계속 게임에서 설정합니다 (탭 우클릭 또는 편집 모드). 게임이 비밀로 하는 메시지(전투, 인스턴스)는 복사할 수 없습니다. 원래대로: 체크 해제 후 다시 불러오기.",
     },
 })
+
+-- Place sous le chat (bandeau d infos dessous, 09/10)
+ns.AddStrings({
+    enUS = { CHAT_LIFT = "Space under the chat: %d" },
+    frFR = { CHAT_LIFT = "Espace sous le chat : %d" },
+    deDE = { CHAT_LIFT = "Platz unter dem Chat: %d" },
+    esES = { CHAT_LIFT = "Espacio bajo el chat: %d" },
+    ptBR = { CHAT_LIFT = "Espaço sob o chat: %d" },
+    itIT = { CHAT_LIFT = "Spazio sotto la chat: %d" },
+    ruRU = { CHAT_LIFT = "Место под чатом: %d" },
+    zhCN = { CHAT_LIFT = "聊天框下方空间：%d" },
+    zhTW = { CHAT_LIFT = "聊天框下方空間：%d" },
+    koKR = { CHAT_LIFT = "채팅창 아래 공간: %d" },
+})
+
+-- Saisie seulement pendant la frappe (09/10)
+ns.AddStrings({
+    enUS = { CHAT_OPT_EDIT_TYPING = "Show the typing box only while typing (classic chat style)" },
+    frFR = { CHAT_OPT_EDIT_TYPING = "Zone de saisie seulement pendant la frappe (style classique)" },
+    deDE = { CHAT_OPT_EDIT_TYPING = "Eingabefeld nur beim Schreiben zeigen (klassischer Chatstil)" },
+    esES = { CHAT_OPT_EDIT_TYPING = "Mostrar la caja de texto solo al escribir (estilo clásico)" },
+    ptBR = { CHAT_OPT_EDIT_TYPING = "Mostrar a caixa de texto só ao digitar (estilo clássico)" },
+    itIT = { CHAT_OPT_EDIT_TYPING = "Mostra la casella di testo solo mentre scrivi (stile classico)" },
+    ruRU = { CHAT_OPT_EDIT_TYPING = "Поле ввода только при наборе (классический стиль чата)" },
+    zhCN = { CHAT_OPT_EDIT_TYPING = "仅在输入时显示输入框（经典聊天样式）" },
+    zhTW = { CHAT_OPT_EDIT_TYPING = "僅在輸入時顯示輸入框（經典聊天樣式）" },
+    koKR = { CHAT_OPT_EDIT_TYPING = "입력할 때만 입력창 표시 (클래식 채팅 방식)" },
+})

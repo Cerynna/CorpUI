@@ -703,8 +703,9 @@ local function placeCorner()
     -- son cadre de selection (ancienne colonne de boutons, ~35 px a gauche) :
     -- c est notre panneau qui borde le chat maintenant, on leve cette retenue
     if cf:IsClampedToScreen() then cf:SetClampedToScreen(false) end
-    -- marges : celles de notre panneau (6 px) et de la zone de saisie
-    local x, y = 8, EDIT + 8
+    -- marges : celles de notre panneau (6 px) et de la zone de saisie ;
+    -- lift : place laissee dessous (un bandeau d infos, par exemple)
+    local x, y = 8, EDIT + 8 + (tonumber(db.lift) or 0)
     local point, rel, relPoint, px, py = cf:GetPoint(1)
     if point ~= "BOTTOMLEFT" or rel ~= UIParent or relPoint ~= "BOTTOMLEFT"
         or math.abs((px or 0) - x) > 0.5 or math.abs((py or 0) - y) > 0.5 or cf:GetNumPoints() > 1 then
@@ -716,6 +717,30 @@ local function placeCorner()
         clear(cf)
         setPoint(cf, "BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
     end
+end
+
+-- Bandeau pose a la place de la zone de saisie (module Infos) : bord
+-- gauche et largeur du panneau CorpUI de la fenetre principale, bas et
+-- hauteur de la zone de saisie (sous les messages, voir place), en unites
+-- d UIParent ; nil si ce panneau n existe pas (chat de CorpUI coupe)
+function ns.ChatBox()
+    local cf = DEFAULT_CHAT_FRAME or ChatFrame1
+    local s = cf and skinned[cf]
+    local p = s and s.panel
+    if not p then return nil end
+    local host = hostOf(cf)
+    local k = p:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    local kh = host:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    local l, r, b = p:GetLeft(), p:GetRight(), host:GetBottom()
+    if not l or not r or not b then return nil end
+    return { left = l * k, width = (r - l) * k, bottom = (b - 5 - EDIT) * kh, height = EDIT * kh }
+end
+
+-- remonte le chat de v (place sous lui), si le coin est tenu par CorpUI
+function ns.ChatSetLift(v)
+    if not db then return end
+    db.lift = math.max(0, math.floor((tonumber(v) or 0) + 0.5))
+    if not InCombatLockdown() then pcall(placeCorner) end
 end
 
 -- couleur du canal choisi dans la zone de saisie
@@ -919,6 +944,33 @@ local function setCVar(name, value)
     pcall(SetCVar, name, value)
 end
 
+-- Zone de saisie seulement pendant la frappe : style "classique" du jeu
+-- (CVar chatStyle, Options > Social) ; "im" : toujours affichee
+local STYLE_CVAR = "chatStyle"
+local function editOnTyping()
+    local ok, v = pcall(GetCVar, STYLE_CVAR)
+    return ok and v == "classic"
+end
+function ns.ChatEditOnTyping(on)
+    if on == nil then return editOnTyping() end
+    setCVar(STYLE_CVAR, on and "classic" or "im")
+end
+
+-- une zone de saisie est ouverte (un bandeau pose a sa place s efface) :
+-- en style classique, des qu elle est affichee ; sinon pendant la frappe
+function ns.ChatEditShown()
+    local classic = editOnTyping()
+    for cf, s in pairs(skinned) do
+        local eb = s.eb
+        if eb and eb:IsShown() and cf:IsVisible() then
+            if classic then return true end
+            local ok, focus = pcall(eb.HasFocus, eb)
+            if ok and focus then return true end
+        end
+    end
+    return false
+end
+
 -- Heure : la CVar showTimestamps contient le format de date ("none" = sans).
 -- Le jeu accepte tout format de date ; les siens (Options > Social) sont
 -- repris tels quels pour que sa liste les reconnaisse.
@@ -1005,6 +1057,8 @@ local function buildWindow()
     form:Check(L.CHAT_OPT_CORNER, function() return db.corner end, function(v) db.corner = v end)
     form:Check(L.CHAT_OPT_ARROWS, function() return db.arrows end, function(v) db.arrows = v applyArrows() end)
     form:Check(L.CHAT_OPT_HISTORY, function() return db.keepHistory end, function(v) db.keepHistory = v end)
+    -- reglage du jeu (CVar chatStyle) : saisie cachee hors frappe
+    form:Check(L.CHAT_OPT_EDIT_TYPING, editOnTyping, function(v) ns.ChatEditOnTyping(v) end)
     -- reglage du jeu (CVar), change seulement au clic
     form:Check(L.CHAT_OPT_CLASSCOLOR, ccGet, ccSet)
     form:Gap(4)
@@ -1016,6 +1070,8 @@ local function buildWindow()
     end, 0, 100, 5)
     tsRefresh()
     form:Cycle(L.CHAT_TIMESTAMP, tsValues, tsNames, tsGet, function(v) setCVar(TS_CVAR, v) end)
+    -- place laissee sous le chat (coin en bas a gauche)
+    form:Number(L.CHAT_LIFT, function() return db.lift or 0 end, function(v) ns.ChatSetLift(v) end, 0, 200, 1)
     form:EndColumns()
     local hint = win:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("TOPLEFT", win, "TOPLEFT", 8, form.y - 6)
@@ -1038,7 +1094,7 @@ ev:SetScript("OnEvent", function(_, event)
         local root = ns.InitRoot()
         root.chat = root.chat or {}
         db = root.chat
-        for k, v in pairs({ enabled = true, copy = true, alpha = 0.6, corner = true, arrows = true, keepHistory = true, urls = true }) do
+        for k, v in pairs({ enabled = true, copy = true, alpha = 0.6, corner = true, arrows = true, keepHistory = true, urls = true, lift = 0 }) do
             if db[k] == nil then db[k] = v end
         end
         db.errors = nil
