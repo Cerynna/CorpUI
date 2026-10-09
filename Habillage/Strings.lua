@@ -202,3 +202,27 @@ ns.AddStrings({
         SKINS_HINT = "외형만 바뀝니다: 블리자드 코드는 건드리지 않으며 전투 중에는 아무것도 하지 않습니다. 체크는 즉시 적용되고, 모듈이나 그룹의 체크 해제는 인터페이스를 다시 불러온 뒤에 적용됩니다.",
     },
 })
+
+-- Fenetres deplacables (09/10)
+ns.AddStrings({
+    enUS = { SKINS_OPT_MOVE = "Movable windows (drag the top of the window; right-click: game's place)",
+        SKINS_MOVE_RESET = "This window will open at the game's place next time." },
+    frFR = { SKINS_OPT_MOVE = "Fenêtres déplaçables (tirer le haut de la fenêtre ; clic droit : place du jeu)",
+        SKINS_MOVE_RESET = "Cette fenêtre s'ouvrira à la place du jeu la prochaine fois." },
+    deDE = { SKINS_OPT_MOVE = "Verschiebbare Fenster (oberen Rand ziehen; Rechtsklick: Platz des Spiels)",
+        SKINS_MOVE_RESET = "Dieses Fenster öffnet sich beim nächsten Mal am Platz des Spiels." },
+    esES = { SKINS_OPT_MOVE = "Ventanas movibles (arrastra la parte superior; clic derecho: sitio del juego)",
+        SKINS_MOVE_RESET = "Esta ventana se abrirá en el sitio del juego la próxima vez." },
+    ptBR = { SKINS_OPT_MOVE = "Janelas móveis (arraste o topo da janela; clique direito: lugar do jogo)",
+        SKINS_MOVE_RESET = "Esta janela abrirá no lugar do jogo da próxima vez." },
+    itIT = { SKINS_OPT_MOVE = "Finestre spostabili (trascina la parte alta; clic destro: posto del gioco)",
+        SKINS_MOVE_RESET = "Questa finestra si aprirà al posto del gioco la prossima volta." },
+    ruRU = { SKINS_OPT_MOVE = "Перемещаемые окна (тяните за верх окна; ПКМ: место игры)",
+        SKINS_MOVE_RESET = "В следующий раз это окно откроется на месте игры." },
+    zhCN = { SKINS_OPT_MOVE = "可移动窗口（拖动窗口顶部；右键：恢复游戏位置）",
+        SKINS_MOVE_RESET = "此窗口下次将在游戏默认位置打开。" },
+    zhTW = { SKINS_OPT_MOVE = "可移動視窗（拖曳視窗頂部；右鍵：恢復遊戲位置）",
+        SKINS_MOVE_RESET = "此視窗下次將在遊戲預設位置開啟。" },
+    koKR = { SKINS_OPT_MOVE = "창 이동 가능 (창 위쪽을 끌기; 오른쪽 클릭: 게임 기본 위치)",
+        SKINS_MOVE_RESET = "이 창은 다음에 게임 기본 위치에서 열립니다." },
+})

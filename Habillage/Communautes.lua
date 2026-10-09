@@ -757,8 +757,9 @@ local function listEntry(e)
         pcall(s.icon.RemoveMaskTexture, s.icon, s.mask)
     end
     s.fill = tex(e, "BACKGROUND", -8)
-    s.fill:SetPoint("TOPLEFT", e, "TOPLEFT", 3, -3)
-    s.fill:SetPoint("BOTTOMRIGHT", e, "BOTTOMRIGHT", -3, 3)
+    -- 1 px en haut et en bas (3 avant) : les entrees se suivent sans trou
+    s.fill:SetPoint("TOPLEFT", e, "TOPLEFT", 3, -1)
+    s.fill:SetPoint("BOTTOMRIGHT", e, "BOTTOMRIGHT", -3, 1)
     s.fill:SetColorTexture(C.panel[1], C.panel[2], C.panel[3], 0.9)
     s.edges = ring(e, s.fill, "BACKGROUND", -7, 0)
     paintC(s.edges, C.border)

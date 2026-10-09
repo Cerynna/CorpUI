@@ -768,6 +768,30 @@ end
 -- menu a choix sous un bouton (options() : { {value, text}, ..., width = mini })
 ns.UI.OpenMenu = openMenu
 
+-- Chevron d or : image Mediachevron.tga (blanche, pointe en bas), tournee
+-- et teintee. dir : "DOWN" (defaut), "UP", "LEFT", "RIGHT", ou une fleche
+-- en texte ("v", "^", "<", ">"). S emploie aussi comme un texte de fleche :
+-- SetText change le sens, SetTextColor la couleur (habillages qui
+-- dessinaient leurs fleches en caracteres).
+local CHEV_ROT = { DOWN = 0, UP = math.pi, LEFT = -math.pi / 2, RIGHT = math.pi / 2 }
+local CHEV_GLYPH = { ["v"] = "DOWN", ["^"] = "UP", ["<"] = "LEFT", [">"] = "RIGHT" }
+function ns.UI.Chevron(parent, size, dir, layer, sub)
+    local t = parent:CreateTexture(nil, layer or "OVERLAY", nil, sub or 7)
+    t:SetTexture(ns.MEDIA .. "chevron")
+    t:SetSize(size or 14, size or 14)
+    function t:SetDir(d)
+        d = CHEV_GLYPH[d] or d
+        if self.cuiDir == d then return end
+        self.cuiDir = d
+        pcall(self.SetRotation, self, CHEV_ROT[d] or 0)
+    end
+    t.SetText = t.SetDir
+    function t:SetTextColor(r, g, b, a) self:SetVertexColor(r, g, b, a or 1) end
+    t:SetDir(dir or "DOWN")
+    t:SetVertexColor(C.gold[1], C.gold[2], C.gold[3], 1)
+    return t
+end
+
 function ns.UI.Select(parent, width, options, get, set, after)
     local b = ns.UI.Button(parent, "", width)
     b:SetSize(width, 22)
@@ -778,13 +802,8 @@ function ns.UI.Select(parent, width, options, get, set, after)
     fs:SetJustifyH("LEFT")
     fs:SetWordWrap(false)    -- une seule ligne, coupee si trop longue
     -- chevron d or
-    for i, rot in ipairs({ -math.pi / 4, math.pi / 4 }) do
-        local t = b:CreateTexture(nil, "OVERLAY")
-        t:SetSize(6, 2)
-        t:SetPoint("RIGHT", b, "RIGHT", i == 1 and -11 or -7, 0)
-        t:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
-        pcall(t.SetRotation, t, rot)
-    end
+    local chev = ns.UI.Chevron(b, 14, "DOWN")
+    chev:SetPoint("CENTER", b, "RIGHT", -9, 0)
     b:SetScript("OnClick", function(self) openMenu(self, options, get, set, after) end)
     function b:Refresh()
         local v = get()

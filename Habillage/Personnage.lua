@@ -475,9 +475,8 @@ local function skinPopout(slot, pb)
     local p = popouts[pb]
     if not p then
         p = plate(pb, 1)
-        p.glyph = pb:CreateFontString(nil, "OVERLAY")
+        p.glyph = ns.UI.Chevron(pb, 10, "RIGHT")
         mine[p.glyph] = true
-        ns.UI.HeadFont(p.glyph, 10)
         p.glyph:SetPoint("CENTER", 0, 0)
         popouts[pb] = p
     end
@@ -885,9 +884,8 @@ local function skinToggle(cf)
         if ok then fade(t) end
     end
     local p = plate(b, 5)
-    p.glyph = b:CreateFontString(nil, "OVERLAY")
+    p.glyph = ns.UI.Chevron(b, 12, "LEFT")
     mine[p.glyph] = true
-    ns.UI.HeadFont(p.glyph, 12)
     p.glyph:SetPoint("CENTER", 0, 0)
     toggle = b
 end
@@ -1003,11 +1001,16 @@ local function full(cf)
         if type(s) == "table" and s.CreateTexture then pcall(skinSideTab, s) end
     end
     walk(cf, 1)
-    -- style Moderne : le bandeau clair du haut (niveau et classe) passe au
-    -- sombre de nos bandeaux ; texture de Blizzard : teinte seulement
+    -- style Moderne : plus de bandeau sous "Pretresse de niveau 8" (ni fond
+    -- ni filet du bas, demande du 09/10) ; textures de Blizzard : eteintes
+    -- par la couleur (alpha 0), le texte du niveau reste
     if ns.MODERN then
-        local strip = field(field(_G.PaperDollFrame, "TopBackgroundStripHost"), "TopBackgroundStrip")
-        if strip and strip.SetVertexColor then pcall(strip.SetVertexColor, strip, 0.09, 0.095, 0.11, 0.9) end
+        local host = field(_G.PaperDollFrame, "TopBackgroundStripHost")
+        if host and host.GetRegions then
+            for _, r in ipairs({ host:GetRegions() }) do
+                if objType(r) == "Texture" then pcall(r.SetVertexColor, r, 1, 1, 1, 0) end
+            end
+        end
     end
     -- titres d en-tetes : Blizzard peut remettre leur couleur
     local C = ns.COLORS

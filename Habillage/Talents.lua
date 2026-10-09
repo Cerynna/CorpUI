@@ -173,6 +173,15 @@ local function text(host, size, layer, sub)
 end
 
 -- quatre filets de 1 px autour de "anchor" (sur "host"), "out" px en dehors
+-- trait fin toujours dessine : pose sur une demi-unite (cadre des points
+-- restants, bas a 923.5), un trait de 1 unite disparaissait a l arrondi sur
+-- la grille des pixels (vu en jeu le 09/10) ; sans cet arrondi il reste net
+local function thin(x, horizontal)
+    if horizontal then x:SetHeight(1) else x:SetWidth(1) end
+    pcall(x.SetSnapToPixelGrid, x, false)
+    pcall(x.SetTexelSnappingBias, x, 0)
+end
+
 local function ring(host, anchor, layer, sub, out)
     local list = {}
     local function line()
@@ -183,19 +192,19 @@ local function ring(host, anchor, layer, sub, out)
     local top = line()
     top:SetPoint("TOPLEFT", anchor, "TOPLEFT", -out, out)
     top:SetPoint("TOPRIGHT", anchor, "TOPRIGHT", out, out)
-    top:SetHeight(1)
+    thin(top, true)
     local bottom = line()
     bottom:SetPoint("BOTTOMLEFT", anchor, "BOTTOMLEFT", -out, -out)
     bottom:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", out, -out)
-    bottom:SetHeight(1)
+    thin(bottom, true)
     local left = line()
     left:SetPoint("TOPLEFT", anchor, "TOPLEFT", -out, out)
     left:SetPoint("BOTTOMLEFT", anchor, "BOTTOMLEFT", -out, -out)
-    left:SetWidth(1)
+    thin(left, false)
     local right = line()
     right:SetPoint("TOPRIGHT", anchor, "TOPRIGHT", out, out)
     right:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", out, -out)
-    right:SetWidth(1)
+    thin(right, false)
     return list
 end
 
@@ -316,9 +325,13 @@ local function skinPage(tf)
     for _, key in ipairs(ANIM_KEYS) do dim(field(tf, key)) end
     local fx = field(tf, "classActivationTextures")
     if fx then for _, t in ipairs(fx) do dim(t) end end
-    -- art de la classe : desature, teinte de l accent, tres discret
+    -- art de la classe : desature, teinte de l accent, tres discret ; en
+    -- style Moderne, retire (une grande image sur toute la page : ses zones
+    -- claires faisaient une bande sur le troisieme arbre)
     local art = field(tf, "ClassBackground")
-    if isTex(art) then
+    if isTex(art) and ns.MODERN then
+        dim(art)
+    elseif isTex(art) then
         local C = ns.COLORS
         pcall(art.SetDesaturated, art, true)
         pcall(art.SetVertexColor, art, C.violet[1] * 0.6, C.violet[2] * 0.6, C.violet[3] * 0.6, 1)
@@ -674,9 +687,11 @@ local function skinEdit(e)
     if not (l and m and r) then return end
     fade(l) fade(m) fade(r)
     local C = ns.COLORS
+    -- notre boite epouse les morceaux de Blizzard (20 px, centree dans le
+    -- champ), comme au grimoire : meme hauteur que la plaque de la fleche
     local fill = tex(e, "BACKGROUND", -8)
-    fill:SetPoint("TOPLEFT", e, "TOPLEFT", -5, 0)
-    fill:SetPoint("BOTTOMRIGHT", e, "BOTTOMRIGHT", 0, 0)
+    fill:SetPoint("TOPLEFT", l, "TOPLEFT", -5, 0)
+    fill:SetPoint("BOTTOMRIGHT", r, "BOTTOMRIGHT", 0, 0)
     fill:SetColorTexture(0, 0, 0, 0.55)
     local ed = ring(e, fill, "BACKGROUND", -7, 0)
     paint(ed, C.border)
@@ -756,6 +771,8 @@ local function full(tf)
     pcall(skinIconButton, field(tf, "UndoButton"))
     pcall(skinDropdown, field(tf, "SearchOptionsDropdown"))
     pcall(skinEdit, field(tf, "SearchBox"))
+    local se = edits[field(tf, "SearchBox")]
+    if se then se.drop = field(tf, "SearchOptionsDropdown") end
     local pc = field(tf, "SearchPreviewContainer")
     if visible(pc) then pcall(skinPreview, pc) end
     scanButtons(tf)
@@ -782,6 +799,17 @@ local function light(tf)
     end
     for b in pairs(icons) do
         if visible(b) then pcall(updateIconButton, b) end
+    end
+    -- fleche des options de recherche : plaque recalee sur le milieu du
+    -- champ (Communs.lua dessine la plaque, centree sur son bouton)
+    for e, k in pairs(edits) do
+        if k.drop and visible(e) and ns.SkinDropShift then
+            local okF, _, fy = pcall(k.fill.GetCenter, k.fill)
+            local okB, _, by = pcall(k.drop.GetCenter, k.drop)
+            if okF and okB and type(fy) == "number" and type(by) == "number" then
+                ns.SkinDropShift(k.drop, math.floor(fy - by + 0.5))
+            end
+        end
     end
 end
 

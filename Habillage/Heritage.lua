@@ -652,7 +652,9 @@ local function card(f)
     end
     local s = {}
     s.fill = tex(f, "BACKGROUND", -8)
-    s.fill:SetPoint("TOPLEFT", f, "TOPLEFT", 4, -4)
+    -- le haut part au-dessus du cadre : la date d obtention (posee par
+    -- Blizzard sur ce bord) tombe dans la carte, pas a cheval sur son lisere
+    s.fill:SetPoint("TOPLEFT", f, "TOPLEFT", 4, 8)
     s.fill:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -4, 4)
     s.fill:SetColorTexture(C.panel[1], C.panel[2], C.panel[3], 0.92)
     s.sel = tex(f, "BACKGROUND", -6)
@@ -695,18 +697,12 @@ local function card(f)
         s.icon = box(ic, it, 1)
         s.iconTex = it
     end
-    -- plaque de la date d obtention (suit le fond de Blizzard)
+    -- date d obtention : la languette de Blizzard (qui deborde sur le haut
+    -- de la carte) passe a alpha 0, sans plaque a nous ; la date et sa
+    -- coche restent
     local sh = field(f, "Shield")
     local cbg = field(sh, "CheckBackground")
-    if isTex(cbg) and sh.CreateTexture then
-        fade(cbg)
-        s.dateRef = cbg
-        s.date = tex(sh, "BORDER", 0)
-        s.date:SetAllPoints(cbg)
-        s.date:SetColorTexture(C.bg[1], C.bg[2], C.bg[3], 0.85)
-        s.dateEdges = ring(sh, s.date, "BORDER", 1, 0)
-        paintC(s.dateEdges, C.border)
-    end
+    if isTex(cbg) then fade(cbg) end
     -- case "Suivre"
     local tr = field(f, "Tracked")
     if tr then pcall(skinCheck, tr) end

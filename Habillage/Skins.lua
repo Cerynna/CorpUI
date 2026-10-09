@@ -449,7 +449,7 @@ end
 local win
 
 local function buildWindow()
-    win = ns.UI.Window("CorpUISkinsOptions", ns.TITLE .. " - " .. L.MOD_SKINS, nil, 440, 400)
+    win = ns.UI.Window("CorpUISkinsOptions", ns.TITLE .. " - " .. L.MOD_SKINS, nil, 440, 430)
     local form = ns.UI.Form(win, -34)
     form:Check(L.SKINS_OPT_ENABLE, function() return db.enabled end, function(v)
         db.enabled = v
@@ -467,6 +467,8 @@ local function buildWindow()
     form:EndColumns()
     form:Gap(4)
     if ns.CharSheetOptions then ns.CharSheetOptions(form) end
+    -- fenetres deplacables (Deplacer.lua)
+    if ns.MoveOptions then ns.MoveOptions(form) end
     form:Gap(6)
     -- bouton securise : ancre sur le panneau, jamais sur un texte
     local reload = ns.UI.ReloadButton(win, L.GEN_RELOAD, 160)

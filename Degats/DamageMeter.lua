@@ -127,8 +127,9 @@ local function skinButtons(w)
     local arrow = dd and key(dd, "Arrow")
     if dd and not buttons[dd] then
         local s = skinButton(dd, arrow)
-        bar(dd, s, 6, 2, -2, 0, -math.pi / 4)
-        bar(dd, s, 6, 2, 2, 0, math.pi / 4)
+        local chev = ns.UI.Chevron(dd, 12, "DOWN")
+        ours[chev] = true
+        chev:SetPoint("CENTER", s.bg, "CENTER", 0, 0)
     end
     -- session ("A", "G"...) : le texte reste, le cadre devient CorpUI
     local sess = key(w, "SessionDropdown")

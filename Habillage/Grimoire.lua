@@ -649,8 +649,22 @@ end
 
 local function skinToolbar(sbf)
     local e = field(sbf, "SearchBox")
-    if objType(e) == "EditBox" then skinSearch(e) end
-    skinDropdown(field(sbf, "SettingsDropdown"))
+    local k = objType(e) == "EditBox" and skinSearch(e) or nil
+    local dd = field(sbf, "SettingsDropdown")
+    skinDropdown(dd)
+    -- la fleche voisine s aligne sur le milieu de notre champ (searchState)
+    if k then k.drop = dd end
+end
+
+-- fleche des reglages : sa plaque (Communs.lua) centree sur son bouton,
+-- un peu plus bas que le champ de recherche de Blizzard : on la recale sur
+-- le milieu du champ (memes parents, meme echelle)
+local function alignDrop(k)
+    if not k.drop or not ns.SkinDropShift then return end
+    local okF, _, fy = pcall(k.fill.GetCenter, k.fill)
+    local okB, _, by = pcall(k.drop.GetCenter, k.drop)
+    if not okF or not okB or type(fy) ~= "number" or type(by) ~= "number" then return end
+    ns.SkinDropShift(k.drop, math.floor(fy - by + 0.5))
 end
 
 -- apercu : ses lignes sont creees a la frappe, sans autre signe lisible
@@ -1010,7 +1024,10 @@ local function light(psf)
         if visible(t) then tabState(t, s) end
     end
     for e, k in pairs(edits) do
-        if visible(e) then searchState(e, k) end
+        if visible(e) then
+            searchState(e, k)
+            pcall(alignDrop, k)
+        end
     end
     for t in pairs(tinted) do
         if visible(t) then

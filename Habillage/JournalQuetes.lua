@@ -420,6 +420,9 @@ local function skinEdit(e, left)
     edits[e] = { fill = fill, edges = edges, glass = field(e, "searchIcon"),
                  clear = field(field(e, "clearButton"), "Icon") }
     claimed[e] = true
+    -- texte d aide sur une ligne (il passait sur deux dans le champ etroit)
+    local hint = field(e, "Instructions")
+    if objType(hint) == "FontString" then pcall(hint.SetWordWrap, hint, false) end
 end
 
 local function isScrollBar(f)
@@ -510,7 +513,8 @@ local function navButton(b, kind)
         s.glyph:SetText("...")
         s.glyph:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
     else
-        s.chev = text(b, 12)
+        s.chev = ns.UI.Chevron(b, 12, "RIGHT")
+        mine[s.chev] = true
         -- accueil : dans sa pointe vide ; autres : par-dessus la marge du suivant
         if kind == "home" then s.chev:SetPoint("CENTER", b, "RIGHT", -11, 0)
         else s.chev:SetPoint("CENTER", b, "RIGHT", 9, 0) end
@@ -520,10 +524,16 @@ local function navButton(b, kind)
     -- fleche de liste (Blizzard bascule l alpha de son fond au survol)
     local mab = field(b, "MenuArrowButton")
     if mab then
-        goldTex(field(mab, "Art"))
+        -- leur fleche blanche eteinte (couleur) : notre chevron d or
+        veil(field(mab, "Art"))
         veil(field(mab, "NormalTexture"))
         veil(field(mab, "PushedTexture"))
         fadeStates(mab, { "GetHighlightTexture" })
+        if mab.CreateTexture then
+            s.arrow = ns.UI.Chevron(mab, 12, "DOWN")
+            mine[s.arrow] = true
+            s.arrow:SetPoint("CENTER", mab, "CENTER", 0, 0)
+        end
     end
     navs[b] = s
     claimed[b] = true

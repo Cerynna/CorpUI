@@ -339,22 +339,17 @@ local function dropState(b, s)
     if s.en ~= en then
         s.en = en
         local c = en and C.gold or C.text
-        for _, t in ipairs(s.chev) do t:SetColorTexture(c[1], c[2], c[3], en and 1 or 0.4) end
+        for _, t in ipairs(s.chev) do t:SetVertexColor(c[1], c[2], c[3], en and 1 or 0.4) end
     end
 end
 
--- chevron d or des menus de CorpUI (recette de ns.UI.Select) : deux barres
--- de 6 x 2 px pivotees de -45 et +45 degres, centrees en (x, 0) de "point"
+-- chevron d or des menus de CorpUI (image de ns.UI.Chevron), centre en
+-- (x, 0) de "point"
 local function chevron(b, point, x)
-    local list = {}
-    for i, rot in ipairs({ -math.pi / 4, math.pi / 4 }) do
-        local t = tex(b, "OVERLAY", 7)
-        t:SetSize(6, 2)
-        t:SetPoint("CENTER", b, point, x + (i == 1 and -2 or 2), 0)
-        pcall(t.SetRotation, t, rot)
-        list[i] = t
-    end
-    return list
+    local t = ns.UI.Chevron(b, 14, "DOWN")
+    mine[t] = true
+    t:SetPoint("CENTER", b, point, x, 0)
+    return { t }
 end
 
 local function dressDrop(b)
@@ -674,6 +669,23 @@ end
 -- "drop", "check" ou "tab" si le cadre est (ou sera) habille ici, sinon
 -- false. Lecture seule, sans effet : les autres fichiers s en servent pour
 -- laisser ces elements a Communs.lua.
+-- decale la plaque et le chevron d un menu a fleche (alignement sur un
+-- champ voisin : la recherche du grimoire) ; dy en unites du bouton.
+-- Textures a nous seulement : le bouton de Blizzard ne bouge pas.
+function ns.SkinDropShift(b, dy)
+    local s = drops[b]
+    if not s or s.dy == dy then return end
+    s.dy = dy
+    if s.fill and not s.field then
+        s.fill:ClearAllPoints()
+        s.fill:SetPoint("CENTER", b, "CENTER", 0, dy)
+    end
+    for _, t in ipairs(s.chev or {}) do
+        t:ClearAllPoints()
+        t:SetPoint("CENTER", b, s.field and "RIGHT" or "CENTER", s.field and -12 or 0, dy)
+    end
+end
+
 function ns.SkinCommon(f)
     if type(f) ~= "table" then return false end
     return classify(f) or false

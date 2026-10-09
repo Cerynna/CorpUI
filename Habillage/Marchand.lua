@@ -515,16 +515,10 @@ end
 -- chevron d or (recette des menus de CorpUI) : deux barres de 6 x 2 px
 -- pivotees a +-45 degres, pointe a gauche ou a droite
 local function chevron(b, anchor, dir)
-    local list = {}
-    local up = dir == "LEFT" and math.pi / 4 or -math.pi / 4
-    for i, dy in ipairs({ 2, -2 }) do
-        local t = tex(b, "OVERLAY", 7)
-        t:SetSize(6, 2)
-        t:SetPoint("CENTER", anchor, "CENTER", 0, dy)
-        pcall(t.SetRotation, t, i == 1 and up or -up)
-        list[i] = t
-    end
-    return list
+    local t = ns.UI.Chevron(b, 14, dir)
+    mine[t] = true
+    t:SetPoint("CENTER", anchor, "CENTER", 0, 0)
+    return { t }
 end
 
 local function skinPager(b, dir)
@@ -567,7 +561,7 @@ local function pagerState(b, s)
     s.en = en
     s.fill:SetAlpha(en and 1 or 0.5)
     local c = en and C.gold or C.text
-    for _, t in ipairs(s.chev) do t:SetColorTexture(c[1], c[2], c[3], en and 1 or 0.4) end
+    for _, t in ipairs(s.chev) do t:SetVertexColor(c[1], c[2], c[3], en and 1 or 0.4) end
     -- libelle decoratif (Blizzard ne le relit jamais) : texte de CorpUI
     if s.label then
         local m = en and 1 or 0.5

@@ -399,11 +399,9 @@ local function glyphButton(b, g)
     if plates[b] or objType(b) ~= "Button" or not b.CreateTexture then return end
     fadeStates(b, { "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture", "GetHighlightTexture" })
     local p = plate(b, 6)
-    local fs = b:CreateFontString(nil, "OVERLAY")
+    local fs = ns.UI.Chevron(b, 14, g)
     mine[fs] = true
-    pcall(ns.UI.HeadFont, fs, 14)
     fs:SetPoint("CENTER", p.fill, "CENTER", 0, 0)
-    fs:SetText(g)
     p.glyph = fs
     for _, r in ipairs(regionsOf(b)) do
         if not mine[r] and objType(r) == "FontString" then

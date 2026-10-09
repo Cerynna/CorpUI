@@ -530,15 +530,10 @@ end
 -- chevron d or des menus de CorpUI (recette de ns.UI.Select et de
 -- Communs.lua) : deux barres de 6 x 2 px pivotees
 local function chevron(b, point, x)
-    local list = {}
-    for i, rot in ipairs({ -math.pi / 4, math.pi / 4 }) do
-        local t = tex(b, "OVERLAY", 7)
-        t:SetSize(6, 2)
-        t:SetPoint("CENTER", b, point, x + (i == 1 and -2 or 2), 0)
-        pcall(t.SetRotation, t, rot)
-        list[i] = t
-    end
-    return list
+    local t = ns.UI.Chevron(b, 14, "DOWN")
+    mine[t] = true
+    t:SetPoint("CENTER", b, point, x, 0)
+    return { t }
 end
 
 -- bouton Filtrer (WowStyle1FilterDropdownTemplate : Background
@@ -1430,7 +1425,7 @@ local function light(main)
             end
             if p.chev then
                 local g = en and C.gold or C.text
-                for _, x in ipairs(p.chev) do x:SetColorTexture(g[1], g[2], g[3], en and 1 or 0.4) end
+                for _, x in ipairs(p.chev) do x:SetVertexColor(g[1], g[2], g[3], en and 1 or 0.4) end
             end
         end
     end
