@@ -275,8 +275,18 @@ local function buildPanel(cf)
     strip:SetPoint("TOPRIGHT", -1, -1)
     strip:SetHeight(STRIP)
     if ns.MODERN then
-        -- style Moderne : bandeau sombre et uni, sans filet d or
-        strip:SetColorTexture(0, 0, 0, 0.35)
+        -- style Moderne : bande de la couleur du chat (l onglet actif, ouvert
+        -- dessus, s y fond) ; trait du bas interrompu sous l onglet actif
+        strip:SetColorTexture(0, 0, 0, 0)
+        for _, k in ipairs({ "lineL", "lineR" }) do
+            local l = p:CreateTexture(nil, "ARTWORK")
+            l:SetHeight(1)
+            l:SetColorTexture(1, 1, 1, 0.10)
+            ns.NoSnap(l)
+            p[k] = l
+        end
+        p.lineL:SetPoint("TOPLEFT", p, "TOPLEFT", 1, -(STRIP + 1))
+        p.lineR:SetPoint("TOPRIGHT", p, "TOPRIGHT", -1, -(STRIP + 1))
     else
         ns.UI.Gradient(strip, "VERTICAL", C.violet[1], C.violet[2], C.violet[3], 0.04,
                                           C.violet[1], C.violet[2], C.violet[3], 0.30)
@@ -392,24 +402,33 @@ local function styleTab(tab)
     local fs = tabText(tab)
     if fs then fade(fs) end
     local t = {}
-    -- plaque de l onglet (09/10 : les onglets se distinguaient mal, libelles
-    -- seuls) : toute la largeur de l onglet de Blizzard, 18 de haut autour
-    -- du libelle ; teintee d accent pour l onglet actif
+    -- onglet facon dossier (09/10, style choisi parmi quatre) : plaque posee
+    -- sur le bas de la bande, toute la largeur de l onglet de Blizzard ;
+    -- inactifs en retrait (plus bas, plus sombres), l actif plus haut, de la
+    -- couleur du chat, ouvert dessus, filet d accent en haut. Hauteur et
+    -- calage refaits par tabGeom (refresh)
     t.plate = labelHost:CreateTexture(nil, "BACKGROUND", nil, 1)
-    t.plate:SetPoint("TOPLEFT", tab, "LEFT", 1, 7)
-    t.plate:SetPoint("BOTTOMRIGHT", tab, "RIGHT", -1, -11)
     ns.NoSnap(t.plate)
     t.edges = {}
-    for i, pts in ipairs({ { "TOPLEFT", "TOPRIGHT" }, { "BOTTOMLEFT", "BOTTOMRIGHT" }, { "TOPLEFT", "BOTTOMLEFT" }, { "TOPRIGHT", "BOTTOMRIGHT" } }) do
+    -- haut, gauche, droite : jamais de bord en bas (ouvert sur le chat)
+    for i, pts in ipairs({ { "TOPLEFT", "TOPRIGHT" }, { "TOPLEFT", "BOTTOMLEFT" }, { "TOPRIGHT", "BOTTOMRIGHT" } }) do
         local e = labelHost:CreateTexture(nil, "BACKGROUND", nil, 2)
         e:SetPoint(pts[1], t.plate, pts[1], 0, 0)
         e:SetPoint(pts[2], t.plate, pts[2], 0, 0)
-        if i <= 2 then e:SetHeight(1) else e:SetWidth(1) end
+        if i == 1 then e:SetHeight(1) else e:SetWidth(1) end
         ns.NoSnap(e)
         t.edges[i] = e
     end
+    t.top = labelHost:CreateTexture(nil, "BACKGROUND", nil, 3)
+    t.top:SetPoint("TOPLEFT", t.plate, "TOPLEFT", 1, 0)
+    t.top:SetPoint("TOPRIGHT", t.plate, "TOPRIGHT", -1, 0)
+    t.top:SetHeight(2)
+    ns.NoSnap(t.top)
+    local ac = ns.MODERN and C.violet or C.gold
+    t.top:SetColorTexture(ac[1], ac[2], ac[3], 1)
+    t.top:Hide()
     t.label = labelHost:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    t.label:SetPoint("CENTER", tab, "CENTER", 0, -2)
+    t.label:SetPoint("CENTER", t.plate, "CENTER", 0, -1)
     t.label:SetShadowColor(0, 0, 0, 1)
     t.label:SetShadowOffset(1, -1)
     -- coupe a la largeur de l onglet (les onglets d un dock charge sont
@@ -432,24 +451,41 @@ local function styleTab(tab)
     return t
 end
 
--- couleurs de la plaque : "on" (onglet actif), "over" (survol), sinon repos
+-- hauteurs des plaques : l onglet actif depasse de 4 (dossier ouvert)
+local TAB_H_ON, TAB_H_OFF = 26, 22
+
+-- plaque posee sur le bas de la bande (3 au-dessus du haut du chat, comme le
+-- bas des onglets de Blizzard : 3 pour General, 4 pour les onglets du cadre
+-- defilant, mesure en jeu le 09/10)
+local function tabGeom(t, tab, host, on)
+    local hb, tb = host:GetTop(), tab:GetBottom()
+    if not hb or not tb then return end
+    local dy = math.floor((hb + 3 - tb) * 10 + 0.5) / 10
+    local h = on and TAB_H_ON or TAB_H_OFF
+    if t.dy == dy and t.h == h and t.anchor == tab then return end
+    t.dy, t.h, t.anchor = dy, h, tab
+    t.plate:ClearAllPoints()
+    t.plate:SetPoint("BOTTOMLEFT", tab, "BOTTOMLEFT", 1, dy)
+    t.plate:SetPoint("BOTTOMRIGHT", tab, "BOTTOMRIGHT", -1, dy)
+    t.plate:SetHeight(h)
+end
+
+-- couleurs de la plaque : "on" (onglet actif, couleur du chat), "over"
+-- (survol), sinon repos (en retrait, sombre)
 local function plateLook(t, state)
     if t.state == state then return end
     t.state = state
-    local C = ns.COLORS
-    local fr, fg, fb, fa, er, eg, eb, ea
+    local fr, fg, fb, fa, ea
     if state == "on" then
-        fr, fg, fb, fa = C.violet[1], C.violet[2], C.violet[3], 0.20
-        er, eg, eb, ea = C.violet[1], C.violet[2], C.violet[3], 0.55
+        fr, fg, fb, fa, ea = 0, 0, 0, 0, 0.16
     elseif state == "over" then
-        fr, fg, fb, fa = 1, 1, 1, 0.08
-        er, eg, eb, ea = 1, 1, 1, 0.14
+        fr, fg, fb, fa, ea = 1, 1, 1, 0.06, 0.12
     else
-        fr, fg, fb, fa = 1, 1, 1, 0.035
-        er, eg, eb, ea = 1, 1, 1, 0.08
+        fr, fg, fb, fa, ea = 0, 0, 0, 0.38, 0.07
     end
     t.plate:SetColorTexture(fr, fg, fb, fa)
-    for _, e in ipairs(t.edges) do e:SetColorTexture(er, eg, eb, ea) end
+    for _, e in ipairs(t.edges) do e:SetColorTexture(1, 1, 1, ea) end
+    t.top:SetShown(state == "on")
 end
 
 local function showLook(t, on)
@@ -457,6 +493,7 @@ local function showLook(t, on)
     t.plate:SetShown(on)
     for _, e in ipairs(t.edges) do e:SetShown(on) end
     if not on then
+        t.top:Hide()
         t.under:Hide()
         t.glow:Hide()
     end
@@ -901,13 +938,38 @@ local function refresh()
                     look.w = w
                     look.label:SetWidth(w - 10)
                 end
+                tabGeom(look, s.tab, hostOf(cf), on)
                 plateLook(look, on and "on" or (s.tab:IsMouseOver() and "over" or "rest"))
                 if on and ns.MODERN then look.label:SetTextColor(1, 1, 1)
                 elseif on then look.label:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
                 elseif s.tab:IsMouseOver() then look.label:SetTextColor(1, 1, 1)
-                else look.label:SetTextColor(C.text[1] * 0.85, C.text[2] * 0.85, C.text[3] * 0.85) end
-                look.under:SetShown(on)
+                else look.label:SetTextColor(C.text[1] * 0.75, C.text[2] * 0.75, C.text[3] * 0.75) end
+                look.under:Hide()
                 look.glow:Hide()
+            end
+        end
+        -- trait du bas de la bande : interrompu sous l onglet de cette
+        -- fenetre (le dossier ouvert), entier si son onglet est cache
+        local p = s.panel
+        if p and p.lineL and p:IsVisible() then
+            local pl, pr = p:GetLeft(), p:GetRight()
+            local tab = s.tab
+            local open = tab and look and look.plate:IsShown() and look.plate:GetLeft() and look.plate
+            if pl and pr then
+                local wl, wr
+                if open then
+                    wl = math.max(0, open:GetLeft() - pl - 1)
+                    wr = math.max(0, pr - 1 - open:GetRight())
+                else
+                    wl, wr = math.max(0, pr - pl - 2), 0
+                end
+                if p.wl ~= wl or p.wr ~= wr then
+                    p.wl, p.wr = wl, wr
+                    p.lineL:SetWidth(math.max(0.01, wl))
+                    p.lineR:SetWidth(math.max(0.01, wr))
+                    p.lineL:SetShown(wl > 0)
+                    p.lineR:SetShown(wr > 0)
+                end
             end
         end
         if s.eb and s.panel and s.eb:IsVisible() then
