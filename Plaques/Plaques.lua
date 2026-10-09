@@ -183,7 +183,7 @@ end
 -- reglage du conteneur de debuffs d une plaque
 local function plateSpec(f)
     local size = db.debuffSize
-    local up = (db.showName or db.showLevel) and (db.nameSize + 6) or 3
+    local up = (not db.textInside and (db.showName or db.showLevel)) and (db.nameSize + 6) or 3
     return {
         width = size, height = math.floor(size * 0.78 + 0.5), spacing = 2,
         perRow = db.debuffMax, max = db.debuffMax, grow = "up", fromRight = false,
@@ -315,17 +315,42 @@ local function layout(f)
     f.arrowL:SetSize(4, h + 6)
     f.arrowR:SetSize(4, h + 6)
 
-    -- nom et niveau
-    setFont(f.name, db.nameSize)
-    setFont(f.level, db.nameSize)
+    -- nom et niveau : au-dessus de la barre, ou dedans (niveau et nom a
+    -- gauche, pourcentage a droite ; textes portes par la barre pour
+    -- passer devant son remplissage)
     f.name:SetShown(db.showName)
     f.level:SetShown(db.showLevel)
     f.name:ClearAllPoints()
-    f.name:SetPoint("BOTTOMLEFT", f, "TOPLEFT", 0, 2)
-    if db.showLevel then
-        f.name:SetPoint("RIGHT", f.level, "LEFT", -3, 0)
+    f.level:ClearAllPoints()
+    f.pct:ClearAllPoints()
+    if db.textInside then
+        f.name:SetParent(f.hp)
+        f.level:SetParent(f.hp)
+        setFont(f.name, db.nameSize, "OUTLINE")
+        setFont(f.level, db.nameSize, "OUTLINE")
+        setFont(f.pct, db.nameSize, "OUTLINE")
+        f.pct:SetPoint("RIGHT", f.hp, "RIGHT", -3, 0)
+        f.level:SetPoint("LEFT", f.hp, "LEFT", 3, 0)
+        if db.showLevel then
+            f.name:SetPoint("LEFT", f.level, "RIGHT", 3, 0)
+        else
+            f.name:SetPoint("LEFT", f.hp, "LEFT", 3, 0)
+        end
+        f.name:SetPoint("RIGHT", f.pct, "LEFT", -3, 0)
     else
-        f.name:SetPoint("BOTTOMRIGHT", f, "TOPRIGHT", 0, 2)
+        f.name:SetParent(f)
+        f.level:SetParent(f)
+        setFont(f.name, db.nameSize, "")
+        setFont(f.level, db.nameSize, "")
+        setFont(f.pct, 8, "OUTLINE")
+        f.pct:SetPoint("CENTER", 0, 0)
+        f.level:SetPoint("BOTTOMRIGHT", f, "TOPRIGHT", 0, 2)
+        f.name:SetPoint("BOTTOMLEFT", f, "TOPLEFT", 0, 2)
+        if db.showLevel then
+            f.name:SetPoint("RIGHT", f.level, "LEFT", -3, 0)
+        else
+            f.name:SetPoint("BOTTOMRIGHT", f, "TOPRIGHT", 0, 2)
+        end
     end
 
     -- barre de sort
@@ -344,7 +369,7 @@ local function layout(f)
     -- debuffs : rangee au-dessus du nom (ou de la barre si pas de texte)
     local size = db.debuffSize
     local bh = math.floor(size * 0.78 + 0.5)
-    local up = (db.showName or db.showLevel) and (db.nameSize + 6) or 3
+    local up = (not db.textInside and (db.showName or db.showLevel)) and (db.nameSize + 6) or 3
     for i, b in ipairs(f.debuffs) do
         b:SetSize(size, bh)
         b:ClearAllPoints()
@@ -676,7 +701,7 @@ local DEFAULTS = {
     width = 120, height = 10, otherAlpha = 0.6,
     -- ajouts du 05/10 (vie, nom, sort, debuffs, cible)
     colorMode = "class", tapped = true, threat = false,
-    showName = true, showLevel = true, nameSize = 10,
+    showName = true, showLevel = true, nameSize = 10, textInside = false,
     castHeight = 7, castTextSize = 8, castIcon = true, castTargetOnly = false,
     castLock = true, castReady = true,   -- non interruptible, interruption prete
     debuffSize = 18, debuffMax = 5, debuffMine = true, debuffTimer = true,
@@ -840,6 +865,7 @@ local function buildWindow()
     form:Header(L.PLATES_H_NAME)
     form:Columns(2)
     chk(L.PLATES_OPT_NAME, "showName")
+    chk(L.PLATES_OPT_INSIDE, "textInside")
     chk(L.PLATES_OPT_LEVEL, "showLevel")
     num(L.PLATES_TEXT_SIZE, "nameSize", 6, 18, 1)
     form:EndColumns()

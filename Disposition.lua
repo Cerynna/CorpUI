@@ -65,6 +65,21 @@ local CHANGES = {
     -- phase 4 : chat et bandeau d infos plus transparents
     { "chat", { "alpha" }, 0.35, replace = true },
     { "info", { "alpha" }, 70, replace = true },
+    -- phase 5 : plaques fines, textes dans la barre ; barre d XP fine, sans
+    -- les lignes de temps, de session ni d XP par heure
+    { "plates", { "textInside" }, true, replace = true },
+    { "plates", { "width" }, 140, replace = true },
+    { "plates", { "height" }, 14, replace = true },
+    -- (reglage par reglage : la table xp garde aussi les compteurs de temps
+    -- par personnage, qu un retour en arriere ne doit pas toucher)
+    { "xp", { "width" }, 420, replace = true },
+    { "xp", { "height" }, 14, replace = true },
+    { "xp", { "textSize" }, 9, replace = true },
+    { "xp", { "tLevelTime" }, false, replace = true },
+    { "xp", { "tSession" }, false, replace = true },
+    { "xp", { "tRate" }, false, replace = true },
+    { "xp", { "tETA" }, false, replace = true },
+    { "xp", { "tBottom" }, false, replace = true },
 }
 Layout.CHANGES = CHANGES
 
