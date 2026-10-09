@@ -2576,6 +2576,27 @@ local function buildGeneral()
     local styleHint = general:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     styleHint:SetPoint("LEFT", styleSel, "RIGHT", 8, 0)
     general.styleHint = styleHint
+    -- disposition des maquettes (Disposition.lua) et retour en arriere
+    if ns.ModernLayout then
+        local lay = ns.UI.Button(general, L.LAYOUT_APPLY, 170, function()
+            ns.ModernLayout.Apply()
+            form.Changed()
+        end)
+        lay:SetPoint("TOPLEFT", general, "TOPLEFT", 8, form.y - 2)
+        local back = ns.UI.Button(general, L.LAYOUT_RESTORE, 170, function()
+            ns.ModernLayout.Restore()
+            form.Changed()
+        end)
+        back:SetPoint("LEFT", lay, "RIGHT", 6, 0)
+        form.y = form.y - 28
+        local layHint = general:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+        layHint:SetPoint("TOPLEFT", general, "TOPLEFT", 8, form.y)
+        layHint:SetWidth(420)
+        layHint:SetJustifyH("LEFT")
+        layHint:SetText(L.LAYOUT_HINT)
+        form.y = form.y - 30
+        table.insert(form.refreshers, function() back:SetEnabled(ns.ModernLayout.HasBackup()) end)
+    end
     form:Gap(4)
     local themeTitle = form:Header(L.GEN_THEME)
     local themeHint = general:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
