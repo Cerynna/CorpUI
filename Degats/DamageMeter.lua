@@ -68,6 +68,7 @@ end
 local function tex(b, layer, sub)
     local t = b:CreateTexture(nil, layer, nil, sub)
     ours[t] = true
+    ns.NoSnap(t)   -- traits fins toujours dessines (Core.lua)
     return t
 end
 

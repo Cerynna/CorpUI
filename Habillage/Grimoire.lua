@@ -239,6 +239,7 @@ end
 local function tex(host, layer, sub)
     local t = host:CreateTexture(nil, layer, nil, sub)
     mine[t] = true
+    ns.NoSnap(t)   -- traits fins toujours dessines (Core.lua)
     return t
 end
 
@@ -368,7 +369,13 @@ local function glyphButton(b, glyph, size, inset)
     if objType(b) == nil or (plates[b] and plates[b].glyph) then return end
     fadeStates(b)
     local p = plate(b, inset or 2)
-    p.glyph = text(b, size or 12)
+    -- fleche en texte : notre chevron (meme usage : SetText, SetTextColor)
+    if ns.UI.IsChevron(glyph) then
+        p.glyph = ns.UI.Chevron(b, size or 12, glyph)
+        mine[p.glyph] = true
+    else
+        p.glyph = text(b, size or 12)
+    end
     p.glyph:SetPoint("CENTER", 0, 0)
     p.glyph:SetText(glyph)
     local C = ns.COLORS

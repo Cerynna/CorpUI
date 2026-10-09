@@ -238,6 +238,7 @@ end
 local function tex(host, layer, sub)
     local t = host:CreateTexture(nil, layer, nil, sub)
     mine[t] = true
+    ns.NoSnap(t)   -- traits fins toujours dessines (Core.lua)
     return t
 end
 
@@ -862,10 +863,26 @@ local function header(h)
     claimed[h] = true
 end
 
-local function headState(_, s)
+local function headState(h, s)
     local C = ns.COLORS
     if objType(s.text) == "FontString" then pcall(s.text.SetTextColor, s.text, C.gold[1], C.gold[2], C.gold[3]) end
-    if s.arrow and s.arrow.SetVertexColor then goldTint(s.arrow) end
+    -- fleche de tri : la leur eteinte (couleur), notre chevron suit son
+    -- affichage et son sens (Blizzard la retourne par SetTexCoord : haut a 1
+    -- = tri croissant)
+    if s.arrow and s.arrow.SetVertexColor then
+        pcall(s.arrow.SetVertexColor, s.arrow, 1, 1, 1, 0)
+        if not s.chev and h.CreateTexture then
+            s.chev = ns.UI.Chevron(h, 10, "DOWN")
+            mine[s.chev] = true
+            s.chev:SetPoint("CENTER", s.arrow, "CENTER", 0, 0)
+        end
+        if s.chev then
+            local okS, on = pcall(s.arrow.IsShown, s.arrow)
+            s.chev:SetShown(okS and on == true)
+            local okT, _, top = pcall(s.arrow.GetTexCoord, s.arrow)
+            s.chev:SetDir((okT and type(top) == "number" and top > 0.5) and "UP" or "DOWN")
+        end
+    end
 end
 
 -- bandeau des titres de colonnes : degrade d accent et filet d or
@@ -935,9 +952,11 @@ local function skinScrollBar(sb)
     knob:SetPoint("BOTTOM", thumb, "BOTTOM", 0, 0)
     knob:SetWidth(4)
     knob:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.6)
+    -- fleches : notre chevron (Core.lua), celles de Blizzard eteintes
     for _, k in ipairs({ "Back", "Forward" }) do
-        local t = field(field(sb, k), "Texture")
-        if t and t.SetVertexColor then pcall(t.SetVertexColor, t, C.violet[1], C.violet[2], C.violet[3], 0.8) end
+        local b = field(sb, k)
+        local c = ns.UI.ArrowChevron(b, ns.UI.ScrollDir(sb, k), 10, { field(b, "Texture") })
+        if c then mine[c] = true end
     end
     bars[sb] = { thumb = thumb, knob = knob }
 end

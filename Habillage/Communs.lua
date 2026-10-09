@@ -211,6 +211,7 @@ end
 local function tex(host, layer, sub)
     local t = host:CreateTexture(nil, layer, nil, sub)
     mine[t] = true
+    ns.NoSnap(t)   -- traits fins toujours dessines (Core.lua)
     return t
 end
 

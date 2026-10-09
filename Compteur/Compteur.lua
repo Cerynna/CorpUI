@@ -689,6 +689,7 @@ createWindow = function(conf)
     line:SetPoint("BOTTOMLEFT")
     line:SetPoint("BOTTOMRIGHT")
     line:SetHeight(1)
+    ns.NoSnap(line)
     if ns.MODERN then
         -- style Moderne : bandeau sombre et uni, sans filet d or
         hbg:SetColorTexture(0, 0, 0, 0.4)

@@ -587,6 +587,7 @@ local function separator(B, i)
     if not B.seps[i] then
         local t = B.frame:CreateTexture(nil, "ARTWORK")
         t:SetWidth(1)
+        ns.NoSnap(t)
         ns.UI.Gradient(t, "VERTICAL", C.violet[1], C.violet[2], C.violet[3], 0, C.violet[1], C.violet[2], C.violet[3], 0.8)
         B.seps[i] = t
     end

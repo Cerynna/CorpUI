@@ -282,6 +282,7 @@ local function tex(host, layer, sub, always)
     local t = host:CreateTexture(nil, layer, nil, sub)
     mine[t] = true
     if always then base[t] = true end
+    ns.NoSnap(t)   -- traits fins toujours dessines (Core.lua)
     return t
 end
 
@@ -365,7 +366,12 @@ local function skinScrollBar(sb)
         fade(field(track, k))
         fade(field(thumb, k))
     end
-    for _, k in ipairs({ "Back", "Forward" }) do tintTex(field(field(sb, k), "Texture"), C.violet, 0.8) end
+    -- fleches : notre chevron (Core.lua), celles de Blizzard eteintes
+    for _, k in ipairs({ "Back", "Forward" }) do
+        local b = field(sb, k)
+        local c = ns.UI.ArrowChevron(b, ns.UI.ScrollDir(sb, k), 10, { field(b, "Texture") })
+        if c then mine[c] = true end
+    end
     if bars[sb] or not (track.CreateTexture and thumb.CreateTexture) then return end
     local line = tex(track, "ARTWORK", 1, true)
     line:SetPoint("TOP", track, "TOP", 0, 0)

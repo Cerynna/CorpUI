@@ -217,6 +217,7 @@ end
 local function tex(host, layer, sub)
     local t = host:CreateTexture(nil, layer, nil, sub)
     mine[t] = true
+    ns.NoSnap(t)   -- traits fins toujours dessines (Core.lua)
     return t
 end
 
@@ -440,9 +441,11 @@ local function skinScrollBar(sb)
     line:SetWidth(1)
     line:SetColorTexture(C.border[1], C.border[2], C.border[3], 0.8)
     local knob = knobOn(thumb, thumb)
+    -- fleches : notre chevron (Core.lua), celles de Blizzard eteintes
     for _, k in ipairs({ "Back", "Forward" }) do
-        local t = field(field(sb, k), "Texture")
-        if objType(t) == "Texture" then pcall(t.SetVertexColor, t, C.violet[1], C.violet[2], C.violet[3], 0.8) end
+        local b = field(sb, k)
+        local c = ns.UI.ArrowChevron(b, ns.UI.ScrollDir(sb, k), 10, { field(b, "Texture") })
+        if c then mine[c] = true end
     end
     bars[sb] = { thumb = thumb, knob = knob }
 end
@@ -475,15 +478,16 @@ local function skinOldScrollBar(sb)
     line:SetWidth(1)
     line:SetColorTexture(C.border[1], C.border[2], C.border[3], 0.8)
     local knob = knobOn(sb, thumb)
+    -- fleches : notre chevron (Core.lua), leurs etats eteints par la couleur
     for _, k in ipairs({ "ScrollUpButton", "ScrollDownButton" }) do
         local b = field(sb, k)
+        local hide = {}
         for _, m in ipairs(ARROW_STATES) do
             local t = askObj(b, m)
-            if objType(t) == "Texture" and not mine[t] then
-                pcall(t.SetDesaturated, t, true)
-                pcall(t.SetVertexColor, t, C.violet[1], C.violet[2], C.violet[3], 0.9)
-            end
+            if objType(t) == "Texture" and not mine[t] then hide[#hide + 1] = t end
         end
+        local c = ns.UI.ArrowChevron(b, k == "ScrollUpButton" and "UP" or "DOWN", 10, hide)
+        if c then mine[c] = true end
         fadeStates(b, { "GetHighlightTexture" })
     end
     bars[sb] = { thumb = sb, knob = knob, ref = thumb }

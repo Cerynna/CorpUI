@@ -270,6 +270,7 @@ local function build()
         d:SetPoint("TOPLEFT", after, "TOPRIGHT", -1, 0)
         d:SetPoint("BOTTOMLEFT", after, "BOTTOMRIGHT", -1, 0)
         d:SetWidth(1)
+        ns.NoSnap(d)
         d:SetColorTexture(0.02, 0.03, 0.06, 0.55)
         return d
     end
@@ -280,6 +281,7 @@ local function build()
     sheen:SetPoint("TOPLEFT")
     sheen:SetPoint("TOPRIGHT")
     sheen:SetHeight(1)
+    ns.NoSnap(sheen)
     sheen:SetColorTexture(1, 1, 1, 0.10)
     local shadow = bar:CreateTexture(nil, "ARTWORK", nil, 5)
     shadow:SetPoint("BOTTOMLEFT")
@@ -291,6 +293,7 @@ local function build()
     for i = 1, 9 do
         local t = bar:CreateTexture(nil, "ARTWORK", nil, 6)
         t:SetWidth(1)
+        ns.NoSnap(t)
         t:SetColorTexture(0, 0, 0, 0.35)
         ticks[i] = t
     end

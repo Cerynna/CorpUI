@@ -622,6 +622,17 @@ function ns.UI.Window(name, title, store, width, height)
     return ns.NewPanel(name, title, width, height)
 end
 
+-- Trait fin toujours dessine : a l echelle 0.71, un trait de 1 unite pose
+-- sur une position fractionnaire disparaissait a l arrondi sur la grille
+-- des pixels (bord du bas du cadre des talents, vu en jeu le 09/10). Nos
+-- textures (liseres, filets, plaques) se passent de cet arrondi.
+function ns.NoSnap(t)
+    if type(t) ~= "table" then return t end
+    pcall(t.SetSnapToPixelGrid, t, false)
+    pcall(t.SetTexelSnappingBias, t, 0)
+    return t
+end
+
 -- Habillage des cadres de jeu (unites, barres, minicarte...) : fond
 -- obsidienne, liseré violet de 1 px, ombre douce en option.
 -- f.cuiBorder : la texture du liseré, a recolorer (combat, debuff...).
@@ -630,9 +641,11 @@ function ns.UI.Skin(f, alpha, shadow)
     b:SetPoint("TOPLEFT", -1, 1)
     b:SetPoint("BOTTOMRIGHT", 1, -1)
     b:SetColorTexture(C.border[1], C.border[2], C.border[3], 1)
+    ns.NoSnap(b)
     local bg = f:CreateTexture(nil, "BACKGROUND", nil, -6)
     bg:SetAllPoints()
     bg:SetColorTexture(C.bg[1], C.bg[2], C.bg[3], alpha or 0.9)
+    ns.NoSnap(bg)
     if shadow then
         for i = 2, 4 do
             local t = f:CreateTexture(nil, "BACKGROUND", nil, -8)
@@ -790,6 +803,58 @@ function ns.UI.Chevron(parent, size, dir, layer, sub)
     t:SetDir(dir or "DOWN")
     t:SetVertexColor(C.gold[1], C.gold[2], C.gold[3], 1)
     return t
+end
+
+-- "v", "^", "<", ">" : une fleche en texte que le chevron remplace
+function ns.UI.IsChevron(g) return CHEV_GLYPH[g] ~= nil end
+
+-- sens des fleches d une barre de defilement (Back / Forward), verticale
+-- ou horizontale (ScrollBarMixin : isHorizontal, lu seulement)
+function ns.UI.ScrollDir(sb, key)
+    local okH, horiz = pcall(function() return sb.isHorizontal end)
+    if okH and horiz == true then return key == "Back" and "LEFT" or "RIGHT" end
+    return key == "Back" and "UP" or "DOWN"
+end
+
+-- Fleche de Blizzard remplacee par notre chevron (barres de defilement,
+-- boutons de page...) : ses textures eteintes par la couleur (Blizzard
+-- pilote leur atlas et leur alpha), notre chevron au centre du bouton ;
+-- gris si le bouton est desactive, blanc au survol (releve 5 fois par
+-- seconde). Une seule fois par bouton : renvoie le chevron.
+local arrowChevs = setmetatable({}, { __mode = "k" })
+local arrowTick
+function ns.UI.ArrowChevron(btn, dir, size, hide)
+    if type(btn) ~= "table" or not btn.CreateTexture then return nil end
+    for _, t in ipairs(hide or {}) do
+        if type(t) == "table" and t.SetVertexColor then pcall(t.SetVertexColor, t, 1, 1, 1, 0) end
+    end
+    if arrowChevs[btn] then return arrowChevs[btn] end
+    local chev = ns.UI.Chevron(btn, size or 10, dir)
+    chev:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    arrowChevs[btn] = chev
+    if not arrowTick then
+        arrowTick = CreateFrame("Frame")
+        local acc = 0
+        arrowTick:SetScript("OnUpdate", function(_, dt)
+            acc = acc + dt
+            if acc < 0.2 then return end
+            acc = 0
+            for b, c in pairs(arrowChevs) do
+                if b:IsVisible() then
+                    local okE, en = pcall(b.IsEnabled, b)
+                    local okM, over = pcall(b.IsMouseOver, b)
+                    local state = (okE and en == false) and "off" or ((okM and over == true) and "over" or "on")
+                    if c.cuiState ~= state then
+                        c.cuiState = state
+                        if state == "off" then c:SetVertexColor(C.text[1], C.text[2], C.text[3], 0.35)
+                        elseif state == "over" then c:SetVertexColor(1, 1, 1, 1)
+                        else c:SetVertexColor(C.gold[1], C.gold[2], C.gold[3], 1) end
+                    end
+                end
+            end
+        end)
+    end
+    return chev
 end
 
 function ns.UI.Select(parent, width, options, get, set, after)
@@ -1443,6 +1508,7 @@ function ns.NativeAuras(parent, unit, spec)
         local edge = btn:CreateTexture(nil, "BACKGROUND", nil, -2)
         edge:SetPoint("TOPLEFT", -1, 1)
         edge:SetPoint("BOTTOMRIGHT", 1, -1)
+        ns.NoSnap(edge)
         local bc = ns.COLORS.border
         edge:SetColorTexture(bc[1], bc[2], bc[3], 1)
         -- liseré du type de debuff : blanc teinte par le client
@@ -2169,6 +2235,7 @@ local function buildMain()
     ns.UI.Gradient(colBg, "HORIZONTAL", 0, 0, 0, 0.55, 0, 0, 0, 0.35)
     local sep = tabCol:CreateTexture(nil, "ARTWORK")
     sep:SetWidth(1)
+    ns.NoSnap(sep)
     sep:SetPoint("TOPRIGHT")
     sep:SetPoint("BOTTOMRIGHT")
     ns.UI.Gradient(sep, "VERTICAL", C.violet[1], C.violet[2], C.violet[3], 0, C.violet[1], C.violet[2], C.violet[3], 0.6)
@@ -2268,6 +2335,7 @@ function ns.NewPanel(name, title, width, height)
     -- souligne : violet qui s efface vers la droite
     f.titleLine = f:CreateTexture(nil, "ARTWORK")
     f.titleLine:SetHeight(1)
+    ns.NoSnap(f.titleLine)
     ns.UI.Gradient(f.titleLine, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.8, C.violet[1], C.violet[2], C.violet[3], 0)
     f:SetScript("OnSizeChanged", function(self)
         if self == current then
@@ -2748,6 +2816,7 @@ local function addHeader(label)
     h.line:SetPoint("BOTTOMLEFT", 6, 1)
     h.line:SetPoint("BOTTOMRIGHT", -6, 1)
     h.line:SetHeight(1)
+    ns.NoSnap(h.line)
     ns.UI.Gradient(h.line, "HORIZONTAL", C.gold[1], C.gold[2], C.gold[3], 0.45, C.gold[1], C.gold[2], C.gold[3], 0)
     return h
 end

@@ -287,11 +287,13 @@ local function buildPanel(cf)
         l:SetPoint("TOPLEFT", p, "TOPLEFT", 1, y)
         l:SetPoint("TOPRIGHT", p, "TOP", 0, y)
         l:SetHeight(1)
+        ns.NoSnap(l)
         ns.UI.Gradient(l, "HORIZONTAL", C.gold[1], C.gold[2], C.gold[3], 0, C.gold[1], C.gold[2], C.gold[3], 0.9)
         local r = p:CreateTexture(nil, "ARTWORK")
         r:SetPoint("TOPLEFT", p, "TOP", 0, y)
         r:SetPoint("TOPRIGHT", p, "TOPRIGHT", -1, y)
         r:SetHeight(1)
+        ns.NoSnap(r)
         ns.UI.Gradient(r, "HORIZONTAL", C.gold[1], C.gold[2], C.gold[3], 0.9, C.gold[1], C.gold[2], C.gold[3], 0)
     end
     if not ns.MODERN then
@@ -315,6 +317,7 @@ local function buildPanel(cf)
     edit.sep:SetPoint("BOTTOMLEFT", edit, "TOPLEFT", 0, 0)
     edit.sep:SetPoint("BOTTOMRIGHT", edit, "TOPRIGHT", 0, 0)
     edit.sep:SetHeight(1)
+    ns.NoSnap(edit.sep)
     edit.sep:SetColorTexture(C.border[1], C.border[2], C.border[3], 1)
     -- liseré gauche a la couleur du canal (Dire, Groupe, Guilde...)
     edit.bar = edit:CreateTexture(nil, "ARTWORK")
@@ -644,13 +647,13 @@ local function skin(cf)
         sq:SetPoint("BOTTOMRIGHT", 2, -2)
         sq:SetFrameLevel(math.max(0, toBottom:GetFrameLevel() - 1))
         ns.UI.Skin(sq, 0.95)
+        -- leur fleche eteinte (couleur), notre chevron (Core.lua)
+        local hide = {}
         for _, get in ipairs({ "GetNormalTexture", "GetPushedTexture", "GetDisabledTexture" }) do
             local ok, t = pcall(toBottom[get], toBottom)
-            if ok and t then
-                t:SetDesaturated(true)
-                t:SetVertexColor(ns.COLORS.gold[1], ns.COLORS.gold[2], ns.COLORS.gold[3])
-            end
+            if ok and t then hide[#hide + 1] = t end
         end
+        ns.UI.ArrowChevron(toBottom, "DOWN", 12, hide)
     end
     -- journal de combat : le fond noir de sa barre de filtres
     if name == "ChatFrame2" then fade(_G.CombatLogQuickButtonFrame_CustomTexture) end

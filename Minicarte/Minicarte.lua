@@ -696,6 +696,7 @@ local function build()
         t:SetPoint(p2)
         if w then t:SetWidth(w) end
         if h then t:SetHeight(h) end
+        ns.NoSnap(t)
     end
     line("TOPLEFT", "TOPRIGHT", nil, 1)
     line("BOTTOMLEFT", "BOTTOMRIGHT", nil, 1)

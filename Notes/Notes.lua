@@ -912,6 +912,7 @@ buildFrame = function()
     line:SetPoint("BOTTOMLEFT")
     line:SetPoint("BOTTOMRIGHT")
     line:SetHeight(1)
+    ns.NoSnap(line)
     ns.UI.Gradient(line, "HORIZONTAL", C.gold[1], C.gold[2], C.gold[3], 0.7, C.gold[1], C.gold[2], C.gold[3], 0)
 
     local close = CreateFrame("Button", nil, head)

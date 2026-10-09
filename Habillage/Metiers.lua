@@ -216,6 +216,7 @@ end
 local function tex(host, layer, sub)
     local t = host:CreateTexture(nil, layer, nil, sub)
     mine[t] = true
+    ns.NoSnap(t)   -- traits fins toujours dessines (Core.lua)
     return t
 end
 
@@ -380,7 +381,13 @@ local function glyphButton(b, glyph, size, inset, color)
     fadeStates(b)
     for _, k in ipairs({ "Icon", "Overlay" }) do fade(field(b, k)) end
     local p = plate(b, inset or 2)
-    p.glyph = text(b, size or 12)
+    -- fleche en texte : notre chevron (meme usage : SetText, SetTextColor)
+    if ns.UI.IsChevron(glyph) then
+        p.glyph = ns.UI.Chevron(b, size or 12, glyph)
+        mine[p.glyph] = true
+    else
+        p.glyph = text(b, size or 12)
+    end
     p.glyph:SetPoint("CENTER", 0, 0)
     p.glyph:SetText(glyph)
     p.color = color
@@ -604,9 +611,11 @@ local function skinScrollBar(sb)
     knob:SetPoint("BOTTOM", thumb, "BOTTOM", 0, 0)
     knob:SetWidth(4)
     knob:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.6)
+    -- fleches : notre chevron (Core.lua), celles de Blizzard eteintes
     for _, k in ipairs({ "Back", "Forward" }) do
-        local t = field(field(sb, k), "Texture")
-        if t and t.SetVertexColor then pcall(t.SetVertexColor, t, C.violet[1], C.violet[2], C.violet[3], 0.8) end
+        local b = field(sb, k)
+        local c = ns.UI.ArrowChevron(b, ns.UI.ScrollDir(sb, k), 10, { field(b, "Texture") })
+        if c then mine[c] = true end
     end
     bars[sb] = { thumb = thumb, knob = knob }
 end

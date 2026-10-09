@@ -1213,6 +1213,7 @@ local function buildBar()
     fill:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", 1, 1)
     fill:SetHeight(2)
     fill:SetWidth(1)
+    ns.NoSnap(fill)
     ns.UI.Gradient(fill, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 1, C.gold[1], C.gold[2], C.gold[3], 1)
     fill:Hide()
     bar.fill = fill

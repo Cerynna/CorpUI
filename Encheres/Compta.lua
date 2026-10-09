@@ -442,6 +442,7 @@ local function buildView(page, w, top)
         b.tex:SetPoint("BOTTOMLEFT")
         b.tex:SetPoint("BOTTOMRIGHT")
         b.tex:SetHeight(1)
+        ns.NoSnap(b.tex)
         ns.UI.Gradient(b.tex, "VERTICAL", C.violet[1], C.violet[2], C.violet[3], 0.9, C.gold[1], C.gold[2], C.gold[3], 0.9)
         b:SetScript("OnEnter", function(self)
             if not self.data then return end
