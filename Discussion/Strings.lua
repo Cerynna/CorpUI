@@ -294,3 +294,17 @@ ns.AddStrings({
         CHAT_SETUP_DONE = "CorpUI 채팅 탭 준비 완료(일반, GGR, Loot&Trade, Whisper): 다음에 다시 불러오면 나타납니다 (/reload).",
     },
 })
+
+-- Journal de combat en icone (09/10)
+ns.AddStrings({
+    enUS = { CHAT_OPT_COMBAT_ICON = "Combat log as an icon (right of the tabs)", CHAT_COMBAT_TIP = "Combat log" },
+    frFR = { CHAT_OPT_COMBAT_ICON = "Journal de combat en icône (à droite des onglets)", CHAT_COMBAT_TIP = "Journal de combat" },
+    deDE = { CHAT_OPT_COMBAT_ICON = "Kampflog als Symbol (rechts der Reiter)", CHAT_COMBAT_TIP = "Kampflog" },
+    esES = { CHAT_OPT_COMBAT_ICON = "Registro de combate como icono (a la derecha de las pestañas)", CHAT_COMBAT_TIP = "Registro de combate" },
+    ptBR = { CHAT_OPT_COMBAT_ICON = "Registro de combate como ícone (à direita das abas)", CHAT_COMBAT_TIP = "Registro de combate" },
+    itIT = { CHAT_OPT_COMBAT_ICON = "Registro di combattimento come icona (a destra delle schede)", CHAT_COMBAT_TIP = "Registro di combattimento" },
+    ruRU = { CHAT_OPT_COMBAT_ICON = "Журнал боя значком (справа от вкладок)", CHAT_COMBAT_TIP = "Журнал боя" },
+    zhCN = { CHAT_OPT_COMBAT_ICON = "战斗记录显示为图标（标签右侧）", CHAT_COMBAT_TIP = "战斗记录" },
+    zhTW = { CHAT_OPT_COMBAT_ICON = "戰鬥記錄顯示為圖示（標籤右側）", CHAT_COMBAT_TIP = "戰鬥記錄" },
+    koKR = { CHAT_OPT_COMBAT_ICON = "전투 기록을 아이콘으로 (탭 오른쪽)", CHAT_COMBAT_TIP = "전투 기록" },
+})

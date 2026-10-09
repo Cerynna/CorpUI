@@ -392,10 +392,29 @@ local function styleTab(tab)
     local fs = tabText(tab)
     if fs then fade(fs) end
     local t = {}
+    -- plaque de l onglet (09/10 : les onglets se distinguaient mal, libelles
+    -- seuls) : toute la largeur de l onglet de Blizzard, 18 de haut autour
+    -- du libelle ; teintee d accent pour l onglet actif
+    t.plate = labelHost:CreateTexture(nil, "BACKGROUND", nil, 1)
+    t.plate:SetPoint("TOPLEFT", tab, "LEFT", 1, 7)
+    t.plate:SetPoint("BOTTOMRIGHT", tab, "RIGHT", -1, -11)
+    ns.NoSnap(t.plate)
+    t.edges = {}
+    for i, pts in ipairs({ { "TOPLEFT", "TOPRIGHT" }, { "BOTTOMLEFT", "BOTTOMRIGHT" }, { "TOPLEFT", "BOTTOMLEFT" }, { "TOPRIGHT", "BOTTOMRIGHT" } }) do
+        local e = labelHost:CreateTexture(nil, "BACKGROUND", nil, 2)
+        e:SetPoint(pts[1], t.plate, pts[1], 0, 0)
+        e:SetPoint(pts[2], t.plate, pts[2], 0, 0)
+        if i <= 2 then e:SetHeight(1) else e:SetWidth(1) end
+        ns.NoSnap(e)
+        t.edges[i] = e
+    end
     t.label = labelHost:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     t.label:SetPoint("CENTER", tab, "CENTER", 0, -2)
     t.label:SetShadowColor(0, 0, 0, 1)
     t.label:SetShadowOffset(1, -1)
+    -- coupe a la largeur de l onglet (les onglets d un dock charge sont
+    -- etroits : "Journal de combat" debordait sur ses voisins)
+    t.label:SetWordWrap(false)
     t.under = labelHost:CreateTexture(nil, "OVERLAY")
     t.under:SetPoint("TOPLEFT", t.label, "BOTTOMLEFT", -2, -3)
     t.under:SetPoint("TOPRIGHT", t.label, "BOTTOMRIGHT", 2, -3)
@@ -411,6 +430,36 @@ local function styleTab(tab)
     t.under:Hide()
     t.glow:Hide()
     return t
+end
+
+-- couleurs de la plaque : "on" (onglet actif), "over" (survol), sinon repos
+local function plateLook(t, state)
+    if t.state == state then return end
+    t.state = state
+    local C = ns.COLORS
+    local fr, fg, fb, fa, er, eg, eb, ea
+    if state == "on" then
+        fr, fg, fb, fa = C.violet[1], C.violet[2], C.violet[3], 0.20
+        er, eg, eb, ea = C.violet[1], C.violet[2], C.violet[3], 0.55
+    elseif state == "over" then
+        fr, fg, fb, fa = 1, 1, 1, 0.08
+        er, eg, eb, ea = 1, 1, 1, 0.14
+    else
+        fr, fg, fb, fa = 1, 1, 1, 0.035
+        er, eg, eb, ea = 1, 1, 1, 0.08
+    end
+    t.plate:SetColorTexture(fr, fg, fb, fa)
+    for _, e in ipairs(t.edges) do e:SetColorTexture(er, eg, eb, ea) end
+end
+
+local function showLook(t, on)
+    t.label:SetShown(on)
+    t.plate:SetShown(on)
+    for _, e in ipairs(t.edges) do e:SetShown(on) end
+    if not on then
+        t.under:Hide()
+        t.glow:Hide()
+    end
 end
 
 local function styleEdit(eb)
@@ -464,6 +513,8 @@ local function slotIcon(slot, file)
     return icon
 end
 local buttonBar, slots = nil, {}
+local combatAsIcon
+local dockInset             -- recul du bord droit des onglets (largeur des icones)
 
 local function makeSlot()
     local slot = CreateFrame("Frame", nil, buttonBar)
@@ -499,6 +550,31 @@ local function buildButtonBar()
     end)
     slots[1] = { slot = copySlot, button = copy, own = true }
 
+    -- journal de combat (option) : icone a gauche de la rangee. Le clic passe
+    -- par un bouton securise qui "clique" l onglet de Blizzard (type
+    -- "click") : leur propre code choisit la fenetre, sans taint. Bouton
+    -- pose sur UIParent et ancre sur la case : la barre et ses cases restent
+    -- des cadres ordinaires (deplaces et caches librement)
+    local tab2 = _G.ChatFrame2Tab
+    if type(tab2) == "table" and tab2.Click then
+        local combatSlot = makeSlot()
+        slotIcon(combatSlot, "chat_combat")
+        local cb = CreateFrame("Button", "CorpUIChatCombatButton", UIParent, "SecureActionButtonTemplate")
+        cb:SetFrameStrata("MEDIUM")
+        cb:SetFrameLevel(25)
+        cb:SetAllPoints(combatSlot)
+        cb:RegisterForClicks("AnyUp", "AnyDown")
+        cb:SetAttribute("type", "click")
+        cb:SetAttribute("clickbutton", tab2)
+        cb:SetScript("OnEnter", function(self)
+            local t = ns.Tooltip(self, "ANCHOR_TOP")
+            t:AddLine(L.CHAT_COMBAT_TIP)
+            t:Show()
+        end)
+        cb:SetScript("OnLeave", ns.HideTooltip)
+        table.insert(slots, { slot = combatSlot, button = cb, combat = true })
+    end
+
     -- boutons de Blizzard : ranges dans nos cases (taille ramenee par echelle)
     for _, name in ipairs(BLIZZ_BUTTONS) do
         local b = _G[name]
@@ -520,6 +596,14 @@ local function buildButtonBar()
     end
 end
 
+-- journal de combat en icone : option, fenetre ancree dans le dock
+combatAsIcon = function()
+    if not (db and db.combatIcon) then return false end
+    local cf = _G.ChatFrame2
+    local ok, docked = pcall(function() return cf and cf.isDocked end)
+    return ok and docked and true or false
+end
+
 -- range les cases visibles de droite a gauche, dans le bandeau des onglets
 local function layoutButtons()
     if not buttonBar then return end
@@ -532,7 +616,11 @@ local function layoutButtons()
     for _, e in ipairs(slots) do
         local slot = e.slot
         local shown
-        if e.own then shown = db.copy else shown = e.button:IsShown() end
+        if e.own then shown = db.copy
+        elseif e.combat then shown = combatAsIcon()
+        else shown = e.button:IsShown() end
+        -- bouton securise : visibilite changee hors combat seulement
+        if e.combat and not InCombatLockdown() and e.button:IsShown() ~= shown then e.button:SetShown(shown) end
         if slot then
             slot:SetShown(shown)
             if shown then
@@ -540,7 +628,7 @@ local function layoutButtons()
                 slot:SetPoint("TOPRIGHT", buttonBar, "TOPRIGHT", -x, 0)
                 x = x + ICON + 4
                 -- Blizzard re-ancre parfois ses boutons : on les remet en place
-                if not e.own then
+                if not e.own and not e.combat then
                     local _, rel = e.button:GetPoint(1)
                     if rel ~= slot then
                         e.button:ClearAllPoints()
@@ -548,11 +636,23 @@ local function layoutButtons()
                     end
                     if e.button:GetParent() ~= slot then pcall(e.button.SetParent, e.button, slot) end
                 end
-                -- liseré dore au survol
+                -- liseré dore au survol ; journal de combat affiche : accent
                 local c = e.button:IsMouseOver() and C.gold or C.border
+                if e.combat and not e.button:IsMouseOver() and SELECTED_CHAT_FRAME == _G.ChatFrame2 then c = C.violet end
                 if slot.cuiBorder then slot.cuiBorder:SetColorTexture(c[1], c[2], c[3], 1) end
             end
         end
+    end
+    -- les onglets s arretent avant nos icones (09/10 : dans un chat etroit ils
+    -- passaient dessous) : le bord droit du gestionnaire d onglets de Blizzard
+    -- recule d autant. Simple ancrage (pose une fois par FCFDock_SetPrimary,
+    -- jamais repris) ; la largeur des onglets suit a la mise a jour suivante
+    -- du dock (choix d un onglet, nouvelle fenetre...)
+    local dock = GENERAL_CHAT_DOCK
+    local bg = dock and dock.primary and dock.primary.Background
+    if bg and dock.SetPoint and dockInset ~= x then
+        dockInset = x
+        pcall(dock.SetPoint, dock, "BOTTOMRIGHT", bg, "TOPRIGHT", -(x + 2), 0)
     end
 end
 
@@ -763,6 +863,21 @@ end
 local function refresh()
     local C = ns.COLORS
     local selected = SELECTED_CHAT_FRAME or DEFAULT_CHAT_FRAME
+    -- onglet du journal de combat cache (icone a la place) ; c est un onglet
+    -- fixe du dock, juste apres General : le cadre defilant des autres
+    -- onglets est recolle contre General (Blizzard le rancre sur l onglet du
+    -- journal a chaque mise a jour du dock : repose ici)
+    local tab2 = _G.ChatFrame2Tab
+    local hideCombat = combatAsIcon() and tab2 ~= nil and tab2:IsShown()
+    local dock = GENERAL_CHAT_DOCK
+    local sf = dock and dock.scrollFrame
+    local t1 = _G.ChatFrame1Tab
+    if hideCombat and sf and t1 and tab2:GetParent() == dock then
+        local l, r = sf:GetLeft(), t1:GetRight()
+        if l and r and math.abs(l - (r + 1)) > 0.5 then
+            pcall(sf.SetPoint, sf, "LEFT", t1, "RIGHT", 1, 0)
+        end
+    end
     for cf, s in pairs(skinned) do
         if s.scroll and cf:IsVisible() then pcall(updateScroll, cf, s.scroll) end
         if s.panel then
@@ -774,20 +889,24 @@ local function refresh()
         if look then
             -- un onglet affiche (meme estompe par Blizzard) garde un libelle net
             local shown = s.tab:IsShown() and s.tab:IsVisible()
-            look.label:SetShown(shown)
+            if hideCombat and s.tab == tab2 then shown = false end
+            showLook(look, shown)
             if shown then
                 local on = (cf == selected)
                 local fs = tabText(s.tab)
                 local text = fs and fs:GetText() or ""
                 if look.label:GetText() ~= text then look.label:SetText(text) end
+                local w = s.tab:GetWidth()
+                if w and w > 12 and look.w ~= w then
+                    look.w = w
+                    look.label:SetWidth(w - 10)
+                end
+                plateLook(look, on and "on" or (s.tab:IsMouseOver() and "over" or "rest"))
                 if on and ns.MODERN then look.label:SetTextColor(1, 1, 1)
                 elseif on then look.label:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
                 elseif s.tab:IsMouseOver() then look.label:SetTextColor(1, 1, 1)
                 else look.label:SetTextColor(C.text[1] * 0.85, C.text[2] * 0.85, C.text[3] * 0.85) end
                 look.under:SetShown(on)
-                look.glow:SetShown(s.tab:IsMouseOver() and not on)
-            else
-                look.under:Hide()
                 look.glow:Hide()
             end
         end
@@ -963,9 +1082,11 @@ end
 -- en style classique, des qu elle est affichee ; sinon pendant la frappe
 function ns.ChatEditShown()
     local classic = editOnTyping()
-    for cf, s in pairs(skinned) do
+    -- zone de saisie visible, quelle que soit la fenetre choisie (09/10 : un
+    -- autre onglet que General cache ChatFrame1, pas sa zone de saisie)
+    for _, s in pairs(skinned) do
         local eb = s.eb
-        if eb and eb:IsShown() and cf:IsVisible() then
+        if eb and eb:IsVisible() then
             if classic then return true end
             local ok, focus = pcall(eb.HasFocus, eb)
             if ok and focus then return true end
@@ -1054,21 +1175,23 @@ end
 -- recharge l interface ; pour un nouveau personnage, au prochain /reload.
 ---------------------------------------------------------------------------
 
+local combatName
 local SETUP = {
     { id = 1, dock = 1, name = function() return GENERAL end, keepChannels = true, groups = {
         "SAY", "EMOTE", "YELL", "SYSTEM", "ERRORS", "CHANNEL", "MONSTER_SAY", "MONSTER_EMOTE", "MONSTER_YELL",
         "MONSTER_WHISPER", "MONSTER_BOSS_EMOTE", "MONSTER_BOSS_WHISPER", "ACHIEVEMENT", "BG_HORDE", "BG_ALLIANCE",
         "BG_NEUTRAL", "COMBAT_XP_GAIN", "COMBAT_HONOR_GAIN", "COMBAT_FACTION_CHANGE", "SKILL", "PET_INFO",
         "TARGETICONS", "BN_INLINE_TOAST_ALERT", "PING" } },
-    { id = 4, dock = 3, name = "GGR", groups = {
+    { id = 4, dock = 2, name = "GGR", groups = {
         "GUILD", "OFFICER", "GUILD_ACHIEVEMENT", "PARTY", "PARTY_LEADER", "RAID", "RAID_LEADER", "RAID_WARNING",
         "INSTANCE_CHAT", "INSTANCE_CHAT_LEADER" } },
-    { id = 5, dock = 4, name = "Loot&Trade", groups = { "LOOT", "MONEY", "CURRENCY", "TRADESKILLS", "OPENING" } },
-    { id = 6, dock = 5, name = "Whisper", groups = { "WHISPER", "BN_WHISPER", "AFK", "DND", "IGNORED" } },
+    { id = 5, dock = 3, name = "Loot&Trade", groups = { "LOOT", "MONEY", "CURRENCY", "TRADESKILLS", "OPENING" } },
+    { id = 6, dock = 4, name = "Whisper", groups = { "WHISPER", "BN_WHISPER", "AFK", "DND", "IGNORED" } },
 }
 -- fenetres propres a Blizzard (IsBuiltinChatWindow) : journal de combat,
 -- transcription vocale
 local BUILTIN = { [2] = true, [3] = true }
+local COMBAT_LOG_ID = 2
 
 local function packCall(fn, id) return { fn(id) } end
 
@@ -1128,6 +1251,28 @@ function ns.ChatSetupWindows()
     return true
 end
 
+-- journal de combat ancre dans le dock mais pas en dernier : passe en
+-- dernier (configuration du jeu, effet au prochain chargement de l interface)
+-- Dans ce client, le journal de combat est un onglet FIXE du dock, comme
+-- General (vu en jeu le 09/10 : parent GeneralDockManager) : toujours juste
+-- apres General, quel que soit l ordre enregistre. En icone, son onglet est
+-- cache et les onglets suivants sont recolles contre General (refresh) ;
+-- son nom passe a une espace : un onglet d une vingtaine de pixels, que
+-- Blizzard deduit de la place des autres. Le nom du jeu revient si l option
+-- est decochee (seulement s il porte encore notre espace). Effet au
+-- prochain chargement de l interface.
+local COMBAT_ICON_NAME = " "
+combatName = function()
+    if type(GetChatWindowInfo) ~= "function" or type(SetChatWindowName) ~= "function" then return end
+    local ok, name = pcall(GetChatWindowInfo, COMBAT_LOG_ID)
+    if not ok or type(name) ~= "string" or issecret(name) then return end
+    if db and db.combatIcon then
+        if name ~= COMBAT_ICON_NAME then engine(SetChatWindowName, COMBAT_LOG_ID, COMBAT_ICON_NAME) end
+    elseif name == COMBAT_ICON_NAME and type(COMBAT_LOG) == "string" and COMBAT_LOG ~= "" then
+        engine(SetChatWindowName, COMBAT_LOG_ID, COMBAT_LOG)
+    end
+end
+
 ---------------------------------------------------------------------------
 -- Options
 ---------------------------------------------------------------------------
@@ -1151,6 +1296,11 @@ local function buildWindow()
     form:Check(L.CHAT_OPT_EDIT_TYPING, editOnTyping, function(v) ns.ChatEditOnTyping(v) end)
     -- reglage du jeu (CVar), change seulement au clic
     form:Check(L.CHAT_OPT_CLASSCOLOR, ccGet, ccSet)
+    -- journal de combat en icone (nom de l onglet au prochain chargement)
+    form:Check(L.CHAT_OPT_COMBAT_ICON, function() return db.combatIcon end, function(v)
+        db.combatIcon = v
+        combatName()
+    end)
     form:Gap(4)
     -- opacite du fond : enregistree de 0 a 1, reglee en % ; heure : CVar du jeu
     form:Columns(2)
@@ -1209,13 +1359,15 @@ ev:SetScript("OnEvent", function(_, event)
         local root = ns.InitRoot()
         root.chat = root.chat or {}
         db = root.chat
-        for k, v in pairs({ enabled = true, copy = true, alpha = 0.6, corner = true, arrows = true, keepHistory = true, urls = true, lift = 0 }) do
+        for k, v in pairs({ enabled = true, copy = true, alpha = 0.6, corner = true, arrows = true, keepHistory = true, urls = true, lift = 0,
+                            combatIcon = true }) do
             if db[k] == nil then db[k] = v end
         end
         db.errors = nil
         -- historique non garde : on repart d une liste vide (elle sert quand
         -- meme pendant la session, pour les fleches)
         if not db.keepHistory and db.history then db.history[ns.CharKey()] = nil end
+        C_Timer.After(4, combatName)
         -- personnage jamais vu par CorpUI (Profils.lua) : onglets par defaut,
         -- une fois la configuration du jeu chargee ; visibles au prochain
         -- chargement de l interface
