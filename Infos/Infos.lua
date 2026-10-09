@@ -12,8 +12,8 @@
     Cadres ordinaires, deplacables avec "Deverrouiller l interface" ;
     "Sous le chat" le pose a la place de la zone de saisie du chat (a sa
     largeur) et passe le chat en saisie "pendant la frappe" : la zone de
-    saisie s ouvre par-dessus (Entree, clic sur un canal ou un nom) et le
-    bandeau s efface le temps de la frappe (ns.ChatBox / ns.ChatEditShown).
+    saisie s ouvre par-dessus (Entree, clic sur un canal ou un nom), dans son
+    champ encadre ; le bandeau reste affiche dessous (ns.ChatBox).
     Clics et infobulles : un petit bouton SECURISE transparent par info,
     enfant d UIParent (pas de la barre : la barre change de largeur chaque
     seconde, meme en combat). Il est place hors combat sur le texte, avec
@@ -716,12 +716,9 @@ local function bind(i)
         bar:SetScript("OnUpdate", function(self, dt)
             local cc = B.conf
             if not cc then return end
-            -- a la place de la zone de saisie : efface pendant la frappe ;
-            -- sinon fondu "au survol"
-            local typing = cc.underChat and not ns.moversShown and ns.ChatEditShown and ns.ChatEditShown()
-            if typing then
-                if self:GetAlpha() ~= 0 then self:SetAlpha(0) end
-            elseif cc.mouseover then
+            -- fondu "au survol" ; sous le chat, il reste affiche pendant la
+            -- frappe (09/10 : le champ de saisie encadre se pose par-dessus)
+            if cc.mouseover then
                 local want = (self:IsMouseOver() or ns.moversShown) and 1 or 0
                 local a = self:GetAlpha()
                 if a ~= want then self:SetAlpha(want > a and math.min(1, a + dt * 5) or math.max(0, a - dt * 3)) end
