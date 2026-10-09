@@ -230,3 +230,67 @@ ns.AddStrings({
     zhTW = { CHAT_OPT_EDIT_TYPING = "僅在輸入時顯示輸入框（經典聊天樣式）" },
     koKR = { CHAT_OPT_EDIT_TYPING = "입력할 때만 입력창 표시 (클래식 채팅 방식)" },
 })
+
+-- Onglets par defaut (09/10)
+ns.AddStrings({
+    enUS = {
+        CHAT_SETUP = "Default tabs",
+        CHAT_SETUP_SURE = "Sure? (reloads)",
+        CHAT_SETUP_HINT = "General (general, trade and city channels), GGR (guild, party, raid, officers), Loot&Trade (loot, money, crafting), Whisper (private messages). The combat log stays; other tabs are closed. Click twice, then the interface reloads.",
+        CHAT_SETUP_DONE = "CorpUI chat tabs ready (General, GGR, Loot&Trade, Whisper): they will appear at the next reload (/reload).",
+    },
+    frFR = {
+        CHAT_SETUP = "Onglets par défaut",
+        CHAT_SETUP_SURE = "Sûr ? (recharge)",
+        CHAT_SETUP_HINT = "Général (canaux généraux, commerce, ville), GGR (guilde, groupe, raid, officiers), Loot&Trade (butin, argent, artisanat), Whisper (messages privés). Le journal de combat reste ; les autres onglets sont fermés. Deux clics, puis l'interface se recharge.",
+        CHAT_SETUP_DONE = "Onglets de discussion CorpUI prêts (Général, GGR, Loot&Trade, Whisper) : ils apparaîtront au prochain rechargement (/reload).",
+    },
+    deDE = {
+        CHAT_SETUP = "Standard-Reiter",
+        CHAT_SETUP_SURE = "Sicher? (lädt neu)",
+        CHAT_SETUP_HINT = "Allgemein (allgemeine, Handels- und Stadtkanäle), GGR (Gilde, Gruppe, Schlachtzug, Offiziere), Loot&Trade (Beute, Geld, Handwerk), Whisper (private Nachrichten). Das Kampflog bleibt, andere Reiter werden geschlossen. Zweimal klicken, dann lädt die Oberfläche neu.",
+        CHAT_SETUP_DONE = "CorpUI-Chatreiter bereit (Allgemein, GGR, Loot&Trade, Whisper): sie erscheinen beim nächsten Neuladen (/reload).",
+    },
+    esES = {
+        CHAT_SETUP = "Pestañas por defecto",
+        CHAT_SETUP_SURE = "¿Seguro? (recarga)",
+        CHAT_SETUP_HINT = "General (canales generales, comercio y ciudad), GGR (hermandad, grupo, banda, oficiales), Loot&Trade (botín, dinero, profesiones), Whisper (mensajes privados). El registro de combate se queda; las demás pestañas se cierran. Dos clics y la interfaz se recarga.",
+        CHAT_SETUP_DONE = "Pestañas de chat de CorpUI listas (General, GGR, Loot&Trade, Whisper): aparecerán al recargar (/reload).",
+    },
+    ptBR = {
+        CHAT_SETUP = "Abas padrão",
+        CHAT_SETUP_SURE = "Certeza? (recarrega)",
+        CHAT_SETUP_HINT = "Geral (canais gerais, comércio e cidade), GGR (guilda, grupo, raide, oficiais), Loot&Trade (saque, dinheiro, profissões), Whisper (mensagens privadas). O registro de combate fica; as outras abas são fechadas. Dois cliques e a interface recarrega.",
+        CHAT_SETUP_DONE = "Abas de chat do CorpUI prontas (Geral, GGR, Loot&Trade, Whisper): aparecerão ao recarregar (/reload).",
+    },
+    itIT = {
+        CHAT_SETUP = "Schede predefinite",
+        CHAT_SETUP_SURE = "Sicuro? (ricarica)",
+        CHAT_SETUP_HINT = "Generale (canali generali, commercio e città), GGR (gilda, gruppo, incursione, ufficiali), Loot&Trade (bottino, denaro, professioni), Whisper (messaggi privati). Il registro di combattimento resta; le altre schede vengono chiuse. Due clic, poi l'interfaccia si ricarica.",
+        CHAT_SETUP_DONE = "Schede chat di CorpUI pronte (Generale, GGR, Loot&Trade, Whisper): appariranno al prossimo ricaricamento (/reload).",
+    },
+    ruRU = {
+        CHAT_SETUP = "Вкладки по умолчанию",
+        CHAT_SETUP_SURE = "Точно? (перезагрузка)",
+        CHAT_SETUP_HINT = "Общий (общие, торговый и городские каналы), GGR (гильдия, группа, рейд, офицеры), Loot&Trade (добыча, деньги, ремесло), Whisper (личные сообщения). Журнал боя остаётся, остальные вкладки закрываются. Два щелчка, затем интерфейс перезагрузится.",
+        CHAT_SETUP_DONE = "Вкладки чата CorpUI готовы (Общий, GGR, Loot&Trade, Whisper): они появятся после перезагрузки (/reload).",
+    },
+    zhCN = {
+        CHAT_SETUP = "默认标签",
+        CHAT_SETUP_SURE = "确定？（重载）",
+        CHAT_SETUP_HINT = "综合（综合、交易和城市频道）、GGR（公会、小队、团队、官员）、Loot&Trade（拾取、金钱、专业）、Whisper（私聊）。战斗记录保留，其他标签关闭。点击两次后界面重载。",
+        CHAT_SETUP_DONE = "CorpUI 聊天标签已就绪（综合、GGR、Loot&Trade、Whisper）：下次重载后显示（/reload）。",
+    },
+    zhTW = {
+        CHAT_SETUP = "預設標籤",
+        CHAT_SETUP_SURE = "確定？（重新載入）",
+        CHAT_SETUP_HINT = "綜合（綜合、交易與城市頻道）、GGR（公會、隊伍、團隊、幹部）、Loot&Trade（拾取、金錢、專業）、Whisper（密語）。戰鬥記錄保留，其他標籤關閉。點兩下後介面重新載入。",
+        CHAT_SETUP_DONE = "CorpUI 聊天標籤已就緒（綜合、GGR、Loot&Trade、Whisper）：下次重新載入後顯示（/reload）。",
+    },
+    koKR = {
+        CHAT_SETUP = "기본 탭",
+        CHAT_SETUP_SURE = "확실합니까? (다시 불러오기)",
+        CHAT_SETUP_HINT = "일반(일반, 거래, 도시 채널), GGR(길드, 파티, 공격대, 길드 관리자), Loot&Trade(전리품, 돈, 전문 기술), Whisper(귓속말). 전투 기록은 유지되고 다른 탭은 닫힙니다. 두 번 누르면 인터페이스를 다시 불러옵니다.",
+        CHAT_SETUP_DONE = "CorpUI 채팅 탭 준비 완료(일반, GGR, Loot&Trade, Whisper): 다음에 다시 불러오면 나타납니다 (/reload).",
+    },
+})

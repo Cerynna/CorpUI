@@ -958,15 +958,40 @@ end
 local ev = CreateFrame("Frame")
 local events = {}
 
+-- reparation (une fois) : l or des persos etait remis a 0 a chaque
+-- deconnexion ; celui des persos a 0 reprend la derniere valeur non nulle
+-- de l historique d or de la compta (CorpUIDB.auction.gold, lecture seule)
+local function repairMoney(root)
+    if root.altsMoneyFix then return end
+    root.altsMoneyFix = true
+    local hist = type(root.auction) == "table" and root.auction.gold
+    if type(hist) ~= "table" then return end
+    for key, t in pairs(db) do
+        local pts = hist[key]
+        if type(t) == "table" and (t.money or 0) == 0 and type(pts) == "table" then
+            for i = #pts, 1, -1 do
+                local m = type(pts[i]) == "table" and pts[i][2]
+                if type(m) == "number" and m > 0 then
+                    t.money = m
+                    break
+                end
+            end
+        end
+    end
+end
+
 function events.PLAYER_LOGIN()
     local root = ns.InitRoot()
     root.alts = root.alts or {}
     root.itemNames = root.itemNames or {}
     db, names = root.alts, root.itemNames
+    repairMoney(root)
     snapBasics()
     snapBags()
     snapProfs()
     if RequestRaidInfo then pcall(RequestRaidInfo) end
+    -- releve de nouveau une fois les donnees du personnage arrivees
+    if C_Timer and C_Timer.After then C_Timer.After(5, function() if db then snapBasics() refresh() end end) end
 end
 
 local function basics() if db then snapBasics() refresh() end end
@@ -974,7 +999,12 @@ events.PLAYER_MONEY = basics
 events.PLAYER_LEVEL_UP = basics
 events.PLAYER_XP_UPDATE = basics
 events.ZONE_CHANGED_NEW_AREA = basics
-events.PLAYER_LOGOUT = function() if db then snapBasics() end end
+-- a la deconnexion (et a chaque rechargement), le jeu rend 0 pour l or et
+-- l experience (vu dans les sauvegardes le 09/10 : tous les persos a 0) :
+-- seule l heure est notee, les valeurs relevees en jeu restent
+events.PLAYER_LOGOUT = function()
+    if db then current().lastSeen = time() end
+end
 
 function events.BAG_UPDATE_DELAYED()
     if not db then return end

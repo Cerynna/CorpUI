@@ -99,6 +99,9 @@ function ns.ProfileSwitch(db)
     db.profileOf = db.profileOf or {}
     db.activeProfile = db.activeProfile or DEFAULT
     local key = ns.CharKey()
+    -- personnage jamais vu par CorpUI (premiere installation comprise) :
+    -- Discussion/Chat.lua lui pose les onglets par defaut
+    ns.NEW_CHAR = db.profileOf[key] == nil
     local want = db.profileOf[key] or db.activeProfile
     if want ~= db.activeProfile and not db.profiles[want] then want = db.activeProfile end
     db.profileOf[key] = want

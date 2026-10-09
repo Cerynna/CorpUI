@@ -1042,13 +1042,100 @@ local function ccSet(v)
 end
 
 ---------------------------------------------------------------------------
+-- Onglets par defaut (09/10) : General (canaux generaux, commerce, ville),
+-- Journal de combat et Voix (fenetres 2 et 3 de Blizzard, intouchees),
+-- GGR (guilde, groupe, raid, officiers),
+-- Loot&Trade (butin, argent, artisanat), Whisper (messages prives) ; les
+-- autres fenetres sont fermees. Seulement par les fonctions du moteur qui
+-- enregistrent la configuration des fenetres (AddChatWindowMessages,
+-- SetChatWindowName...), jamais par le code de Blizzard (FCF_*, AddMessage-
+-- Group des fenetres) : rien ne s execute chez eux, pas de taint. Le jeu
+-- relit cette configuration au chargement suivant : le bouton du panneau
+-- recharge l interface ; pour un nouveau personnage, au prochain /reload.
+---------------------------------------------------------------------------
+
+local SETUP = {
+    { id = 1, dock = 1, name = function() return GENERAL end, keepChannels = true, groups = {
+        "SAY", "EMOTE", "YELL", "SYSTEM", "ERRORS", "CHANNEL", "MONSTER_SAY", "MONSTER_EMOTE", "MONSTER_YELL",
+        "MONSTER_WHISPER", "MONSTER_BOSS_EMOTE", "MONSTER_BOSS_WHISPER", "ACHIEVEMENT", "BG_HORDE", "BG_ALLIANCE",
+        "BG_NEUTRAL", "COMBAT_XP_GAIN", "COMBAT_HONOR_GAIN", "COMBAT_FACTION_CHANGE", "SKILL", "PET_INFO",
+        "TARGETICONS", "BN_INLINE_TOAST_ALERT", "PING" } },
+    { id = 4, dock = 3, name = "GGR", groups = {
+        "GUILD", "OFFICER", "GUILD_ACHIEVEMENT", "PARTY", "PARTY_LEADER", "RAID", "RAID_LEADER", "RAID_WARNING",
+        "INSTANCE_CHAT", "INSTANCE_CHAT_LEADER" } },
+    { id = 5, dock = 4, name = "Loot&Trade", groups = { "LOOT", "MONEY", "CURRENCY", "TRADESKILLS", "OPENING" } },
+    { id = 6, dock = 5, name = "Whisper", groups = { "WHISPER", "BN_WHISPER", "AFK", "DND", "IGNORED" } },
+}
+-- fenetres propres a Blizzard (IsBuiltinChatWindow) : journal de combat,
+-- transcription vocale
+local BUILTIN = { [2] = true, [3] = true }
+
+local function packCall(fn, id) return { fn(id) } end
+
+-- liste rendue par le moteur (groupes, ou paires nom / zone des canaux)
+local function engineList(fn, id)
+    if type(fn) ~= "function" then return {} end
+    local ok, list = pcall(packCall, fn, id)
+    return ok and list or {}
+end
+
+local function engine(fn, ...)
+    if type(fn) == "function" then pcall(fn, ...) end
+end
+
+-- vrai si la configuration est posee (fonctions du moteur presentes)
+function ns.ChatSetupWindows()
+    if type(SetChatWindowName) ~= "function" or type(AddChatWindowMessages) ~= "function"
+        or type(RemoveChatWindowMessages) ~= "function" then return false end
+    local CC = Constants and Constants.ChatFrameConstants
+    local maxW = (CC and CC.MaxChatWindows) or NUM_CHAT_WINDOWS or 10
+    -- police, couleur et opacite de la fenetre generale reprises
+    local okI, _, size, r, g, b, a = pcall(GetChatWindowInfo, 1)
+    local wanted = {}
+    for _, w in ipairs(SETUP) do wanted[w.id] = w end
+    for id = 1, maxW do
+        if not BUILTIN[id] then
+            local w = wanted[id]
+            for _, grp in ipairs(engineList(GetChatWindowMessages, id)) do
+                if type(grp) == "string" and not issecret(grp) then engine(RemoveChatWindowMessages, id, grp) end
+            end
+            if not (w and w.keepChannels) then
+                local ch = engineList(GetChatWindowChannels, id)
+                for i = 1, #ch, 2 do
+                    if type(ch[i]) == "string" and not issecret(ch[i]) then engine(RemoveChatWindowChannel, id, ch[i]) end
+                end
+            end
+            if w then
+                for _, grp in ipairs(w.groups) do engine(AddChatWindowMessages, id, grp) end
+                local name = w.name
+                if type(name) == "function" then name = name() end
+                engine(SetChatWindowName, id, name)
+                engine(SetChatWindowShown, id, true)
+                -- place dans le dock (2 : journal de combat)
+                engine(SetChatWindowDocked, id, w.dock)
+                if id ~= 1 and okI then
+                    if type(size) == "number" and not issecret(size) and size > 0 then engine(SetChatWindowSize, id, size) end
+                    if type(r) == "number" and not issecret(r) then engine(SetChatWindowColor, id, r, g, b) end
+                    if type(a) == "number" and not issecret(a) then engine(SetChatWindowAlpha, id, a) end
+                end
+            else
+                engine(SetChatWindowName, id, "")
+                engine(SetChatWindowShown, id, false)
+                engine(SetChatWindowDocked, id, nil)
+            end
+        end
+    end
+    return true
+end
+
+---------------------------------------------------------------------------
 -- Options
 ---------------------------------------------------------------------------
 
 local win
 
 local function buildWindow()
-    win = ns.UI.Window("CorpUIChatOptions", ns.TITLE .. " - " .. L.MOD_CHAT, nil, 440, 350)
+    win = ns.UI.Window("CorpUIChatOptions", ns.TITLE .. " - " .. L.MOD_CHAT, nil, 440, 412)
     -- chaque reglage applique lui-meme son effet : pas d onChange commun
     local form = ns.UI.Form(win, -34)
     form:Check(L.CHAT_OPT_ENABLE, function() return db.enabled end, function(v)
@@ -1076,6 +1163,30 @@ local function buildWindow()
     -- place laissee sous le chat (coin en bas a gauche)
     form:Number(L.CHAT_LIFT, function() return db.lift or 0 end, function(v) ns.ChatSetLift(v) end, 0, 200, 1)
     form:EndColumns()
+    -- onglets par defaut : deux clics (le premier demande confirmation), puis
+    -- l interface se recharge (le jeu relit la configuration des fenetres).
+    -- Bouton securise : ancre sur la fenetre seulement
+    local setup
+    setup = ns.UI.ReloadButton(win, L.CHAT_SETUP, 150, function()
+        if not setup.armed then
+            setup.armed = true
+            setup:SetText(L.CHAT_SETUP_SURE)
+            C_Timer.After(3, function()
+                if setup.armed then setup.armed = false setup:SetText(L.CHAT_SETUP) end
+            end)
+            return false
+        end
+        setup.armed = false
+        setup:SetText(L.CHAT_SETUP)
+        if not ns.ChatSetupWindows() then return false end
+    end)
+    setup:SetPoint("TOPLEFT", win, "TOPLEFT", 8, form.y - 8)
+    local setupHint = win:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    setupHint:SetPoint("TOPLEFT", win, "TOPLEFT", 166, form.y - 6)
+    setupHint:SetWidth(262)
+    setupHint:SetJustifyH("LEFT")
+    setupHint:SetText(L.CHAT_SETUP_HINT)
+    form.y = form.y - 62
     local hint = win:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("TOPLEFT", win, "TOPLEFT", 8, form.y - 6)
     hint:SetWidth(420)
@@ -1091,6 +1202,7 @@ end
 
 ---------------------------------------------------------------------------
 
+local newCharDone = false
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
     if event == "PLAYER_LOGIN" then
@@ -1104,6 +1216,15 @@ ev:SetScript("OnEvent", function(_, event)
         -- historique non garde : on repart d une liste vide (elle sert quand
         -- meme pendant la session, pour les fleches)
         if not db.keepHistory and db.history then db.history[ns.CharKey()] = nil end
+        -- personnage jamais vu par CorpUI (Profils.lua) : onglets par defaut,
+        -- une fois la configuration du jeu chargee ; visibles au prochain
+        -- chargement de l interface
+        if ns.NEW_CHAR and db.enabled and not newCharDone then
+            newCharDone = true
+            C_Timer.After(4, function()
+                if ns.ChatSetupWindows() then ns.Say(L.CHAT_SETUP_DONE) end
+            end)
+        end
     end
     if db then scanHistory() end
     scan()

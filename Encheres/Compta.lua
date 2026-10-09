@@ -261,6 +261,24 @@ local function recordGold()
     end
 end
 
+-- reparation (une fois) : l or etait aussi releve a la deconnexion, ou le
+-- jeu le rend a 0 (vu le 09/10 : un 0 a chaque deconnexion et rechargement) ;
+-- ces faux zeros sont retires de l historique
+local function dropLogoutZeros()
+    local db = AH.DB()
+    local g = goldDB()
+    if not (db and g) or db.goldZeroFix then return end
+    db.goldZeroFix = true
+    for _, pts in pairs(g) do
+        if type(pts) == "table" then
+            for i = #pts, 1, -1 do
+                local p = pts[i]
+                if type(p) == "table" and p[2] == 0 then table.remove(pts, i) end
+            end
+        end
+    end
+end
+
 -- au-dela de 7 jours, un point par jour (le dernier du jour)
 local function compactGold()
     local g = goldDB()
@@ -620,14 +638,13 @@ ev:SetScript("OnEvent", function(_, event)
     if event == "PLAYER_LOGIN" then
         lastMoney = num(call(GetMoney))
         C_Timer.After(5, function()
+            dropLogoutZeros()
             compactGold()
             recordGold()
             purgeSeen()
         end)
     elseif event == "PLAYER_MONEY" then
         onMoney()
-        recordGold()
-    elseif event == "PLAYER_LOGOUT" then
         recordGold()
     elseif event == "MAIL_INBOX_UPDATE" or event == "MAIL_SHOW" then
         if not scanQueued then
@@ -643,7 +660,7 @@ ev:SetScript("OnEvent", function(_, event)
         onAuctionEvent("cancelfee")
     end
 end)
-for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_MONEY", "PLAYER_LOGOUT", "MAIL_INBOX_UPDATE", "MAIL_SHOW",
+for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_MONEY", "MAIL_INBOX_UPDATE", "MAIL_SHOW",
                      "AUCTION_HOUSE_AUCTION_CREATED", "AUCTION_CANCELED" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
