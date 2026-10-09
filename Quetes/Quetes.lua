@@ -733,6 +733,11 @@ local function line(i)
         fs.text:SetPoint("TOPRIGHT")
         fs.text:SetJustifyH("LEFT")
         fs.text:SetWordWrap(true)
+        -- texte de droite (niveau de la quete, style Moderne)
+        fs.right = fs:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        fs.right:SetPoint("TOPRIGHT", 0, -1)
+        fs.right:SetJustifyH("RIGHT")
+        fs.right:Hide()
         -- sans le bouton securise (combat) : clic droit, Maj + clic
         fs:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         fs:SetScript("OnClick", function(self, button)
@@ -751,11 +756,23 @@ local function line(i)
     return fs
 end
 
-local function setLine(i, y, text, font, r, g, b, indent, questID)
+-- right, rr, rg, rb : texte court a droite de la ligne (niveau), facultatif
+local function setLine(i, y, text, font, r, g, b, indent, questID, right, rr, rg, rb)
     local l = line(i)
     l.text:SetFontObject(font)
     l.text:SetText(text)
     l.text:SetTextColor(r, g, b)
+    l.text:ClearAllPoints()
+    l.text:SetPoint("TOPLEFT")
+    if right then
+        l.right:SetText(right)
+        l.right:SetTextColor(rr or 1, rg or 1, rb or 1)
+        l.right:Show()
+        l.text:SetPoint("TOPRIGHT", -22, 0)
+    else
+        l.right:Hide()
+        l.text:SetPoint("TOPRIGHT")
+    end
     l:ClearAllPoints()
     l:SetPoint("TOPLEFT", body, "TOPLEFT", indent, -y)
     l:SetWidth(WIDTH - 12 - indent)
@@ -780,8 +797,12 @@ local function update()
         return
     end
     frame:Show()
-    header.count:SetText(#quests > 0 and ("(" .. #quests .. ")") or "")
-    header.toggle.label:SetText(db.collapsed and "+" or "-")
+    if #quests == 0 then
+        header.count:SetText("")
+    else
+        header.count:SetText(ns.MODERN and tostring(#quests) or ("(" .. #quests .. ")"))
+    end
+    header.toggle.label:SetText(db.collapsed and "+" or (ns.MODERN and "−" or "-"))
     for _, l in ipairs(lines) do l:Hide() l.block = nil end
     for k in pairs(blocks) do blocks[k] = nil end
     if db.collapsed or #quests == 0 then
@@ -809,7 +830,12 @@ local function update()
             local blk = { id = id, title = q.title, y1 = y }
             n = n + 1
             local first = n
-            y = setLine(n, y, q.title, "GameFontNormal", r, g, b, 4, id)
+            if ns.MODERN then
+                -- titre vert-jaune, niveau a droite dans la couleur de difficulte
+                y = setLine(n, y, q.title, "GameFontNormal", 0.65, 0.84, 0.35, 4, id, tostring(q.level), r, g, b)
+            else
+                y = setLine(n, y, q.title, "GameFontNormal", r, g, b, 4, id)
+            end
             if q.complete then
                 n = n + 1
                 y = setLine(n, y, L.QUESTS_READY, "GameFontHighlightSmall", 0.3, 0.9, 0.3, 14, id)
@@ -877,15 +903,28 @@ local function build()
     header:SetPoint("TOPLEFT")
     header:SetPoint("TOPRIGHT")
     header:SetHeight(22)
-    ns.UI.Skin(header, 0.85)
-    local grad = header:CreateTexture(nil, "BORDER")
-    grad:SetPoint("TOPLEFT", 1, -1)
-    grad:SetPoint("BOTTOMRIGHT", -1, 1)
-    ns.UI.Gradient(grad, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.35, C.violet[1], C.violet[2], C.violet[3], 0)
+    if ns.MODERN then
+        -- style Moderne : pas de bandeau, un filet fin sous le titre
+        local rule = header:CreateTexture(nil, "BORDER")
+        rule:SetPoint("BOTTOMLEFT", 0, 1)
+        rule:SetPoint("BOTTOMRIGHT", 0, 1)
+        rule:SetHeight(1)
+        rule:SetColorTexture(1, 1, 1, 0.22)
+    else
+        ns.UI.Skin(header, 0.85)
+        local grad = header:CreateTexture(nil, "BORDER")
+        grad:SetPoint("TOPLEFT", 1, -1)
+        grad:SetPoint("BOTTOMRIGHT", -1, 1)
+        ns.UI.Gradient(grad, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.35, C.violet[1], C.violet[2], C.violet[3], 0)
+    end
     header.title = header:CreateFontString(nil, "OVERLAY")
     ns.UI.HeadFont(header.title, 12)
-    header.title:SetPoint("LEFT", 8, 0)
-    header.title:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
+    header.title:SetPoint("LEFT", ns.MODERN and 2 or 8, 0)
+    if ns.MODERN then
+        header.title:SetTextColor(0.93, 0.93, 0.93)
+    else
+        header.title:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
+    end
     header.title:SetText(L.QUESTS_TITLE)
     header.count = header:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     header.count:SetPoint("LEFT", header.title, "RIGHT", 6, 0)
@@ -908,6 +947,7 @@ local function build()
     local bg = body:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints()
     ns.UI.Gradient(bg, "HORIZONTAL", 0, 0, 0, 0.45, 0, 0, 0, 0.1)
+    if ns.MODERN then bg:Hide() end      -- style Moderne : la liste sur le jeu
     -- surbrillance de la quete survolee (tout son bloc)
     hover = body:CreateTexture(nil, "BORDER")
     ns.UI.Gradient(hover, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.32, C.violet[1], C.violet[2], C.violet[3], 0.04)

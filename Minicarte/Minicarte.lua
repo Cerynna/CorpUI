@@ -655,6 +655,19 @@ local function build()
     coordText:SetPoint("BOTTOMLEFT", 4, 3)
     clockText = info:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     clockText:SetPoint("BOTTOMRIGHT", -4, 3)
+    -- style Moderne : bandeau sans fond (texte ombre sur le jeu), zone en or
+    -- un peu plus grande, coordonnees et heure en gris
+    if ns.MODERN then
+        if info.cuiBg then info.cuiBg:Hide() end
+        if info.cuiBorder then info.cuiBorder:Hide() end
+        zoneText:SetFontObject("GameFontNormal")
+        zoneText:SetJustifyH("CENTER")
+        for _, fs in ipairs({ coordText, clockText }) do
+            fs:SetTextColor(0.79, 0.8, 0.82)
+            fs:SetShadowColor(0, 0, 0, 1)
+            fs:SetShadowOffset(1, -1)
+        end
+    end
     local elapsed = 1
     info:SetScript("OnUpdate", function(_, dt)
         elapsed = elapsed + dt

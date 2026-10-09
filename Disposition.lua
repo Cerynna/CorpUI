@@ -60,6 +60,8 @@ local CHANGES = {
     -- au bord droit de l ecran (comme la maquette), l une a cote de l autre
     { "bars", { "pos", "right" }, { point = "RIGHT", x = -6, y = 0 }, replace = true },
     { "bars", { "pos", "right2" }, { point = "RIGHT", x = -50, y = 0 }, replace = true },
+    -- phase 3 : buffs du joueur plus serres, a gauche de la minicarte
+    { "auras", { "layout", "buffs" }, { size = 26, spacing = 3 } },
 }
 Layout.CHANGES = CHANGES
 
