@@ -51,7 +51,7 @@ local ROLE_ICONS = {
 local DEFAULTS = {
     autoShow = true, locked = false, showPersonal = true, onlyMine = false, highlightMe = true,
     outline = false, fontSize = 13, bgAlpha = 75, font = "ui", strata = "MEDIUM",
-    w = 300, h = 240, shown = false,
+    w = 300, h = 240, shown = false, soloHide = true,
 }
 
 local db
@@ -810,6 +810,14 @@ local function queueRender()
     end)
 end
 
+-- fenetre voulue : ouverte par le joueur, et en groupe si "masquer hors
+-- groupe" (sauf l apercu de l editeur) ; toujours avec les poignees
+local function wanted()
+    if ns.moversShown then return true end
+    if not db.shown then return false end
+    return not db.soloHide or previewing ~= nil or inGroup()
+end
+
 -- v : true / false / nil (bascule)
 function M.Show(v)
     if not db then return end
@@ -821,7 +829,8 @@ function M.Show(v)
         return
     end
     M.Render()
-    frame:SetShown(db.shown or ns.moversShown or false)
+    frame:SetShown(wanted())
+    if v and not frame:IsShown() then ns.Say(L.NOTE_SOLO_HIDDEN) end
     -- les textes ont leur taille au rendu suivant
     if db.shown then C_Timer.After(0, layout) end
 end
@@ -1004,7 +1013,7 @@ ns.Listen(function()
         end
     elseif moverForced then
         moverForced = false
-        frame:SetShown(db.shown and true or false)
+        frame:SetShown(wanted())
     end
 end)
 
@@ -1884,6 +1893,7 @@ local function buildEditor()
         form:Check(text, function() return db[key] end, function(v) db[key] = v end)
     end
     check("autoShow", L.NOTE_OPT_AUTO)
+    check("soloHide", L.NOTE_OPT_SOLO)
     check("locked", L.NOTE_OPT_LOCK)
     check("showPersonal", L.NOTE_OPT_PERSONAL)
     check("highlightMe", L.NOTE_OPT_HIGHLIGHT)
@@ -1979,7 +1989,7 @@ ev:SetScript("OnEvent", function(_, event)
         else
             buildFrame()
             M.Render()
-            frame:SetShown(db.shown and true or false)
+            frame:SetShown(wanted())
         end
     elseif not db then
         return
@@ -1988,7 +1998,7 @@ ev:SetScript("OnEvent", function(_, event)
             pendingBuild = false
             buildFrame()
             M.Render()
-            frame:SetShown((db.shown or ns.moversShown) and true or false)
+            frame:SetShown(wanted())
         elseif pendingLayout then
             pendingLayout = false
             layout()
@@ -1998,7 +2008,9 @@ ev:SetScript("OnEvent", function(_, event)
             openEditor()
         end
     elseif event == "GROUP_ROSTER_UPDATE" or event == "PARTY_LEADER_CHANGED" then
-        -- couleurs de classe et visibilite des lignes suivent le groupe
+        -- couleurs de classe et visibilite des lignes suivent le groupe ;
+        -- la fenetre aussi ("masquer hors groupe")
+        if frame and not moverForced then frame:SetShown(wanted()) end
         queueRender()
         if refreshStatus then refreshStatus() end
     end

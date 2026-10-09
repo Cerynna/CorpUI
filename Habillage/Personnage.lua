@@ -1003,6 +1003,12 @@ local function full(cf)
         if type(s) == "table" and s.CreateTexture then pcall(skinSideTab, s) end
     end
     walk(cf, 1)
+    -- style Moderne : le bandeau clair du haut (niveau et classe) passe au
+    -- sombre de nos bandeaux ; texture de Blizzard : teinte seulement
+    if ns.MODERN then
+        local strip = field(field(_G.PaperDollFrame, "TopBackgroundStripHost"), "TopBackgroundStrip")
+        if strip and strip.SetVertexColor then pcall(strip.SetVertexColor, strip, 0.09, 0.095, 0.11, 0.9) end
+    end
     -- titres d en-tetes : Blizzard peut remettre leur couleur
     local C = ns.COLORS
     for f, h in pairs(headers) do

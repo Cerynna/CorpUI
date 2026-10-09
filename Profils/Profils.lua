@@ -39,6 +39,8 @@ local KEYS = {
     -- ajoutees le 06/10 (oubliees : un meme panneau suivait le profil a moitie)
     resources = {}, meter = {}, loot = {}, raid = { diag = true },
     dispel = { assign = true }, cd = { chars = true, diag = true },
+    -- ajoutees le 09/10 (style Moderne) : centre de l ecran
+    center = {},
 }
 
 local function copy(v)

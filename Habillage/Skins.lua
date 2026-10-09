@@ -423,8 +423,9 @@ local function hover()
         if ok and vis then
             local okS, sel = pcall(function() return t.isSelected or not t:IsEnabled() end)
             if okS and sel then
-                paint(p.edges, C.gold, 1)
-                p.fill:SetColorTexture(C.violet[1] * 0.35, C.violet[2] * 0.35, C.violet[3] * 0.35, 0.95)
+                local fill, edge = ns.UI.SelectedTab()
+                paint(p.edges, edge, 1)
+                p.fill:SetColorTexture(fill[1], fill[2], fill[3], 0.95)
             else
                 paint(p.edges, C.border, 1)
                 p.fill:SetColorTexture(C.panel[1], C.panel[2], C.panel[3], 0.95)

@@ -64,6 +64,8 @@ SpellsAhead\SpellsAhead.lua
 Cadres\Strings.lua
 Cadres\Cadres.lua
 Cadres\Ressources.lua
+Cadres\StringsCentre.lua
+Cadres\Centre.lua
 
 # Module Groupe
 Groupe\Strings.lua

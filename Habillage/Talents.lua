@@ -625,8 +625,9 @@ local function updateTab(t, p)
     local C = ns.COLORS
     local sel = val(t, "isSelected") == true
     if sel then
-        paint(p.edges, C.gold)
-        p.fill:SetColorTexture(C.violet[1] * 0.35, C.violet[2] * 0.35, C.violet[3] * 0.35, 0.95)
+        local fill, edge = ns.UI.SelectedTab()
+        paint(p.edges, edge)
+        p.fill:SetColorTexture(fill[1], fill[2], fill[3], 0.95)
     elseif not enabled(t) then
         paint(p.edges, C.border, 0.5)
         p.fill:SetColorTexture(C.bg[1], C.bg[2], C.bg[3], 0.95)

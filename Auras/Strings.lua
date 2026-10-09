@@ -452,3 +452,17 @@ ns.AddStrings({
         AURAS_FILTER_SECRET = "지금은 게임이 이 오라의 이름을 숨깁니다: 전투가 끝난 후 다시 시도하세요",
     },
 })
+
+-- Icones centrees (style Moderne, 09/10)
+ns.AddStrings({
+    enUS = { AURAS_CENTER = "Centered icons" },
+    frFR = { AURAS_CENTER = "Icônes centrées" },
+    deDE = { AURAS_CENTER = "Symbole zentriert" },
+    esES = { AURAS_CENTER = "Iconos centrados" },
+    ptBR = { AURAS_CENTER = "Ícones centralizados" },
+    itIT = { AURAS_CENTER = "Icone centrate" },
+    ruRU = { AURAS_CENTER = "Значки по центру" },
+    zhCN = { AURAS_CENTER = "图标居中" },
+    zhTW = { AURAS_CENTER = "圖示置中" },
+    koKR = { AURAS_CENTER = "아이콘 가운데 정렬" },
+})

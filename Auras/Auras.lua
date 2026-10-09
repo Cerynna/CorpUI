@@ -36,8 +36,8 @@ local BLIZZ = { "BuffFrame", "DebuffFrame" }
 local GROUPS = { "buffs", "debuffs", "target" }
 local GROUP_LABEL = { buffs = "AURAS_BUFFS", debuffs = "AURAS_DEBUFFS", target = "AURAS_TARGET" }
 local DEFAULTS = {
-    buffs   = { size = 30, perRow = 12, max = 32, spacing = 4, grow = "down", time = "below" },
-    debuffs = { size = 30, perRow = 12, max = 16, spacing = 4, grow = "down", time = "below" },
+    buffs   = { size = 30, perRow = 12, max = 32, spacing = 4, grow = "down", time = "below", center = false },
+    debuffs = { size = 30, perRow = 12, max = 16, spacing = 4, grow = "down", time = "below", center = false },
     target  = { size = 22, perRow = 10, max = 16, spacing = 3, grow = "up", time = "none" },
 }
 local TIMES = { "none", "below", "native" }
@@ -308,7 +308,8 @@ local function playerSpec(key)
     local c = db.layout[key]
     local spec = {
         width = c.size, height = c.size, spacing = c.spacing, perRow = c.perRow, max = c.max,
-        grow = c.grow, fromRight = true, time = c.time, tooltipAnchor = "ANCHOR_BOTTOMLEFT",
+        grow = c.grow, fromRight = not c.center, center = c.center or nil, time = c.time,
+        tooltipAnchor = "ANCHOR_BOTTOMLEFT",
     }
     if key == "buffs" then
         spec.cancel = "RightButtonUp"
@@ -666,6 +667,12 @@ local function layoutControls(form, key)
     form:Cycle(L.AURAS_TIME, TIMES,
         { none = L.AURAS_TIME_NONE, below = L.AURAS_TIME_BELOW, native = L.AURAS_TIME_NATIVE },
         function() return cur().time end, function(v) if guard() then cur().time = v end end)
+    -- buffs et debuffs du joueur : ligne centree sur la poignee (style Moderne)
+    if key ~= "target" then
+        form:Check(L.AURAS_CENTER, function() return cur().center end, function(v)
+            if guard() then cur().center = v end
+        end)
+    end
     form:EndColumns()
 end
 

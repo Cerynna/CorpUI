@@ -63,6 +63,7 @@ local function sections(key)
         if key == "player" then
             add(O.PlayerAuras)
             add(ns.BuildResourceOptions)
+            add(O.Center)
         elseif key == "target" then
             add(O.TargetAuras)
         end

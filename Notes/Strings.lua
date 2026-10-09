@@ -516,3 +516,17 @@ ns.AddStrings({
         NOTE_USAGE = "/corp note [show | hide | send | request]",
     },
 })
+
+-- Fenetre masquee hors groupe (style Moderne, 09/10)
+ns.AddStrings({
+    enUS = { NOTE_OPT_SOLO = "Hide when not in a group", NOTE_SOLO_HIDDEN = "Raid notes: the window will show in a group (option \"Hide when not in a group\")." },
+    frFR = { NOTE_OPT_SOLO = "Masquer hors groupe", NOTE_SOLO_HIDDEN = "Notes de raid : la fenêtre s'affichera en groupe (option « Masquer hors groupe »)." },
+    deDE = { NOTE_OPT_SOLO = "Außerhalb einer Gruppe ausblenden", NOTE_SOLO_HIDDEN = "Raidnotizen: Das Fenster erscheint in einer Gruppe (Option „Außerhalb einer Gruppe ausblenden“)." },
+    esES = { NOTE_OPT_SOLO = "Ocultar fuera de grupo", NOTE_SOLO_HIDDEN = "Notas de banda: la ventana aparecerá en grupo (opción «Ocultar fuera de grupo»)." },
+    ptBR = { NOTE_OPT_SOLO = "Ocultar fora de grupo", NOTE_SOLO_HIDDEN = "Notas de raide: a janela aparecerá em grupo (opção \"Ocultar fora de grupo\")." },
+    itIT = { NOTE_OPT_SOLO = "Nascondi fuori dal gruppo", NOTE_SOLO_HIDDEN = "Note dell'incursione: la finestra apparirà in gruppo (opzione \"Nascondi fuori dal gruppo\")." },
+    ruRU = { NOTE_OPT_SOLO = "Скрывать вне группы", NOTE_SOLO_HIDDEN = "Заметки рейда: окно появится в группе (параметр «Скрывать вне группы»)." },
+    zhCN = { NOTE_OPT_SOLO = "不在队伍中时隐藏", NOTE_SOLO_HIDDEN = "团队笔记：窗口将在队伍中显示（选项“不在队伍中时隐藏”）。" },
+    zhTW = { NOTE_OPT_SOLO = "不在隊伍中時隱藏", NOTE_SOLO_HIDDEN = "團隊筆記：視窗將在隊伍中顯示（選項「不在隊伍中時隱藏」）。" },
+    koKR = { NOTE_OPT_SOLO = "파티가 아닐 때 숨기기", NOTE_SOLO_HIDDEN = "공격대 메모: 파티에 있을 때 창이 표시됩니다 (\"파티가 아닐 때 숨기기\" 옵션)." },
+})

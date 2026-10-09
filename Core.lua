@@ -545,9 +545,39 @@ local C = ns.COLORS
 
 -- Degrade (API du client moderne), sinon couleur unie ; style Moderne :
 -- toujours a plat (moyenne des deux bouts)
+-- onglet choisi des habillages : couleur du fond, puis du liseré. Classique :
+-- fond d accent assombri, liseré d or ; Moderne : fond sombre a peine releve,
+-- liseré d accent (plus de plaque claire cerclee d or quand l accent est clair)
+function ns.UI.SelectedTab()
+    if ns.MODERN then return { 0.15, 0.155, 0.18 }, C.violet end
+    return { C.violet[1] * 0.35, C.violet[2] * 0.35, C.violet[3] * 0.35 }, C.gold
+end
+
 function ns.UI.Gradient(tex, orientation, r1, g1, b1, a1, r2, g2, b2, a2)
     tex:SetTexture(W8)
     if ns.MODERN then
+        -- les decors du theme (meme couleur aux deux bouts, seule l opacite
+        -- varie) : bandeau d accent -> sombre, survol -> voile clair, filet
+        -- d or fin -> retire ; le reste (remplissages a deux teintes) a plat
+        local function same(c)
+            return math.abs(r1 - c[1]) < 0.01 and math.abs(g1 - c[2]) < 0.01 and math.abs(b1 - c[3]) < 0.01
+                and math.abs(r2 - c[1]) < 0.01 and math.abs(g2 - c[2]) < 0.01 and math.abs(b2 - c[3]) < 0.01
+        end
+        if same(C.gold) then
+            local ok, h = pcall(tex.GetHeight, tex)
+            if ok and type(h) == "number" and h > 0 and h <= 2 then
+                tex:SetColorTexture(0, 0, 0, 0)
+                return
+            end
+        elseif same(C.violet) then
+            local ok, layer = pcall(tex.GetDrawLayer, tex)
+            if ok and layer == "HIGHLIGHT" then
+                tex:SetColorTexture(1, 1, 1, 0.08)
+            else
+                tex:SetColorTexture(0, 0, 0, math.max(a1, a2) * 0.9)
+            end
+            return
+        end
         tex:SetColorTexture((r1 + r2) / 2, (g1 + g2) / 2, (b1 + b2) / 2, (a1 + a2) / 2)
         return
     end
@@ -1354,7 +1384,7 @@ end
 -- spec = {
 --   width, height, spacing, perRow, max,
 --   noMouse, cancel = "RightButtonUp" (clic qui annule), tooltipAnchor,
---   grow = "up" | "down", fromRight = bool,
+--   grow = "up" | "down", fromRight = bool, center = bool (sans anchor),
 --   time = "none" | "below" | "native", countSize,
 --   anchor = { relativeTo, relativePoint, x, y } (point = coin de depart),
 --   groups = { { key, filter, candidate, desaturate, enabled }, ... },
@@ -1483,6 +1513,11 @@ function ns.NativeAuras(parent, unit, spec)
         if s.anchor then
             local p = s.anchor
             fr:SetPoint(point, p[1] or fr:GetParent(), p[2] or point, p[3] or 0, p[4] or 0)
+        elseif s.center then
+            -- icones centrees : le conteneur prend la taille de son contenu,
+            -- accroche par le milieu de son bord de depart
+            local edge = up and "BOTTOM" or "TOP"
+            fr:SetPoint(edge, fr:GetParent(), edge, 0, 0)
         else
             fr:SetPoint(point, fr:GetParent(), point, 0, 0)
         end

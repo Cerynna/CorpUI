@@ -396,7 +396,8 @@ end
 local function updateRest(f)
     local r = f.rest
     if not r then return end
-    local resting = IsResting and IsResting() and true or false
+    -- pastille coupee (reglage commun ; la disposition Moderne la coupe)
+    local resting = db.restIcon ~= false and IsResting and IsResting() and true or false
     r:SetShown(resting)
     if not resting then
         if r.pulse then r.pulse:Stop() end
@@ -1101,6 +1102,7 @@ function ns.FramesOpt.Common(parent, y)
     form:Header(L.FRAMES_COMMON_HEAD)
     form:Check(L.FRAMES_OPT_BLIZZ, function() return db.hideBlizzard end, function(v) db.hideBlizzard = v end)
     form:Check(L.FRAMES_OPT_HEAL, function() return db.healPrediction end, function(v) db.healPrediction = v end)
+    form:Check(L.FRAMES_OPT_REST, function() return db.restIcon end, function(v) db.restIcon = v end)
     form:Columns(2)
     form:Number(L.FRAMES_SCALE, function() return db.scale end, function(v)
         db.scale = math.max(0.6, math.min(1.6, math.floor(v * 10 + 0.5) / 10))
@@ -1197,6 +1199,7 @@ ev:SetScript("OnEvent", function(_, event)
         end
         db.scale = db.scale or 1
         if db.healPrediction == nil then db.healPrediction = true end
+        if db.restIcon == nil then db.restIcon = true end
         -- apparence par cadre : valeurs par defaut pour les reglages manquants
         db.style = db.style or {}
         for _, key in ipairs(STYLE_ORDER) do

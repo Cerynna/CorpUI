@@ -483,14 +483,16 @@ local function tabState(t, s)
         s.act = active
         placeTab(t, s, active)
         if active then
-            s.fill:SetColorTexture(C.violet[1] * 0.35, C.violet[2] * 0.35, C.violet[3] * 0.35, 0.95)
+            local fill = ns.UI.SelectedTab()
+            s.fill:SetColorTexture(fill[1], fill[2], fill[3], 0.95)
         else
             s.fill:SetColorTexture(C.panel[1], C.panel[2], C.panel[3], 0.95)
         end
     end
     local en = enabled(t)
     local over = not active and en and isOver(t)
-    paint(s, active and C.gold or (over and C.violet or C.border))
+    local _, edge = ns.UI.SelectedTab()
+    paint(s, active and edge or (over and C.violet or C.border))
     -- texte : Blizzard change d objet de police a chaque etat, la couleur
     -- est reposee a chaque releve (jamais la police ni la position)
     if objType(s.text) == "FontString" then

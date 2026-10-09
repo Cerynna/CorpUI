@@ -100,7 +100,7 @@ local PET_PREFIX = "[nopet] hide; [possessbar] hide; "
 -- reglages d une barre (les barres de droite : une colonne)
 local BAR_DEFAULTS = {
     buttons = 12, perRow = 12, size = 36, spacing = 4,
-    backdrop = false, padding = 4, bgAlpha = 75, alpha = 1, mouseover = false, oocFade = false,
+    backdrop = false, padding = 4, bgAlpha = 75, alpha = 1, mouseover = false, oocFade = false, hideEmpty = false,
     hotkey = true, macro = false, count = true,
     cdText = true, vis = "always", visCustom = "",
 }
@@ -112,6 +112,22 @@ local owner = CreateFrame("Frame")
 local pending = false
 
 local function conf(key) return db.bar[key] end
+
+-- cases vides masquees (option par barre) : elles reviennent quand on tient
+-- de quoi les remplir (sort, objet, macro...), en mode raccourcis rapides et
+-- avec les poignees de deplacement. Alpha seulement : permis en combat
+local holding = false
+local PLACEABLE = { spell = true, item = true, macro = true, petaction = true, mount = true,
+                    companion = true, flyout = true, equipmentset = true, battlepet = true }
+local function cursorHolds()
+    local ok, kind = pcall(GetCursorInfo)
+    if not ok or kind == nil or issecret(kind) then return false end
+    return PLACEABLE[kind] or false
+end
+local function emptyAlpha(b)
+    if b.hideEmpty and not holding and not ns.quickBinding and not ns.moversShown then return 0 end
+    return 1
+end
 
 ---------------------------------------------------------------------------
 -- Rendu d un bouton
@@ -204,8 +220,10 @@ local function update(b)
         b.count:SetText("")
         b.cd:Clear()
         b.active:Hide()
+        b:SetAlpha(emptyAlpha(b))
         return
     end
+    b:SetAlpha(1)
     local okC, consumable = pcall(IsConsumableAction, action)
     local okS, stackable = pcall(IsStackableAction, action)
     if (okC and consumable and not issecret(consumable)) or (okS and stackable and not issecret(stackable)) then
@@ -407,6 +425,7 @@ local function layout(h)
     for j, b in ipairs(h.buttons) do
         if j <= c.buttons then
             b:Show()
+            b.hideEmpty = c.hideEmpty
             b.hotkey:SetShown(c.hotkey)
             b.count:SetShown(c.count)
             b.macro:SetShown(c.macro)
@@ -682,6 +701,18 @@ ns.Listen(function()
     applyVehicle()
 end)
 
+-- cases vides : revoir leur alpha quand le mode raccourcis ou les poignees
+-- changent (pas de combat a attendre : alpha seulement)
+local lastShowAll = false
+ns.Listen(function()
+    local all = (ns.quickBinding or ns.moversShown) and true or false
+    if not db or all == lastShowAll then return end
+    lastShowAll = all
+    for _, b in ipairs(allButtons) do
+        if not b.isPet then update(b) end
+    end
+end)
+
 ---------------------------------------------------------------------------
 -- Fenetre d options
 ---------------------------------------------------------------------------
@@ -705,7 +736,7 @@ local function buildWindow()
         })
     end
     table.insert(targets, {
-        label = barName(PET_BAR),
+        label = barName(PET_BAR), pet = true,
         conf = function() return conf("pet") end,
         shown = function() return db.show.pet end,
         setShown = function(v) db.show.pet = v end,
@@ -772,7 +803,7 @@ local function buildWindow()
         local c = cur()
         for _, t in ipairs(targets) do
             local o = t.conf()
-            for _, k in ipairs({ "size", "spacing", "backdrop", "padding", "bgAlpha", "alpha", "mouseover", "oocFade", "hotkey", "macro", "count", "cdText" }) do
+            for _, k in ipairs({ "size", "spacing", "backdrop", "padding", "bgAlpha", "alpha", "mouseover", "oocFade", "hideEmpty", "hotkey", "macro", "count", "cdText" }) do
                 if c[k] ~= nil and (o[k] ~= nil or k == "oocFade") then o[k] = c[k] end
             end
         end
@@ -800,6 +831,10 @@ local function buildWindow()
     num(L.BARS_PADDING, "padding", 0, 20)
     chk(L.BARS_MOUSEOVER, "mouseover")
     chk(L.BARS_OOC_FADE, "oocFade")
+    -- cases vides : barres d action seulement (pas le familier ni les formes)
+    local function slots() return not targets[sel].stance and not targets[sel].pet end
+    form:Check(L.BARS_HIDE_EMPTY, function() return slots() and cur().hideEmpty end,
+        function(v) if slots() then cur().hideEmpty = v end end)
     chk(L.BARS_HOTKEY, "hotkey")
     chk(L.BARS_MACRO, "macro")
     chk(L.BARS_COUNT, "count")
@@ -950,6 +985,16 @@ ev:SetScript("OnEvent", function(_, event, arg)
         if pending then apply() end
     elseif event == "UPDATE_BINDINGS" then
         if InCombatLockdown() then pending = true else applyBindings() updateHotkeys() end
+    elseif event == "ACTIONBAR_SHOWGRID" or event == "ACTIONBAR_HIDEGRID" or event == "CURSOR_CHANGED" then
+        local was = holding
+        if event == "ACTIONBAR_SHOWGRID" then holding = true
+        elseif event == "ACTIONBAR_HIDEGRID" then holding = false
+        else holding = cursorHolds() end
+        if holding ~= was then
+            for _, b in ipairs(allButtons) do
+                if not b.isPet then update(b) end
+            end
+        end
     elseif event == "ACTIONBAR_SLOT_CHANGED" then
         for _, b in ipairs(allButtons) do
             if not b.isPet and b:GetAttribute("action") == arg then update(b) end
@@ -966,7 +1011,8 @@ end)
 for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_REGEN_ENABLED", "UPDATE_BINDINGS", "ACTIONBAR_SLOT_CHANGED",
                      "ACTIONBAR_UPDATE_STATE", "ACTIONBAR_UPDATE_USABLE", "ACTIONBAR_UPDATE_COOLDOWN",
                      "SPELL_UPDATE_COOLDOWN", "SPELL_UPDATE_USABLE", "UPDATE_SHAPESHIFT_FORM",
-                     "PLAYER_ENTERING_WORLD", "BAG_UPDATE_DELAYED", "PLAYER_TARGET_CHANGED" }) do
+                     "PLAYER_ENTERING_WORLD", "BAG_UPDATE_DELAYED", "PLAYER_TARGET_CHANGED",
+                     "ACTIONBAR_SHOWGRID", "ACTIONBAR_HIDEGRID", "CURSOR_CHANGED" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
 for e in pairs(PET_EVENTS) do
