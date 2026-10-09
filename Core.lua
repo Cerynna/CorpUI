@@ -1944,8 +1944,14 @@ end
 -- Idempotent : chaque module peut l appeler avant de lire sa sous-table
 function ns.InitRoot()
     if ns.root then return ns.root end
-    if type(CorpUIDB) ~= "table" then CorpUIDB = {} end
+    local fresh = type(CorpUIDB) ~= "table"
+    if fresh then CorpUIDB = {} end
     local db = CorpUIDB
+    -- toute premiere connexion : style Moderne et disposition de reference
+    -- (Defauts.lua), completes ensuite par les valeurs des modules
+    if fresh and ns.DefaultProfile then
+        for k, v in pairs(ns.DefaultProfile()) do db[k] = v end
+    end
     -- reprise de BuffForever : langue et minicarte etaient dans les buffs
     local b = db.buffs
     if type(b) == "table" then

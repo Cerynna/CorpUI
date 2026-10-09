@@ -363,16 +363,10 @@ local function buildWindow()
     new:SetPoint("LEFT", edit, "RIGHT", 8, 0)
     local reset = confirmButton(win, L.PROF_RESET, function()
         local db = root()
-        for k in pairs(KEYS) do
-            if type(db[k]) == "table" and next(KEYS[k]) then
-                local keep = {}
-                for kk in pairs(KEYS[k]) do keep[kk] = db[k][kk] end
-                db[k] = keep
-            else
-                db[k] = nil
-            end
-        end
-        -- les reglages par defaut reviennent : interface Blizzard masquee, etc.
+        -- reglages par defaut (Defauts.lua : style Moderne et disposition de
+        -- reference), les donnees des personnages restent ; le reste revient
+        -- aux valeurs des modules (interface Blizzard masquee, etc.)
+        load(db, ns.DefaultProfile and ns.DefaultProfile() or {})
         saveLive()
     end, true)
     reset:SetPoint("LEFT", new, "RIGHT", 4, 0)
