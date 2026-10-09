@@ -373,9 +373,10 @@ local function place(s, cf)
     local eb = s.eb
     if eb and eb:IsShown() then
         local _, rel, _, x, y = eb:GetPoint(1)
-        if rel ~= host or x ~= -6 or y ~= -(6 + FIELD_GAP) then
+        local lx = -6 - colOffset
+        if rel ~= host or x ~= lx or y ~= -(6 + FIELD_GAP) then
             eb:ClearAllPoints()
-            eb:SetPoint("TOPLEFT", host, "BOTTOMLEFT", -6, -(6 + FIELD_GAP))
+            eb:SetPoint("TOPLEFT", host, "BOTTOMLEFT", lx, -(6 + FIELD_GAP))
             eb:SetPoint("TOPRIGHT", host, "BOTTOMRIGHT", 6, -(6 + FIELD_GAP))
             eb:SetHeight(FIELD_H)
         end
@@ -560,6 +561,21 @@ local function slotIcon(slot, file)
 end
 local buttonBar, slots = nil, {}
 local combatAsIcon
+-- colonne d icones accolee a gauche du chat (09/10, a la place de la rangee
+-- dans le bandeau des onglets) : largeur, ecart avec le panneau ; colOffset :
+-- place qu elle prend a gauche (0 si aucune icone), lue par placeCorner,
+-- place (zone de saisie) et ns.ChatBox (bandeau d infos sous le chat)
+local COL_W, COL_GAP = ICON + 8, 2
+local column
+local colOffset = 0
+-- ordre de haut en bas
+local RANK = { QuickJoinToastButton = 2, ChatFrameChannelButton = 3, ChatFrameMenuButton = 4,
+               ChatFrameToggleVoiceDeafenButton = 5, ChatFrameToggleVoiceMuteButton = 6, TextToSpeechButton = 7 }
+local function rankOf(e)
+    if e.combat then return 1 end
+    if e.own then return 9 end
+    return RANK[e.name] or 8
+end
 local dockInset             -- recul du bord droit des onglets (largeur des icones)
 
 local function makeSlot()
@@ -576,6 +592,14 @@ local function buildButtonBar()
     buttonBar:SetFrameStrata("MEDIUM")
     buttonBar:SetFrameLevel(20)
     buttonBar:SetSize(ICON, ICON)
+    -- fond de la colonne : celui du panneau du chat (meme couche, meme opacite)
+    column = CreateFrame("Frame", "CorpUIChatColumn", UIParent, "BackdropTemplate")
+    column:SetFrameStrata("LOW")
+    column:SetFrameLevel(1)
+    column:SetWidth(COL_W)
+    ns.UI.SetBackdrop(column, db.alpha)
+    ns.UI.Shadow(column, 4)
+    column:Hide()
 
     -- copie : la fenetre de chat choisie
     local copySlot = makeSlot()
@@ -637,7 +661,7 @@ local function buildButtonBar()
                 slotIcon(slot, ICONS[name])
                 fadeButtonArt(b)
             end
-            table.insert(slots, { slot = slot, button = b })
+            table.insert(slots, { slot = slot, button = b, name = name })
         end
     end
 end
@@ -655,11 +679,21 @@ local function layoutButtons()
     if not buttonBar then return end
     local host = DEFAULT_CHAT_FRAME and hostOf(DEFAULT_CHAT_FRAME)
     if not host then return end
-    buttonBar:ClearAllPoints()
-    buttonBar:SetPoint("TOPRIGHT", host, "TOPRIGHT", 2, STRIP - 2)
-    local x = 0
     local C = ns.COLORS
-    for _, e in ipairs(slots) do
+    if column.host ~= host then
+        column.host = host
+        column:ClearAllPoints()
+        column:SetPoint("TOPRIGHT", host, "TOPLEFT", -6 - COL_GAP, STRIP + 4)
+        column:SetPoint("BOTTOMRIGHT", host, "BOTTOMLEFT", -6 - COL_GAP, -6)
+        buttonBar:ClearAllPoints()
+        buttonBar:SetPoint("TOP", column, "TOP", 0, -4)
+    end
+    column:SetBackdropColor(C.bg[1], C.bg[2], C.bg[3], db.alpha)
+    local order = {}
+    for _, e in ipairs(slots) do order[#order + 1] = e end
+    table.sort(order, function(a, b) return rankOf(a) < rankOf(b) end)
+    local y = 0
+    for _, e in ipairs(order) do
         local slot = e.slot
         local shown
         if e.own then shown = db.copy
@@ -670,9 +704,12 @@ local function layoutButtons()
         if slot then
             slot:SetShown(shown)
             if shown then
-                slot:ClearAllPoints()
-                slot:SetPoint("TOPRIGHT", buttonBar, "TOPRIGHT", -x, 0)
-                x = x + ICON + 4
+                if e.y ~= y then
+                    e.y = y
+                    slot:ClearAllPoints()
+                    slot:SetPoint("TOP", buttonBar, "TOP", 0, -y)
+                end
+                y = y + ICON + 4
                 -- Blizzard re-ancre parfois ses boutons : on les remet en place
                 if not e.own and not e.combat then
                     local _, rel = e.button:GetPoint(1)
@@ -689,11 +726,13 @@ local function layoutButtons()
             end
         end
     end
-    -- les onglets s arretent avant nos icones (09/10 : dans un chat etroit ils
-    -- passaient dessous) : le bord droit du gestionnaire d onglets de Blizzard
-    -- recule d autant. Simple ancrage (pose une fois par FCFDock_SetPrimary,
-    -- jamais repris) ; la largeur des onglets suit a la mise a jour suivante
-    -- du dock (choix d un onglet, nouvelle fenetre...)
+    column:SetShown(y > 0)
+    colOffset = y > 0 and (COL_W + COL_GAP) or 0
+    -- bord droit du gestionnaire d onglets de Blizzard (ancre une fois par
+    -- FCFDock_SetPrimary, jamais repris) : les icones ne sont plus dans le
+    -- bandeau, les onglets ont toute sa largeur ; la largeur des onglets suit
+    -- a la mise a jour suivante du dock (choix d un onglet...)
+    local x = 0
     local dock = GENERAL_CHAT_DOCK
     local bg = dock and dock.primary and dock.primary.Background
     -- onglet fixe du journal cache : Blizzard calcule la largeur des onglets
@@ -875,7 +914,7 @@ local function placeCorner()
     if cf:IsClampedToScreen() then cf:SetClampedToScreen(false) end
     -- marges : celles de notre panneau (6 px) et de la zone de saisie ;
     -- lift : place laissee dessous (un bandeau d infos, par exemple)
-    local x, y = 8, EDIT + 8 + (tonumber(db.lift) or 0)
+    local x, y = 8 + colOffset, EDIT + 8 + (tonumber(db.lift) or 0)
     local point, rel, relPoint, px, py = cf:GetPoint(1)
     if point ~= "BOTTOMLEFT" or rel ~= UIParent or relPoint ~= "BOTTOMLEFT"
         or math.abs((px or 0) - x) > 0.5 or math.abs((py or 0) - y) > 0.5 or cf:GetNumPoints() > 1 then
@@ -903,6 +942,8 @@ function ns.ChatBox()
     local kh = host:GetEffectiveScale() / UIParent:GetEffectiveScale()
     local l, r, b = p:GetLeft(), p:GetRight(), host:GetBottom()
     if not l or not r or not b then return nil end
+    -- colonne d icones a gauche comprise
+    l = l - colOffset
     return { left = l * k, width = (r - l) * k, bottom = (b - 5 - EDIT) * kh, height = EDIT * kh }
 end
 

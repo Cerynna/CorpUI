@@ -64,6 +64,7 @@ local function sections(key)
             add(O.PlayerAuras)
             add(ns.BuildResourceOptions)
             add(O.Center)
+            add(O.Totems)
         elseif key == "target" then
             add(O.TargetAuras)
         end

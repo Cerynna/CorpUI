@@ -655,6 +655,25 @@ local function refresh(B)
     if tipOwner and tipOwner.cuiBar == B and tipOwner:IsShown() and tipOwner:IsMouseOver() then showTip(tipOwner, true) end
 end
 
+-- bandeau "sous le chat" : suit la place de la zone de saisie (ns.ChatBox)
+-- quand le chat bouge ou s elargit (colonne d icones a sa gauche, 09/10),
+-- hors combat
+local function followChat(B)
+    local c = B.conf
+    if not (c and c.underChat and ns.ChatBox) or InCombatLockdown() then return end
+    local ok, box = pcall(ns.ChatBox)
+    if not ok or type(box) ~= "table" then return end
+    local s = c.scale or 1
+    local x, y, w = math.floor(box.left / s + 0.5), math.floor(box.bottom / s + 0.5), math.floor(box.width / s + 0.5)
+    local p = c.pos
+    if p.point == "BOTTOMLEFT" and p.rel == nil and p.x == x and p.y == y and c.width == w then return end
+    for k in pairs(p) do p[k] = nil end
+    p.point, p.x, p.y = "BOTTOMLEFT", x, y
+    c.width = w
+    ns.ApplyPos(B.frame, p)
+    refresh(B)
+end
+
 local function apply(B)
     local c, bar = B.conf, B.frame
     if not c then
@@ -728,6 +747,7 @@ local function bind(i)
             elapsed = elapsed + dt
             if elapsed < 1 then return end
             elapsed = 0
+            followChat(B)
             refresh(B)
         end)
         bars[i] = B
