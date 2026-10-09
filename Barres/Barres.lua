@@ -100,7 +100,7 @@ local PET_PREFIX = "[nopet] hide; [possessbar] hide; "
 -- reglages d une barre (les barres de droite : une colonne)
 local BAR_DEFAULTS = {
     buttons = 12, perRow = 12, size = 36, spacing = 4,
-    backdrop = false, padding = 4, bgAlpha = 75, alpha = 1, mouseover = false,
+    backdrop = false, padding = 4, bgAlpha = 75, alpha = 1, mouseover = false, oocFade = false,
     hotkey = true, macro = false, count = true,
     cdText = true, vis = "always", visCustom = "",
 }
@@ -119,7 +119,12 @@ local function conf(key) return db.bar[key] end
 
 local function shortKey(key)  -- partage : ns.ShortKey
     if not key then return "" end
-    key = key:gsub("SHIFT%-", "s"):gsub("CTRL%-", "c"):gsub("ALT%-", "a")
+    -- style Moderne : modificateurs en capitales ("S1", "C2", "A3")
+    if ns.MODERN then
+        key = key:gsub("SHIFT%-", "S"):gsub("CTRL%-", "C"):gsub("ALT%-", "A")
+    else
+        key = key:gsub("SHIFT%-", "s"):gsub("CTRL%-", "c"):gsub("ALT%-", "a")
+    end
     key = key:gsub("MOUSEWHEELUP", "MwH"):gsub("MOUSEWHEELDOWN", "MwB"):gsub("BUTTON", "M")
     key = key:gsub("NUMPAD", "N"):gsub("SPACE", "Esp")
     return key
@@ -767,8 +772,8 @@ local function buildWindow()
         local c = cur()
         for _, t in ipairs(targets) do
             local o = t.conf()
-            for _, k in ipairs({ "size", "spacing", "backdrop", "padding", "bgAlpha", "alpha", "mouseover", "hotkey", "macro", "count", "cdText" }) do
-                if o[k] ~= nil and c[k] ~= nil then o[k] = c[k] end
+            for _, k in ipairs({ "size", "spacing", "backdrop", "padding", "bgAlpha", "alpha", "mouseover", "oocFade", "hotkey", "macro", "count", "cdText" }) do
+                if c[k] ~= nil and (o[k] ~= nil or k == "oocFade") then o[k] = c[k] end
             end
         end
         form.Changed()
@@ -794,6 +799,7 @@ local function buildWindow()
     num(L.BARS_BGALPHA, "bgAlpha", 0, 100, 5)
     num(L.BARS_PADDING, "padding", 0, 20)
     chk(L.BARS_MOUSEOVER, "mouseover")
+    chk(L.BARS_OOC_FADE, "oocFade")
     chk(L.BARS_HOTKEY, "hotkey")
     chk(L.BARS_MACRO, "macro")
     chk(L.BARS_COUNT, "count")

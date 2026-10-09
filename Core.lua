@@ -1015,17 +1015,29 @@ function ns.LayoutButtonBar(h, buttons, n, c, pos)
         h.back:SetShown(c.backdrop)
         h.backBorder:SetShown(c.backdrop)
     end
-    if not c.mouseover then h:SetAlpha(c.alpha) end
+    if not c.mouseover and not c.oocFade then h:SetAlpha(c.alpha) end
 end
 
--- fondu des barres "visibles au survol" (et pendant qu on tient un sort)
+-- barres "estompees hors combat" : opacite gardee (part de l opacite choisie)
+local OOC_ALPHA = 0.3
+
+-- fondu des barres "visibles au survol" (et pendant qu on tient un sort) ;
+-- "estompees hors combat" : pleines en combat ou au survol, sinon pales
 local fader = CreateFrame("Frame")
 fader:SetScript("OnUpdate", function(_, dt)
+    local fighting
     for _, e in ipairs(ns.ButtonBars) do
         local h = e.frame
         local c = e.conf()
-        if c and c.mouseover and h:IsShown() then
-            local want = (h:IsMouseOver() or GetCursorInfo() or ns.moversShown or ns.quickBinding) and c.alpha or 0
+        if c and (c.mouseover or c.oocFade) and h:IsShown() then
+            local active = h:IsMouseOver() or GetCursorInfo() or ns.moversShown or ns.quickBinding
+            local want
+            if c.mouseover then
+                want = active and c.alpha or 0
+            else
+                if fighting == nil then fighting = InCombatLockdown() and true or false end
+                want = (active or fighting) and c.alpha or c.alpha * OOC_ALPHA
+            end
             local a = h:GetAlpha()
             if a ~= want then
                 h:SetAlpha(want > a and math.min(want, a + dt * 5) or math.max(want, a - dt * 3))
