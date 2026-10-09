@@ -26,7 +26,18 @@
          textures a alpha 0, plaque plate ; l actif (LeftActive montre par
          Blizzard) en lisere et texte d or. Le clignotement "nouveau" d un
          onglet (FlashFrame des Ensembles) perd sa lueur jaune : la notre,
-         posee sur ce cadre, clignote avec lui.
+         posee sur ce cadre, clignote avec lui ;
+      4. barres de defilement minimalistes (MinimalScrollBar : Track.Thumb,
+         Back, Forward) des fenetres sans habillage en profondeur (macros,
+         liste des add-ons...) : rail et curseur de Blizzard a alpha 0, un
+         filet pour le rail, un curseur fin a l accent (or au survol), nos
+         chevrons a la place des fleches (ns.UI.ArrowChevron) ;
+      5. fleches de repli "bag-arrow" (categories de la liste des add-ons) :
+         leurs textures eteintes par la couleur, notre chevron a la place,
+         dans le sens que Blizzard leur donne par rotation (lue).
+    Les enfants d un bouton ne sont jamais parcourus, sauf ceux de ROW_KEYS
+    (case "Enabled" d une ligne d add-on, fleche "CollapseExpand" d une
+    categorie).
 
     Fenetres parcourues : celles de Fenetres.lua, plus quelques fenetres
     annexes posees sur UIParent dont l habillage en profondeur ne traite
@@ -71,6 +82,8 @@ local kinds = setmetatable({}, weak)     -- cadre -> "drop", "check", "tab" ou f
 local drops = setmetatable({}, weak)     -- menu a fleche -> { arrows, holders, fill, edges, chev }
 local checks = setmetatable({}, weak)    -- case a cocher -> { fill, edges, mark }
 local tabs = setmetatable({}, weak)      -- onglet du haut -> { texs, fill, edges, text, act }
+local bars = setmetatable({}, weak)      -- barre de defilement -> { thumb, knob }
+local folds = setmetatable({}, weak)     -- fleche de repli -> { texs, normal, chev }
 local others = setmetatable({}, weak)    -- case / onglet repris ailleurs (ou protege) : ignore
 local pending = setmetatable({}, weak)   -- candidat -> { t = premier releve, last = dernier releve }
 local owner = setmetatable({}, weak)     -- element habille -> groupe de sa fenetre
@@ -95,9 +108,14 @@ local SKIP_WINDOWS = { SettingsPanel = true, KeyBindingFrame = true }
 local EXTRA_ROOTS = {
     social = { "CommunitiesSettingsDialog", "CommunitiesTicketManagerDialog", "CommunitiesGuildTextEditFrame",
                "CommunitiesGuildLogFrame", "CommunitiesGuildNewsFiltersFrame" },
+    -- choix d icone d une macro (cases et champ : Macros.lua)
+    system = { "MacroPopupFrame" },
 }
 -- sous-cadres jamais parcourus (canevas et punaises des cartes)
 local SKIP_KEYS = { "ScrollContainer" }
+-- enfants d un bouton tout de meme examines : case d une ligne d add-on,
+-- fleche de repli d une categorie (AddonList)
+local ROW_KEYS = { "Enabled", "CollapseExpand" }
 
 -- textures d un onglet du haut (PanelTabButtonTemplate)
 local TAB_KEYS = { "Left", "Middle", "Right", "LeftActive", "MiddleActive", "RightActive",
@@ -305,6 +323,7 @@ local function classify(f)
             end
         end
         if not k and t == "Button" and topTab(f) then k = "tab" end
+        if not k and t == "Button" and atlasOf(askObj(f, "GetNormalTexture")) == "bag-arrow" then k = "fold" end
     elseif t == "CheckButton" then
         if classicCheck(f) then k = "check" end
     end
@@ -539,6 +558,98 @@ local function dressTab(t)
 end
 
 ---------------------------------------------------------------------------
+-- 4. Barres de defilement minimalistes
+---------------------------------------------------------------------------
+
+local BAR_PARTS = { "Begin", "Middle", "End" }
+
+local function isScrollBar(f)
+    local track = field(f, "Track")
+    return track ~= nil and field(track, "Thumb") ~= nil and field(f, "Back") ~= nil and field(f, "Forward") ~= nil
+end
+
+-- deja reprise ailleurs : reclamee, ou rail / curseur deja eteints (les
+-- habillages en profondeur les passent a alpha 0)
+local function barTaken(sb)
+    local ok, cl = pcall(ns.SkinClaimed, sb)
+    if ok and cl then return true end
+    local track = field(sb, "Track")
+    return alphaOf(field(track, "Begin")) == 0 or alphaOf(field(field(track, "Thumb"), "Begin")) == 0
+end
+
+local function dressBar(sb)
+    local C = ns.COLORS
+    local track = field(sb, "Track")
+    local thumb = field(track, "Thumb")
+    if not (track and track.CreateTexture and thumb and thumb.CreateTexture) then return end
+    for _, k in ipairs(BAR_PARTS) do
+        fade(field(track, k))
+        fade(field(thumb, k))
+    end
+    fade(field(sb, "Background"))
+    local line = tex(track, "ARTWORK", 1)
+    line:SetPoint("TOP", track, "TOP", 0, 0)
+    line:SetPoint("BOTTOM", track, "BOTTOM", 0, 0)
+    line:SetWidth(1)
+    line:SetColorTexture(C.border[1], C.border[2], C.border[3], 0.8)
+    local knob = tex(thumb, "ARTWORK", 2)
+    knob:SetPoint("TOP", thumb, "TOP", 0, 0)
+    knob:SetPoint("BOTTOM", thumb, "BOTTOM", 0, 0)
+    knob:SetWidth(4)
+    knob:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.6)
+    for _, k in ipairs({ "Back", "Forward" }) do
+        local b = field(sb, k)
+        local c = ns.UI.ArrowChevron(b, ns.UI.ScrollDir(sb, k), 10, { field(b, "Texture") })
+        if c then mine[c] = true end
+    end
+    bars[sb] = { thumb = thumb, knob = knob }
+end
+
+local function barState(_, s)
+    local C = ns.COLORS
+    local over = isOver(s.thumb)
+    if over == s.over then return end
+    s.over = over
+    if over then
+        s.knob:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 0.9)
+    else
+        s.knob:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.6)
+    end
+end
+
+---------------------------------------------------------------------------
+-- 5. Fleches de repli (bag-arrow)
+---------------------------------------------------------------------------
+
+-- sens de la fleche de Blizzard : sans rotation elle pointe a gauche ;
+-- Blizzard la tourne (sens trigonometrique) : pi = fermee (droite),
+-- pi / 2 = ouverte (bas)
+local function foldDir(t)
+    local r = num(ask(t, "GetRotation")) or 0
+    local a = (math.pi + r) % (2 * math.pi)
+    if a < math.pi / 4 or a >= 7 * math.pi / 4 then return "RIGHT" end
+    if a < 3 * math.pi / 4 then return "UP" end
+    if a < 5 * math.pi / 4 then return "LEFT" end
+    return "DOWN"
+end
+
+local function foldState(_, s)
+    for _, t in ipairs(s.texs) do veil(t) end
+    if s.chev then s.chev:SetDir(foldDir(s.normal)) end
+end
+
+local function dressFold(b)
+    local s = { texs = {}, normal = askObj(b, "GetNormalTexture") }
+    for _, r in ipairs(regionsOf(b)) do
+        if objType(r) == "Texture" and not mine[r] then s.texs[#s.texs + 1] = r end
+    end
+    s.chev = ns.UI.ArrowChevron(b, foldDir(s.normal), 10, s.texs)
+    if s.chev then mine[s.chev] = true end
+    folds[b] = s
+    foldState(b, s)
+end
+
+---------------------------------------------------------------------------
 -- Parcours
 ---------------------------------------------------------------------------
 
@@ -554,11 +665,17 @@ local function takenByOther(c, kind)
     local ok, cl = pcall(ns.SkinClaimed, c)
     if ok and cl then return true end
     if kind == "check" then return alphaOf(askObj(c, "GetNormalTexture")) == 0 end
+    if kind == "fold" then
+        local n = askObj(c, "GetNormalTexture")
+        if not n then return true end
+        local ok, _, _, _, a = pcall(n.GetVertexColor, n)
+        return alphaOf(n) == 0 or (ok and num(a) == 0)
+    end
     return alphaOf(field(c, "Left")) == 0 or alphaOf(field(c, "LeftActive")) == 0
 end
 
 local function consider(c, key, now)
-    if drops[c] or checks[c] or tabs[c] or others[c] then return end
+    if drops[c] or checks[c] or tabs[c] or folds[c] or others[c] then return end
     local kind = classify(c)
     if not kind then return end
     if ask(c, "IsProtected") == true then
@@ -584,7 +701,27 @@ local function consider(c, key, now)
     p.last = now
     if now - p.t < GRACE then return end
     pending[c] = nil
-    if kind == "check" then dressCheck(c) else dressTab(c) end
+    if kind == "check" then dressCheck(c) elseif kind == "fold" then dressFold(c) else dressTab(c) end
+    owner[c] = key
+end
+
+-- barre de defilement : meme delai de grace que les cases et onglets
+local function considerBar(c, key, now)
+    if bars[c] or others[c] then return end
+    if barTaken(c) then
+        others[c] = true
+        pending[c] = nil
+        return
+    end
+    local p = pending[c]
+    if not p or now - p.last > WALK + TICK + 0.05 then
+        pending[c] = { t = now, last = now }
+        return
+    end
+    p.last = now
+    if now - p.t < GRACE then return end
+    pending[c] = nil
+    dressBar(c)
     owner[c] = key
 end
 
@@ -604,8 +741,15 @@ local function walk(f, depth, key, now, budget, skip)
             local t = objType(c)
             if t == "Button" or t == "CheckButton" or t == "DropdownButton" then
                 -- jamais d enfants d un bouton (le menu volant des sorts en
-                -- devient un), seulement le bouton lui-meme
+                -- devient un), seulement le bouton lui-meme et ROW_KEYS
                 consider(c, key, now)
+                for _, rk in ipairs(ROW_KEYS) do
+                    local sub = field(c, rk)
+                    if sub and not mine[sub] and visible(sub) then consider(sub, key, now) end
+                end
+            elseif t and isScrollBar(c) then
+                -- jamais de descente : ses fleches sont a la barre
+                considerBar(c, key, now)
             elseif t and depth < MAXDEPTH and not skipFrame(c, skip) then
                 local n = num(ask(c, "GetNumChildren"))
                 if n and n > 0 and n <= MAXKIDS then walk(c, depth + 1, key, now, budget, skip) end
@@ -661,6 +805,8 @@ local function pass(now)
     each(drops, dropState)
     each(checks, checkState)
     each(tabs, tabState)
+    each(bars, barState)
+    each(folds, foldState)
 end
 
 ---------------------------------------------------------------------------

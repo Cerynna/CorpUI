@@ -55,6 +55,7 @@ local rowHl = setmetatable({}, weak)     -- cadre de surbrillance -> { tex, ref 
 local progress = setmetatable({}, weak)  -- barre de progression -> { fill, edges }
 local titleRows = setmetatable({}, weak) -- ligne de titre -> { sel, ref }
 local masked = setmetatable({}, weak)    -- remplissage dont le masque est retire
+local toggles = setmetatable({}, weak)   -- bouton de repli (statistiques) -> notre - / +
 
 local SLOT_NAMES = { "Head", "Neck", "Shoulder", "Back", "Chest", "Shirt", "Tabard", "Wrist",
                      "Hands", "Waist", "Legs", "Feet", "Finger0", "Finger1", "Trinket0", "Trinket1",
@@ -110,13 +111,17 @@ local ATLAS = {
     -- boutons - / + de repli : teintes en or (l atlas change, jamais "fait")
     ["common-button-list-plus"] = "gold",
     ["common-button-list-minus"] = "gold",
-    ["campaign_headericon_closed"] = "gold",
-    ["campaign_headericon_closedpressed"] = "gold",
-    ["campaign_headericon_open"] = "gold",
-    ["campaign_headericon_openpressed"] = "gold",
+    -- repli des sous-categories (statistiques) : carre rouge remplace
+    ["campaign_headericon_closed"] = "toggle",
+    ["campaign_headericon_closedpressed"] = "toggle",
+    ["campaign_headericon_open"] = "toggle",
+    ["campaign_headericon_openpressed"] = "toggle",
 }
+-- meme table en minuscules : le jeu rend "Campaign_HeaderIcon_Open"
+local ATLAS_LC = {}
+for k, v in pairs(ATLAS) do ATLAS_LC[k:lower()] = v end
 -- actions a refaire a chaque passage (Blizzard repose l atlas)
-local AGAIN = { gold = true, fill = true }
+local AGAIN = { gold = true, fill = true, toggle = true }
 
 local function db()
     local d = ns.skinsDB
@@ -438,6 +443,29 @@ local function header(f)
     headers[f] = h
 end
 
+-- bouton de repli des sous-categories (statistiques, "Richesse") : le
+-- carre rouge de Blizzard eteint par la couleur, notre - / + en or a sa
+-- place, qui suit son atlas (Open = deplie)
+local function toggleGlyph(b, r, a)
+    local C = ns.COLORS
+    pcall(r.SetVertexColor, r, 1, 1, 1, 0)
+    local t = toggles[b]
+    if not t then
+        t = tex(b, "OVERLAY", 7)
+        t:SetPoint("CENTER", b, "CENTER", 0, 0)
+        toggles[b] = t
+        local okH, hl = pcall(b.GetHighlightTexture, b)
+        if okH then fade(hl) end
+    end
+    local open = a:lower():find("_open", 1, true) ~= nil
+    if t.cuiOpen ~= open then
+        t.cuiOpen = open
+        -- a la taille de l atlas (trait de 13 x 4, croix de 13 x 13)
+        pcall(t.SetAtlas, t, open and "common-button-list-minus" or "common-button-list-plus", true)
+        t:SetVertexColor(C.gold[1], C.gold[2], C.gold[3], 1)
+    end
+end
+
 -- plaque plate sous un bouton (textures a nous, au fond du bouton)
 local function plate(b, inset)
     if plates[b] then return plates[b] end
@@ -620,7 +648,7 @@ local function scanRegions(f)
     for _, r in ipairs(regionsOf(f)) do
         if not mine[r] and not done[r] and objType(r) == "Texture" then
             local a = atlasOf(r)
-            local act = a and (ATLAS[a] or (a:match("^UI%-Character%-Info%-%u+%-BG$") and "fade")
+            local act = a and (ATLAS[a] or ATLAS_LC[a:lower()] or (a:match("^UI%-Character%-Info%-%u+%-BG$") and "fade")
                               or (a:match("^common%-button%-tertiary") and "tertiary"))
             if act then
                 if not AGAIN[act] then done[r] = true end
@@ -656,6 +684,8 @@ local function scanRegions(f)
                 elseif act == "checkbox" then
                     fade(r)
                     if objType(f) == "CheckButton" then skinCheck(f) end
+                elseif act == "toggle" then
+                    toggleGlyph(f, r, a)
                 elseif act == "gold" then
                     pcall(r.SetDesaturated, r, true)
                     pcall(r.SetVertexColor, r, C.gold[1], C.gold[2], C.gold[3], 1)

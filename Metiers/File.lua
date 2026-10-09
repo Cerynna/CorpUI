@@ -1148,6 +1148,14 @@ local function iconButton(parent, texture, text, onClick)
     return b
 end
 
+-- replier / rouvrir le volet : notre chevron (Core.lua) plutot qu une
+-- fleche en texte
+local function foldChevron(b, dir)
+    b:SetText("")
+    b.chev = ns.UI.Chevron(b, 12, dir)
+    b.chev:SetPoint("CENTER", 0, 0)
+end
+
 -- ajoute n fabrications de la recette affichee (meme chemin pour les
 -- boutons +N et le champ) ; vrai si quelque chose est entre dans la file
 local function addSelected(n)
@@ -1469,7 +1477,7 @@ local function buildPane()
         db.pane.collapsed = true
         pane:Hide()
     end)
-    fold:SetText("«")
+    foldChevron(fold, "LEFT")
     fold:SetSize(22, 22)
     fold:SetPoint("TOPRIGHT", -6, -6)
 
@@ -1533,7 +1541,7 @@ local function buildPane()
         db.pane.collapsed = false
         expander:Hide()
     end)
-    expander:SetText("»")
+    foldChevron(expander, "RIGHT")
     expander:SetSize(22, 22)
     expander:Hide()
 

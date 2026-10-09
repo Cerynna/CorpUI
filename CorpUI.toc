@@ -154,6 +154,7 @@ Habillage\Courrier.lua
 Habillage\Maitre.lua
 Habillage\Social.lua
 Habillage\Canaux.lua
+Habillage\Macros.lua
 Habillage\Deplacer.lua
 Habillage\Skins.lua
 
