@@ -339,9 +339,18 @@ local function buildPanel(cf)
 end
 
 -- place le panneau et la zone de saisie de Blizzard (qui flottait dessous)
+-- champ de saisie encadre (09/10, style choisi parmi quatre) : sous le chat,
+-- a la place de la barre d infos du dessous (ns.ChatBox), 3 px sous la
+-- fenetre ; fond sombre et lisere a la couleur du canal portes par la zone
+-- de saisie elle-meme : visibles quelle que soit la fenetre choisie (avant,
+-- ils etaient sur le panneau de General, cache sous un autre onglet)
+local FIELD_GAP = 3
+local FIELD_H = EDIT - 4
+
 local function place(s, cf)
     local host = hostOf(cf)
-    local withEdit = s.eb and s.eb:IsShown()
+    -- le panneau ne s agrandit plus pour la saisie : elle a son propre champ
+    local withEdit = false
     if s.host ~= host or s.withEdit ~= withEdit then
         s.host, s.withEdit = host, withEdit
         local p = s.panel
@@ -362,13 +371,13 @@ local function place(s, cf)
         end
     end
     local eb = s.eb
-    if eb and withEdit then
-        local _, rel, _, x = eb:GetPoint(1)
-        if rel ~= host or x ~= -2 then
+    if eb and eb:IsShown() then
+        local _, rel, _, x, y = eb:GetPoint(1)
+        if rel ~= host or x ~= -6 or y ~= -(6 + FIELD_GAP) then
             eb:ClearAllPoints()
-            eb:SetPoint("TOPLEFT", host, "BOTTOMLEFT", -2, -5)
-            eb:SetPoint("TOPRIGHT", host, "BOTTOMRIGHT", 2, -5)
-            eb:SetHeight(EDIT)
+            eb:SetPoint("TOPLEFT", host, "BOTTOMLEFT", -6, -(6 + FIELD_GAP))
+            eb:SetPoint("TOPRIGHT", host, "BOTTOMRIGHT", 6, -(6 + FIELD_GAP))
+            eb:SetHeight(FIELD_H)
         end
     end
 end
@@ -812,6 +821,19 @@ local function skin(cf)
     if eb then
         s.eb = eb
         styleEdit(eb)
+        local fd = { edges = {} }
+        fd.fill = eb:CreateTexture(nil, "BACKGROUND", nil, -8)
+        fd.fill:SetAllPoints(eb)
+        ns.NoSnap(fd.fill)
+        for i, pts in ipairs({ { "TOPLEFT", "TOPRIGHT" }, { "BOTTOMLEFT", "BOTTOMRIGHT" }, { "TOPLEFT", "BOTTOMLEFT" }, { "TOPRIGHT", "BOTTOMRIGHT" } }) do
+            local e = eb:CreateTexture(nil, "BACKGROUND", nil, -7)
+            e:SetPoint(pts[1], eb, pts[1], 0, 0)
+            e:SetPoint(pts[2], eb, pts[2], 0, 0)
+            if i <= 2 then e:SetHeight(1) else e:SetWidth(1) end
+            ns.NoSnap(e)
+            fd.edges[i] = e
+        end
+        s.field = fd
     end
     s.scroll = buildScroll(cf, s.panel)
     skinned[cf] = s
@@ -990,16 +1012,15 @@ local function refresh()
                 end
             end
         end
-        if s.eb and s.panel and s.eb:IsVisible() then
+        if s.eb and s.field and s.eb:IsVisible() then
             local r, g, b = channelColor(s.eb)
-            local e = s.panel.edit
-            e.bar:SetColorTexture(r, g, b, 1)
-            if s.eb:HasFocus() then
-                e.sep:SetColorTexture(r * 0.8, g * 0.8, b * 0.8, 1)
-                e.bg:SetColorTexture(r * 0.08, g * 0.08, b * 0.08, 0.6)
-            else
-                e.sep:SetColorTexture(C.border[1], C.border[2], C.border[3], 1)
-                e.bg:SetColorTexture(0, 0, 0, 0.35)
+            local fd = s.field
+            local focus = s.eb:HasFocus() and true or false
+            if fd.r ~= r or fd.g ~= g or fd.b ~= b or fd.focus ~= focus then
+                fd.r, fd.g, fd.b, fd.focus = r, g, b, focus
+                local a = focus and 0.95 or 0.45
+                for _, e in ipairs(fd.edges) do e:SetColorTexture(r, g, b, a) end
+                fd.fill:SetColorTexture(0.035 + r * 0.03, 0.038 + g * 0.03, 0.047 + b * 0.03, 0.94)
             end
         end
     end
