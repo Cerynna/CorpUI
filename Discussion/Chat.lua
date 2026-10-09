@@ -687,9 +687,17 @@ local function layoutButtons()
     -- du dock (choix d un onglet, nouvelle fenetre...)
     local dock = GENERAL_CHAT_DOCK
     local bg = dock and dock.primary and dock.primary.Background
-    if bg and dock.SetPoint and dockInset ~= x then
-        dockInset = x
-        pcall(dock.SetPoint, dock, "BOTTOMRIGHT", bg, "TOPRIGHT", -(x + 2), 0)
+    -- onglet fixe du journal cache : Blizzard calcule la largeur des onglets
+    -- depuis son bord droit (environ 20 px perdus) ; le dock s etend d autant
+    -- pour qu ils gardent la vraie place (recolles contre General ensuite)
+    local inset = x
+    local tab2 = _G.ChatFrame2Tab
+    if dock and tab2 and combatAsIcon() and tab2:IsShown() and tab2:GetParent() == dock then
+        inset = x - math.floor((tab2:GetWidth() or 0) + 1.5)
+    end
+    if bg and dock.SetPoint and dockInset ~= inset then
+        dockInset = inset
+        pcall(dock.SetPoint, dock, "BOTTOMRIGHT", bg, "TOPRIGHT", -(inset + 2), 0)
     end
 end
 
@@ -897,6 +905,25 @@ end
 
 -- Blizzard refait apparaitre fonds et onglets au survol : on recoupe ;
 -- onglet actif souligne, saisie a la couleur du canal, tout reste en place
+-- onglets du cadre defilant recolles contre General (onglet fixe du journal
+-- cache) : verifie a chaque image (09/10 : au changement d onglet, Blizzard
+-- les rancrait sur le journal et le releve de 0,2 s laissait voir un
+-- sursaut vers la droite) ; vrai si l onglet du journal est cache
+local function holdDock()
+    local tab2 = _G.ChatFrame2Tab
+    if not (combatAsIcon() and tab2 and tab2:IsShown()) then return false end
+    local dock = GENERAL_CHAT_DOCK
+    local sf = dock and dock.scrollFrame
+    local t1 = _G.ChatFrame1Tab
+    if sf and t1 and tab2:GetParent() == dock then
+        local l, r = sf:GetLeft(), t1:GetRight()
+        if l and r and math.abs(l - (r + 1)) > 0.5 then
+            pcall(sf.SetPoint, sf, "LEFT", t1, "RIGHT", 1, 0)
+        end
+    end
+    return true
+end
+
 local function refresh()
     local C = ns.COLORS
     local selected = SELECTED_CHAT_FRAME or DEFAULT_CHAT_FRAME
@@ -905,16 +932,7 @@ local function refresh()
     -- onglets est recolle contre General (Blizzard le rancre sur l onglet du
     -- journal a chaque mise a jour du dock : repose ici)
     local tab2 = _G.ChatFrame2Tab
-    local hideCombat = combatAsIcon() and tab2 ~= nil and tab2:IsShown()
-    local dock = GENERAL_CHAT_DOCK
-    local sf = dock and dock.scrollFrame
-    local t1 = _G.ChatFrame1Tab
-    if hideCombat and sf and t1 and tab2:GetParent() == dock then
-        local l, r = sf:GetLeft(), t1:GetRight()
-        if l and r and math.abs(l - (r + 1)) > 0.5 then
-            pcall(sf.SetPoint, sf, "LEFT", t1, "RIGHT", 1, 0)
-        end
-    end
+    local hideCombat = holdDock()
     for cf, s in pairs(skinned) do
         if s.scroll and cf:IsVisible() then pcall(updateScroll, cf, s.scroll) end
         if s.panel then
@@ -1447,9 +1465,16 @@ for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "UPDATE_CHAT_WINDO
     pcall(ev.RegisterEvent, ev, e)
 end
 local since, tick = 0, 0
+local lastSelected
 ev:SetScript("OnUpdate", function(_, dt)
+    if not db or not db.enabled then return end
+    -- a chaque image : ancrage des onglets ; changement d onglet : releve
+    -- complet tout de suite (plaques, trait du bas) plutot qu au suivant
+    pcall(holdDock)
     since = since + dt
-    if since < 0.2 or not db or not db.enabled then return end
+    local sel = SELECTED_CHAT_FRAME
+    if since < 0.2 and sel == lastSelected then return end
+    lastSelected = sel
     since = 0
     refresh()
     -- nouvelles fenetres (chuchotements detaches) : toutes les 2 s
