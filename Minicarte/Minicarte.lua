@@ -5,7 +5,11 @@
     a la molette, et sous la carte : zone, coordonnees, heure.
     En plus (facon ElvUI) : taille reglable, retour automatique au zoom 0,
     icones CorpUI (courrier, suivi, difficulte) alimentees par l API, et
-    collecteur des boutons d addons (LibDBIcon...) dans une barre CorpUI.
+    collecteur des boutons d addons (LibDBIcon...) dans une barre CorpUI :
+    toujours visible, en tiroir (bouton +) ou au survol de la carte.
+    Style Moderne (maquette) : zone au-dessus de la carte, alignee a droite,
+    icones a sa gauche ; coordonnees et heure sur une ligne sous la carte ;
+    boite des boutons sans fond.
 
     On ne deplace pas la minicarte (elle reste geree par le mode Edition de
     Blizzard) : on change seulement son masque et ce qui l entoure.
@@ -43,7 +47,7 @@ local ROUND_MASK = "Textures\\MinimapMask"
 local issecret = issecretvalue or function() return false end
 
 local db
-local border, info, zoneText, coordText, clockText
+local border, info, head, zoneText, coordText, clockText
 local definedShape = false
 local layoutIcons, layoutBar      -- definies plus bas
 
@@ -339,8 +343,9 @@ end
 layoutIcons = function()
     if not iconBar then return end
     local on = db.enabled
-    local inStrip = info and info:IsShown()
-    local size = inStrip and 14 or 18
+    local modern = head ~= nil and info and info:IsShown()
+    local inStrip = not modern and info and info:IsShown()
+    local size = (modern or inStrip) and 14 or 18
     local list = {}
     for _, e in ipairs({ { diffBtn, "iconDiff" }, { trackBtn, "iconTrack" }, { mailBtn, "iconMail" } }) do
         local b, key = e[1], e[2]
@@ -362,7 +367,17 @@ layoutIcons = function()
     end
     iconBar:SetSize(math.max(1, x - 2), size)
     iconBar:ClearAllPoints()
-    if inStrip then
+    if modern then
+        -- a gauche de la zone, sur sa ligne au-dessus de la carte
+        iconBar:SetPoint("LEFT", head, "LEFT", 0, 0)
+        zoneText:ClearAllPoints()
+        zoneText:SetPoint("RIGHT", head, "RIGHT", -1, 0)
+        if #list > 0 then
+            zoneText:SetPoint("LEFT", iconBar, "RIGHT", 4, 0)
+        else
+            zoneText:SetPoint("LEFT", head, "LEFT", 1, 0)
+        end
+    elseif inStrip then
         iconBar:SetPoint("BOTTOM", info, "BOTTOM", 0, 2)
     else
         iconBar:SetPoint("TOPRIGHT", Minimap, "TOPRIGHT", -3, -3)
@@ -397,6 +412,8 @@ local bar, toggleBtn
 local slots = {}
 local collected = {}     -- bouton -> etat d origine
 local drawerOpen = false
+local hoverAlpha = 1     -- mode "au survol" : opacite actuelle de la boite
+local hoverLeft = 0      -- temps restant avant de la cacher
 
 local function isBlizzardName(name)
     if not issecurevariable then return true end   -- par prudence : seulement LibDBIcon
@@ -560,6 +577,10 @@ layoutBar = function()
     toggleBtn:SetShown(on and drawer)
     toggleBtn.text:SetText(drawerOpen and "-" or "+")
     bar:SetShown(on and (not drawer or drawerOpen))
+    if db.collectMode ~= "hover" then
+        hoverAlpha = 1
+        bar:SetAlpha(1)
+    end
 end
 
 -- un bouton a ete remis ailleurs par son addon (LibDBIcon le replace sur
@@ -616,6 +637,45 @@ local function buildCollector()
     end)
     toggleBtn:SetScript("OnLeave", ns.HideTooltip)
     toggleBtn:Hide()
+
+    -- mode "au survol" : la boite apparait quand la souris est sur la carte,
+    -- sous elle (coordonnees) ou sur la boite, et part un instant apres
+    local watch = CreateFrame("Frame", nil, bar)
+    local since = 0
+    local function over(f) return f and f:IsVisible() and f:IsMouseOver() end
+    watch:SetScript("OnUpdate", function(_, dt)
+        since = since + dt
+        if since < 0.05 then return end
+        dt, since = since, 0
+        if db.collectMode ~= "hover" then
+            if hoverAlpha ~= 1 then
+                hoverAlpha = 1
+                bar:SetAlpha(1)
+            end
+            return
+        end
+        if over(Minimap) or over(info) or bar:IsMouseOver(4, -4, -4, 4) then
+            hoverLeft = 0.6
+        else
+            hoverLeft = math.max(0, hoverLeft - dt)
+        end
+        local want = hoverLeft > 0 and 1 or 0
+        if hoverAlpha ~= want then
+            if want > hoverAlpha then
+                hoverAlpha = math.min(1, hoverAlpha + dt * 6)
+            else
+                hoverAlpha = math.max(0, hoverAlpha - dt * 4)
+            end
+            bar:SetAlpha(hoverAlpha)
+        end
+    end)
+    hoverAlpha = db.collectMode == "hover" and 0 or 1
+    bar:SetAlpha(hoverAlpha)
+    -- style Moderne : boutons poses sur le jeu, sans boite
+    if ns.MODERN then
+        if bar.cuiBg then bar.cuiBg:Hide() end
+        if bar.cuiBorder then bar.cuiBorder:Hide() end
+    end
 end
 
 ---------------------------------------------------------------------------
@@ -660,8 +720,25 @@ local function build()
     if ns.MODERN then
         if info.cuiBg then info.cuiBg:Hide() end
         if info.cuiBorder then info.cuiBorder:Hide() end
+        -- comme la maquette : la zone au-dessus de la carte (icones a sa
+        -- gauche, placees par layoutIcons), coordonnees et heure dessous
+        head = CreateFrame("Frame", nil, info)
+        head:SetPoint("BOTTOMLEFT", Minimap, "TOPLEFT", 0, 3)
+        head:SetPoint("BOTTOMRIGHT", Minimap, "TOPRIGHT", 0, 3)
+        head:SetHeight(16)
+        info:SetHeight(16)
+        zoneText:SetParent(head)
+        zoneText:ClearAllPoints()
+        zoneText:SetPoint("LEFT", head, "LEFT", 1, 0)
+        zoneText:SetPoint("RIGHT", head, "RIGHT", -1, 0)
         zoneText:SetFontObject("GameFontNormal")
-        zoneText:SetJustifyH("CENTER")
+        zoneText:SetJustifyH("RIGHT")
+        zoneText:SetShadowColor(0, 0, 0, 1)
+        zoneText:SetShadowOffset(1, -1)
+        coordText:ClearAllPoints()
+        coordText:SetPoint("LEFT", info, "LEFT", 1, 0)
+        clockText:ClearAllPoints()
+        clockText:SetPoint("RIGHT", info, "RIGHT", -1, 0)
         for _, fs in ipairs({ coordText, clockText }) do
             fs:SetTextColor(0.79, 0.8, 0.82)
             fs:SetShadowColor(0, 0, 0, 1)
@@ -755,13 +832,16 @@ end
 -- Blizzard (masque) : on l accroche au coin haut-droit du bloc. Le bloc lui
 -- reste a la main du mode Edition (la carte suit s il est deplace).
 local CORNER_GAP = 4
+local MODERN_TOP = 22    -- style Moderne : la zone est au-dessus de la carte
 local function placeInCorner(on)
     if InCombatLockdown() then return end
     if on then
-        local p, rel = Minimap:GetPoint(1)
-        if p == "TOPRIGHT" and rel == MinimapCluster then return end
+        local top = (head and db.info) and MODERN_TOP or CORNER_GAP
+        local p, rel, _, x, y = Minimap:GetPoint(1)
+        if p == "TOPRIGHT" and rel == MinimapCluster and type(x) == "number" and type(y) == "number"
+            and math.abs(x + CORNER_GAP) < 0.5 and math.abs(y + top) < 0.5 then return end
         Minimap:ClearAllPoints()
-        Minimap:SetPoint("TOPRIGHT", MinimapCluster, "TOPRIGHT", -CORNER_GAP, -CORNER_GAP)
+        Minimap:SetPoint("TOPRIGHT", MinimapCluster, "TOPRIGHT", -CORNER_GAP, -top)
     elseif MinimapCluster.MinimapContainer then
         local _, rel = Minimap:GetPoint(1)
         if rel ~= MinimapCluster then return end
@@ -858,7 +938,8 @@ local function buildWindow()
     form:Header(L.MAP_H_BUTTONS)
     check("collect", L.MAP_OPT_COLLECT)
     form:Columns(2)
-    form:Cycle(L.MAP_OPT_MODE, { "bar", "drawer" }, { bar = L.MAP_MODE_BAR, drawer = L.MAP_MODE_DRAWER },
+    form:Cycle(L.MAP_OPT_MODE, { "bar", "drawer", "hover" },
+        { bar = L.MAP_MODE_BAR, drawer = L.MAP_MODE_DRAWER, hover = L.MAP_MODE_HOVER },
         function() return db.collectMode end, function(v) db.collectMode = v end)
     form:Number(L.MAP_OPT_BTNSIZE, function() return db.btnSize or 22 end, function(v)
         db.btnSize = v

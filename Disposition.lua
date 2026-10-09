@@ -20,6 +20,10 @@
         droite au-dessus du bandeau d infos, micro-menu sous les barres.
     Une entree peut avoir need(root) : posee (et remise) seulement si vrai
     (fenetres du compteur : on ne cree pas celles qui n existent pas).
+    Sa valeur peut etre une fonction(root), calculee a la pose (positions
+    prises sur la minicarte) ; nil : entree sautee.
+    (phase 7) buffs alignes sur le haut de la carte, juste a sa gauche ;
+    suivi de quetes sous la carte ; boutons d addons au survol de la carte.
     Les reglages remplaces sont gardes (CorpUIDB.layoutBackup, par profil,
     rangee par nom de reglage : une entree ajoutee a la liste est gardee a
     la pose suivante) : "Ma disposition d avant" les remet. Les modules
@@ -31,6 +35,42 @@ local L = ns.L
 
 local Layout = {}
 ns.ModernLayout = Layout
+
+-- minicarte en style Moderne (Minicarte.lua : 22 sous le haut de son bloc
+-- pour la ligne de zone, 4 du bord droit) : x de son bord gauche depuis le
+-- bord droit de l ecran, puis haut et bas depuis le haut de l ecran, en
+-- unites d UIParent ; nil si la carte ou son bloc sont introuvables
+local function mapBox()
+    local ok, left, top, bottom = pcall(function()
+        local u = UIParent:GetEffectiveScale()
+        local s = Minimap:GetEffectiveScale() / u
+        local cs = MinimapCluster:GetEffectiveScale() / u
+        local w, h = Minimap:GetWidth() * s, Minimap:GetHeight() * s
+        local top = (UIParent:GetHeight() - MinimapCluster:GetTop() * cs) + 22 * s
+        local right = (UIParent:GetWidth() - MinimapCluster:GetRight() * cs) + 4 * s
+        return -(right + w), top, top + h
+    end)
+    if ok and type(left) == "number" and type(top) == "number" and type(bottom) == "number" then
+        return left, top, bottom
+    end
+end
+Layout.MapBox = mapBox
+
+-- buffs : coin haut-droit a 10 a gauche de la carte, a hauteur de son haut
+local function buffsBesideMap()
+    local left, top = mapBox()
+    if not left then return nil end
+    return { point = "TOPRIGHT", x = math.floor(left - 10 + 0.5), y = -math.floor(top + 0.5) }
+end
+
+-- suivi de quetes : sous la carte, sa ligne de coordonnees et la boite des
+-- boutons d addons (16 + 3 + 31) ; bord droit a 90 du bord de l ecran,
+-- a gauche des barres d action de droite
+local function questsUnderMap()
+    local _, _, bottom = mapBox()
+    if not bottom then return nil end
+    return { point = "TOPRIGHT", x = -90, y = -math.floor(bottom + 16 + 3 + 31 + 12 + 0.5) }
+end
 
 -- fenetre n du compteur (seulement si elle existe) : 214 x 170, pied a 33
 -- (bandeau d infos de 23 en dessous, 6 d ecart), bord droit a x
@@ -122,6 +162,14 @@ local CHANGES = {
     -- micro-menu : sous les barres d action, a la place de l ancien bandeau
     { "menus", { "microPos" }, { point = "BOTTOM", x = 0, y = 6 }, replace = true },
     { "menus", { "microStyle" }, { size = 22, spacing = 2 } },
+    -- phase 7 : coin haut-droit facon maquette autour de la minicarte
+    { "auras", { "buffPos" }, buffsBesideMap, replace = true },
+    { "quests", { "pos" }, questsUnderMap, replace = true },
+    { "map", { "collectMode" }, "hover", replace = true },
+    -- barre de CD perso (au centre par defaut, sur la ligne des procs) : plus
+    -- petite, juste sous les procs, au-dessus des cadres de groupe
+    { "cd", { "perso", "pos" }, { point = "CENTER", x = 0, y = -212 }, replace = true },
+    { "cd", { "perso", "size" }, 26, replace = true },
 }
 Layout.CHANGES = CHANGES
 
@@ -175,14 +223,16 @@ function Layout.Apply()
     end
     local backup = migrate(root.layoutBackup) or {}
     for _, c in ipairs(CHANGES) do
-        if not c.need or c.need(root) then
+        local value = c[3]
+        if type(value) == "function" then value = value(root) end
+        if value ~= nil and (not c.need or c.need(root)) then
             local t, key = parentOf(root, c)
             local id = idOf(c)
             if backup[id] == nil then backup[id] = { v = deep(t[key]) } end
             if c.replace or type(t[key]) ~= "table" then
-                t[key] = deep(c[3])
+                t[key] = deep(value)
             else
-                for k, v in pairs(c[3]) do t[key][k] = deep(v) end
+                for k, v in pairs(value) do t[key][k] = deep(v) end
             end
         end
     end

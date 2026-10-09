@@ -324,3 +324,17 @@ ns.AddStrings({
     },
 })
 
+
+-- Boite des boutons d addons au survol (09/10)
+ns.AddStrings({
+    enUS = { MAP_MODE_HOVER = "Shown on mouseover of the map" },
+    frFR = { MAP_MODE_HOVER = "Au survol de la carte" },
+    deDE = { MAP_MODE_HOVER = "Beim Überfahren der Karte" },
+    esES = { MAP_MODE_HOVER = "Al pasar el ratón por el mapa" },
+    ptBR = { MAP_MODE_HOVER = "Ao passar o mouse no mapa" },
+    itIT = { MAP_MODE_HOVER = "Al passaggio del mouse sulla mappa" },
+    ruRU = { MAP_MODE_HOVER = "При наведении на карту" },
+    zhCN = { MAP_MODE_HOVER = "鼠标悬停在地图上时显示" },
+    zhTW = { MAP_MODE_HOVER = "滑鼠停在地圖上時顯示" },
+    koKR = { MAP_MODE_HOVER = "지도에 마우스를 올리면 표시" },
+})
