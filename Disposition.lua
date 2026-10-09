@@ -62,6 +62,9 @@ local CHANGES = {
     { "bars", { "pos", "right2" }, { point = "RIGHT", x = -50, y = 0 }, replace = true },
     -- phase 3 : buffs du joueur plus serres, a gauche de la minicarte
     { "auras", { "layout", "buffs" }, { size = 26, spacing = 3 } },
+    -- phase 4 : chat et bandeau d infos plus transparents
+    { "chat", { "alpha" }, 0.35, replace = true },
+    { "info", { "alpha" }, 70, replace = true },
 }
 Layout.CHANGES = CHANGES
 

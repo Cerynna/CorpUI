@@ -685,12 +685,18 @@ createWindow = function(conf)
     head:SetHeight(HEADER_H)
     local hbg = head:CreateTexture(nil, "BACKGROUND")
     hbg:SetAllPoints()
-    ns.UI.Gradient(hbg, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.35, C.violet[1], C.violet[2], C.violet[3], 0.05)
     local line = head:CreateTexture(nil, "ARTWORK")
     line:SetPoint("BOTTOMLEFT")
     line:SetPoint("BOTTOMRIGHT")
     line:SetHeight(1)
-    ns.UI.Gradient(line, "HORIZONTAL", C.gold[1], C.gold[2], C.gold[3], 0.7, C.gold[1], C.gold[2], C.gold[3], 0)
+    if ns.MODERN then
+        -- style Moderne : bandeau sombre et uni, sans filet d or
+        hbg:SetColorTexture(0, 0, 0, 0.4)
+        line:Hide()
+    else
+        ns.UI.Gradient(hbg, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.35, C.violet[1], C.violet[2], C.violet[3], 0.05)
+        ns.UI.Gradient(line, "HORIZONTAL", C.gold[1], C.gold[2], C.gold[3], 0.7, C.gold[1], C.gold[2], C.gold[3], 0)
+    end
     -- deplacement : tout le bandeau (textes compris) et le vide sous les barres
     local function dragStart() if not db.locked then f:StartMoving() end end
     local function dragStop()

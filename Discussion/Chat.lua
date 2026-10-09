@@ -274,8 +274,13 @@ local function buildPanel(cf)
     strip:SetPoint("TOPLEFT", 1, -1)
     strip:SetPoint("TOPRIGHT", -1, -1)
     strip:SetHeight(STRIP)
-    ns.UI.Gradient(strip, "VERTICAL", C.violet[1], C.violet[2], C.violet[3], 0.04,
-                                      C.violet[1], C.violet[2], C.violet[3], 0.30)
+    if ns.MODERN then
+        -- style Moderne : bandeau sombre et uni, sans filet d or
+        strip:SetColorTexture(0, 0, 0, 0.35)
+    else
+        ns.UI.Gradient(strip, "VERTICAL", C.violet[1], C.violet[2], C.violet[3], 0.04,
+                                          C.violet[1], C.violet[2], C.violet[3], 0.30)
+    end
     -- filet d or net (1 px) sous les onglets : plein au centre, efface aux bords
     local function goldLine(y)
         local l = p:CreateTexture(nil, "ARTWORK")
@@ -289,12 +294,14 @@ local function buildPanel(cf)
         r:SetHeight(1)
         ns.UI.Gradient(r, "HORIZONTAL", C.gold[1], C.gold[2], C.gold[3], 0.9, C.gold[1], C.gold[2], C.gold[3], 0)
     end
-    goldLine(-STRIP)
-    local gem = p:CreateTexture(nil, "OVERLAY")
-    gem:SetSize(5, 5)
-    gem:SetPoint("CENTER", p, "TOP", 0, -STRIP)
-    gem:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
-    pcall(gem.SetRotation, gem, math.rad(45))
+    if not ns.MODERN then
+        goldLine(-STRIP)
+        local gem = p:CreateTexture(nil, "OVERLAY")
+        gem:SetSize(5, 5)
+        gem:SetPoint("CENTER", p, "TOP", 0, -STRIP)
+        gem:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
+        pcall(gem.SetRotation, gem, math.rad(45))
+    end
 
     -- zone de saisie, integree au bas du panneau
     local edit = CreateFrame("Frame", nil, p)
@@ -390,7 +397,9 @@ local function styleTab(tab)
     t.under:SetPoint("TOPLEFT", t.label, "BOTTOMLEFT", -2, -3)
     t.under:SetPoint("TOPRIGHT", t.label, "BOTTOMRIGHT", 2, -3)
     t.under:SetHeight(2)
-    t.under:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
+    -- onglet actif souligne : or (classique), couleur d accent (moderne)
+    local uc = ns.MODERN and C.violet or C.gold
+    t.under:SetColorTexture(uc[1], uc[2], uc[3], 1)
     t.glow = labelHost:CreateTexture(nil, "ARTWORK")
     t.glow:SetPoint("BOTTOMLEFT", t.label, "BOTTOMLEFT", -6, -4)
     t.glow:SetPoint("BOTTOMRIGHT", t.label, "BOTTOMRIGHT", 6, -4)
@@ -743,7 +752,8 @@ local function refresh()
                 local fs = tabText(s.tab)
                 local text = fs and fs:GetText() or ""
                 if look.label:GetText() ~= text then look.label:SetText(text) end
-                if on then look.label:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
+                if on and ns.MODERN then look.label:SetTextColor(1, 1, 1)
+                elseif on then look.label:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
                 elseif s.tab:IsMouseOver() then look.label:SetTextColor(1, 1, 1)
                 else look.label:SetTextColor(C.text[1] * 0.85, C.text[2] * 0.85, C.text[3] * 0.85) end
                 look.under:SetShown(on)
