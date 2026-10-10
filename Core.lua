@@ -1560,12 +1560,16 @@ function ns.NativeAuras(parent, unit, spec)
             typed:Hide()
         end
         table.insert(na.buttons, e)
-        na:Style(e)
+        na:SafeStyle(e)
     end
 
-    -- un bouton selon le reglage courant
+    -- un bouton selon le reglage courant. Bouton interdit aux addons
+    -- (10/10 : plaques de nom, "Attempt to access forbidden object") :
+    -- laisse au client ; IsForbidden se lit meme sur un objet interdit.
     function na:Style(e)
         local s = self.spec
+        local okF, forbidden = pcall(e.btn.IsForbidden, e.btn)
+        if not okF or forbidden then return end
         e.btn:SetSize(s.width, s.height)
         local h = s.height
         if s.height < s.width then
@@ -1586,6 +1590,15 @@ function ns.NativeAuras(parent, unit, spec)
         else
             if e.timeOn then pcall(e.btn.ClearDurationText, e.btn) e.timeOn = false end
             e.time:Hide()
+        end
+    end
+
+    -- un bouton refuse n arrete pas les autres ; l erreur est signalee une fois
+    function na:SafeStyle(e)
+        local ok, err = pcall(self.Style, self, e)
+        if not ok and not self.styleErr then
+            self.styleErr = true
+            geterrorhandler()(err)
         end
     end
 
@@ -1638,7 +1651,7 @@ function ns.NativeAuras(parent, unit, spec)
         -- les groupes ont pu changer de reglage (desaturation)
         for _, e in ipairs(self.buttons) do
             for _, g in ipairs(s.groups) do if g.key == e.g.key then e.g = g end end
-            self:Style(e)
+            self:SafeStyle(e)
         end
         self:Refresh()
     end
