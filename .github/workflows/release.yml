@@ -50,7 +50,12 @@ jobs:
 
           EOF
           sed -i "s/@VER@/$VER/g; s/^          //" notes.md
-          if [ -n "$PREV" ]; then
+          # notes redigees (accents, phrases) : .github/notes/vX.Y.Z.md si present,
+          # sinon la liste des commits depuis la version precedente
+          if [ -f ".github/notes/$GITHUB_REF_NAME.md" ]; then
+            sed -i '/^## Changements$/,$d' notes.md
+            cat ".github/notes/$GITHUB_REF_NAME.md" >> notes.md
+          elif [ -n "$PREV" ]; then
             git log --no-merges --pretty='- %s' "$PREV..$GITHUB_REF_NAME" | grep -v -E '^- Version [0-9]' >> notes.md || true
           else
             echo "- Première version publiée." >> notes.md

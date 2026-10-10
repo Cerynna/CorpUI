@@ -133,7 +133,7 @@ WoWForever protège beaucoup de données en combat (valeurs « secrètes ») et 
 
 ## Publier une version
 
-Depuis le dossier `CorpUI`, dans Git Bash : `.github/scripts/release.sh 1.2.0`. Le script met la version dans le `.toc`, commite, pose le tag `v1.2.0` et pousse. GitHub construit alors `CorpUI-1.2.0.zip` (un dossier `CorpUI` sans les fichiers de développement) et publie la release, avec la liste des changements depuis la version précédente.
+Depuis le dossier `CorpUI`, dans Git Bash : `.github/scripts/release.sh 1.2.0`. Le script met la version dans le `.toc`, commite, pose le tag `v1.2.0` et pousse. GitHub construit alors `CorpUI-1.2.0.zip` (un dossier `CorpUI` sans les fichiers de développement) et publie la release. Ses notes : le fichier `.github/notes/v1.2.0.md` s'il existe (rédigé, avec accents), sinon la liste des changements depuis la version précédente.
 
 ## Crédits
 
