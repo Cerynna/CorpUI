@@ -107,9 +107,13 @@ local function makeBar(kind)
     b.sb:SetStatusBarTexture(ns.BAR_TEXTURE)
     b.sb:SetMinMaxValues(0, 1)
     b.sb:SetValue(0)
-    b.label = b.sb:CreateFontString(nil, "OVERLAY")
+    -- police des la creation (10/10) : une barre jamais disposee (main
+    -- gauche, distance) etait remise a zero sans police -> "Font not set"
+    b.label = b.sb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    b.label:SetShadowOffset(0, 0)
     b.label:SetPoint("LEFT", 3, 0)
-    b.time = b.sb:CreateFontString(nil, "OVERLAY")
+    b.time = b.sb:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    b.time:SetShadowOffset(0, 0)
     b.time:SetPoint("RIGHT", -3, 0)
     b:Hide()
     bars[kind.key] = b

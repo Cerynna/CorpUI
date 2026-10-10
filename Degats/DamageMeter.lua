@@ -96,14 +96,21 @@ local function skinButton(b, anchor, wide)
     return s
 end
 
+-- position lisible (en combat, le jeu rend secretes celles de ses cadres :
+-- aucun calcul dessus, on attend le releve suivant)
+local issecret = issecretvalue or function() return false end
+local function readable(v) return not issecret(v) and type(v) == "number" end
+
 -- tous les carres sur la ligne du milieu de l en-tete
 local function align(w, b)
     local s = buttons[b]
     local top = w:GetTop()
     local _, cy = s.anchor:GetCenter()
-    if not top or not cy then return end
+    if not readable(top) or not readable(cy) then return end
     local dy = math.floor((top - HEADER / 2) - cy + 0.5)
-    local width = s.wide and math.max(BOX, math.floor(b:GetWidth() + 0.5)) or BOX
+    local bw = s.wide and b:GetWidth()
+    if s.wide and not readable(bw) then return end
+    local width = s.wide and math.max(BOX, math.floor(bw + 0.5)) or BOX
     if s.dy == dy and s.width == width then return end
     s.dy, s.width = dy, width
     s.bg:ClearAllPoints()

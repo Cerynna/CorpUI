@@ -448,9 +448,16 @@ end
 
 local function applyBlizzard()
     if db.hideBlizzard or db.blizzardHidden then
-        ns.HideBlizzard({ "PlayerCastingBarFrame", "CastingBarFrame", "TargetFrameSpellBar" }, db.hideBlizzard)
+        -- Pas TargetFrameSpellBar (10/10) : rangee dans notre parent cache, le
+        -- code de TargetFrame (changement de cible, cible de la cible) la
+        -- replace d apres son parent et y appelle une methode de TargetFrame
+        -- -> erreur a chaque cible. Elle disparait avec TargetFrame, que le
+        -- module Cadres cache.
+        ns.HideBlizzard({ "PlayerCastingBarFrame", "CastingBarFrame" }, db.hideBlizzard)
         db.blizzardHidden = db.hideBlizzard
     end
+    -- rendue a son parent si elle avait ete rangee
+    ns.HideBlizzard({ "TargetFrameSpellBar" }, false)
 end
 
 ---------------------------------------------------------------------------

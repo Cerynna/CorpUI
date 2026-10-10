@@ -144,7 +144,7 @@ local function build()
     bar:SetMinMaxValues(0, 1)
     bar:SetValue(0)
     ns.UI.Skin(bar, 0.8)
-    text = bar:CreateFontString(nil, "OVERLAY")
+    text = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     text:SetPoint("CENTER", 0, 0)
     ns.UI.Mover(holder, db.pos, L.CENTER_MOVER)
 end
