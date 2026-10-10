@@ -1341,17 +1341,22 @@ end
 ---------------------------------------------------------------------------
 
 local combatName
+-- Onglets par defaut : ceux d Ilona, choisis par l auteur le 10/10 (releves
+-- dans son chat-cache.txt) ; ordre du dock General, GGR, Whisper, puis
+-- Loot&Trade (le journal de combat, onglet fixe, garde sa place)
 local SETUP = {
     { id = 1, dock = 1, name = function() return GENERAL end, keepChannels = true, groups = {
-        "SAY", "EMOTE", "YELL", "SYSTEM", "ERRORS", "CHANNEL", "MONSTER_SAY", "MONSTER_EMOTE", "MONSTER_YELL",
-        "MONSTER_WHISPER", "MONSTER_BOSS_EMOTE", "MONSTER_BOSS_WHISPER", "ACHIEVEMENT", "BG_HORDE", "BG_ALLIANCE",
-        "BG_NEUTRAL", "COMBAT_XP_GAIN", "COMBAT_HONOR_GAIN", "COMBAT_FACTION_CHANGE", "SKILL", "PET_INFO",
-        "TARGETICONS", "BN_INLINE_TOAST_ALERT", "PING" } },
+        "SYSTEM", "SAY", "EMOTE", "YELL", "MONSTER_SAY", "MONSTER_YELL", "MONSTER_EMOTE", "MONSTER_WHISPER",
+        "MONSTER_BOSS_EMOTE", "MONSTER_BOSS_WHISPER", "ERRORS", "BG_HORDE", "BG_ALLIANCE", "BG_NEUTRAL", "CHANNEL",
+        "ACHIEVEMENT", "TARGETICONS", "BN_INLINE_TOAST_ALERT", "PING" } },
     { id = 4, dock = 2, name = "GGR", groups = {
-        "GUILD", "OFFICER", "GUILD_ACHIEVEMENT", "PARTY", "PARTY_LEADER", "RAID", "RAID_LEADER", "RAID_WARNING",
-        "INSTANCE_CHAT", "INSTANCE_CHAT_LEADER" } },
-    { id = 5, dock = 3, name = "Loot&Trade", groups = { "LOOT", "MONEY", "CURRENCY", "TRADESKILLS", "OPENING" } },
-    { id = 6, dock = 4, name = "Whisper", groups = { "WHISPER", "BN_WHISPER", "AFK", "DND", "IGNORED" } },
+        "SYSTEM", "SAY", "EMOTE", "YELL", "PARTY", "PARTY_LEADER", "RAID", "RAID_LEADER", "RAID_WARNING", "GUILD",
+        "OFFICER", "MONSTER_SAY", "MONSTER_YELL", "MONSTER_EMOTE", "MONSTER_BOSS_EMOTE", "MONSTER_BOSS_WHISPER",
+        "ACHIEVEMENT", "GUILD_ACHIEVEMENT", "INSTANCE_CHAT", "INSTANCE_CHAT_LEADER", "PING", "GUILD_DISCORD" } },
+    { id = 6, dock = 3, name = "Whisper", groups = { "EMOTE", "WHISPER", "AFK", "DND", "IGNORED", "BN_WHISPER" } },
+    { id = 5, dock = 5, name = "Loot&Trade", groups = {
+        "COMBAT_FACTION_CHANGE", "SKILL", "LOOT", "MONEY", "CURRENCY", "OPENING", "TRADESKILLS", "PET_INFO",
+        "COMBAT_XP_GAIN", "COMBAT_HONOR_GAIN", "COMBAT_MISC_INFO" } },
 }
 -- fenetres propres a Blizzard (IsBuiltinChatWindow) : journal de combat,
 -- transcription vocale
