@@ -50,7 +50,19 @@ end
 ---------------------------------------------------------------------------
 
 local refreshCells       -- defini plus bas (fenetre)
-local loading = {}       -- sorts dont les donnees sont en cours de chargement
+-- donnees des sorts : true = en chargement, false = chargees (plus jamais
+-- redemandees : un sort sans rang n a pas de sous-texte, et le client
+-- rappelle tout de suite un sort deja charge -> redessin sans fin)
+local loading = {}
+local refreshQueued = false
+local function queueRefresh()
+    if refreshQueued then return end
+    refreshQueued = true
+    C_Timer.After(0, function()
+        refreshQueued = false
+        if refreshCells then refreshCells() end
+    end)
+end
 
 -- rang lisible ("Rang 3") : C_Spell d abord (ce client), puis l ancienne API
 local function readSubtext(id)
@@ -72,13 +84,13 @@ local function spellInfo(id, stored)
         if ok then name = n end
     end
     sub = readSubtext(id)
-    if not sub and id and not loading[id] and Spell and Spell.CreateFromSpellID then
+    if not sub and id and loading[id] == nil and Spell and Spell.CreateFromSpellID then
         -- donnees pas encore chargees : on redessine quand elles arrivent
         loading[id] = true
         pcall(function()
             Spell:CreateFromSpellID(id):ContinueOnSpellLoad(function()
-                loading[id] = nil
-                if refreshCells then refreshCells() end
+                loading[id] = false
+                queueRefresh()      -- jamais dans l appel lui-meme
             end)
         end)
     end
