@@ -20,7 +20,12 @@ local L = ns.L
 
 local BAR_FONT = "Fonts\\FRIZQT__.TTF"
 local BOLD_FONT = ns.MEDIA .. "xpbold.ttf"
-local BLIZZ_XP = { "StatusTrackingBarManager", "MainStatusTrackingBarContainer", "SecondaryStatusTrackingBarContainer" }
+-- Seulement le gestionnaire (10/10) : ses deux conteneurs sont ses enfants et
+-- leur code appelle leur parent (GetStatusTrackingManager = GetParent,
+-- StatusTrackingManager.lua, branche forever). Ranges dans notre parent
+-- cache, ils plantaient a la sortie du mode Edition (CheckForLayoutChange).
+local BLIZZ_XP = { "StatusTrackingBarManager" }
+local BLIZZ_XP_OLD = { "MainStatusTrackingBarContainer", "SecondaryStatusTrackingBarContainer" }
 
 local PRESET_ORDER = { "theme", "aurora", "fire", "ocean", "emerald", "royal", "crimson", "gold", "ice" }
 local PRESETS = {
@@ -422,6 +427,7 @@ local function relayout()
     applyFonts()
     paint()
     ns.HideBlizzard(BLIZZ_XP, db.enabled and db.hideBlizzard)
+    ns.HideBlizzard(BLIZZ_XP_OLD, false)     -- rendus a leur parent s ils avaient ete ranges
     update()
 end
 
