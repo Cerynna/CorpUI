@@ -142,3 +142,18 @@ ns.AddStrings({
              QUESTS_ABANDON_ASK = "\"%s\" 퀘스트를 포기하시겠습니까?", QUESTS_ABANDON_ITEMS = "파괴되는 아이템: %s",
              QUESTS_YES = "예", QUESTS_NO = "아니요" },
 })
+
+-- Infobulle du suivi : membres du groupe sur la quete (10/10) ; texte du
+-- jeu PARTY_QUEST_STATUS_ON s il existe
+ns.AddStrings({
+    enUS = { QUESTS_PARTY = "Party members on this quest:" },
+    frFR = { QUESTS_PARTY = "Membres du groupe sur cette quête :" },
+    deDE = { QUESTS_PARTY = "Gruppenmitglieder mit dieser Quest:" },
+    esES = { QUESTS_PARTY = "Miembros del grupo con esta misión:" },
+    ptBR = { QUESTS_PARTY = "Membros do grupo nesta missão:" },
+    itIT = { QUESTS_PARTY = "Membri del gruppo con questa missione:" },
+    ruRU = { QUESTS_PARTY = "Участники группы на этом задании:" },
+    zhCN = { QUESTS_PARTY = "进行此任务的队友：" },
+    zhTW = { QUESTS_PARTY = "進行此任務的隊友：" },
+    koKR = { QUESTS_PARTY = "이 퀘스트를 진행 중인 파티원:" },
+})

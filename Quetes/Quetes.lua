@@ -681,6 +681,52 @@ end
 -- Survol : surbrillance du bloc, infobulle, bouton securise
 ---------------------------------------------------------------------------
 
+-- couleur d une ligne de donnees d infobulle (ColorMixin ou { r, g, b })
+local function lineRGB(c)
+    if type(c) ~= "table" then return 1, 1, 1 end
+    if c.GetRGB then
+        local ok, r, g, b = pcall(c.GetRGB, c)
+        if ok and type(r) == "number" then return r, g, b end
+    end
+    if type(c.r) == "number" then return c.r, c.g, c.b end
+    return 1, 1, 1
+end
+
+local function plainText(v)
+    return not issecret(v) and type(v) == "string" and v ~= ""
+end
+
+-- membres du groupe sur la quete et ou ils en sont, comme l infobulle du
+-- suivi de Blizzard : on lit ses donnees (C_TooltipInfo) et on les ajoute a
+-- la notre (SetQuestPartyProgress effacerait l infobulle)
+local function addPartyProgress(t, questID)
+    if not IsInGroup() or not C_TooltipInfo or not C_TooltipInfo.GetQuestPartyProgress then return false end
+    local on = false
+    local okN, count = pcall(GetNumSubgroupMembers)
+    for i = 1, (okN and not issecret(count) and count or 0) do
+        local ok, v = pcall(C_QuestLog.IsUnitOnQuest, "party" .. i, questID)
+        if ok and not issecret(v) and v then on = true break end
+    end
+    if not on then return false end
+    local ok, data = pcall(C_TooltipInfo.GetQuestPartyProgress, questID, true, true)
+    if not ok or issecret(data) or type(data) ~= "table" or type(data.lines) ~= "table" then return false end
+    t:AddLine(" ")
+    t:AddLine(gstr("PARTY_QUEST_STATUS_ON", L.QUESTS_PARTY), 1, 1, 1)
+    for _, line in ipairs(data.lines) do
+        local text = line.leftText
+        if plainText(text) then
+            local r, g, b = lineRGB(line.leftColor)
+            if plainText(line.rightText) then
+                local rr, rg, rb = lineRGB(line.rightColor)
+                pcall(t.AddDoubleLine, t, text, line.rightText, r, g, b, rr, rg, rb)
+            else
+                pcall(t.AddLine, t, text, r, g, b, true)
+            end
+        end
+    end
+    return true
+end
+
 local function showTip(blk)
     local C = ns.COLORS
     -- infobulle du cote ou il y a de la place
@@ -688,6 +734,8 @@ local function showTip(blk)
     local right = x and (x * frame:GetEffectiveScale() > UIParent:GetWidth() * UIParent:GetEffectiveScale() / 2)
     local t = ns.Tooltip(blk.first, right and "ANCHOR_LEFT" or "ANCHOR_RIGHT")
     t:AddLine(blk.title, C.gold[1], C.gold[2], C.gold[3])
+    -- groupe : un blanc entre sa progression et les aides
+    if addPartyProgress(t, blk.id) then t:AddLine(" ") end
     tipCombat = combat() and true or false
     if tipCombat then
         t:AddLine(L.QUESTS_TIP_COMBAT, 1, 0.45, 0.45)
@@ -832,8 +880,8 @@ local function update()
             n = n + 1
             local first = n
             if ns.MODERN then
-                -- titre vert-jaune, niveau a droite dans la couleur de difficulte
-                y = setLine(n, y, q.title, "GameFontNormal", 0.65, 0.84, 0.35, 4, id, tostring(q.level), r, g, b)
+                -- titre et niveau a droite dans la couleur de difficulte
+                y = setLine(n, y, q.title, "GameFontNormal", r, g, b, 4, id, tostring(q.level), r, g, b)
             else
                 y = setLine(n, y, q.title, "GameFontNormal", r, g, b, 4, id)
             end
