@@ -1593,10 +1593,16 @@ function ns.NativeAuras(parent, unit, spec)
         end
     end
 
-    -- un bouton refuse n arrete pas les autres ; l erreur est signalee une fois
+    -- un bouton refuse n arrete pas les autres. Refus "forbidden object" :
+    -- bouton verrouille par le client alors que IsForbidden repond non (vu
+    -- en jeu le 10/10 sur des plaques de nom) ; le client l affiche quand
+    -- meme : ignore sans bruit, retente au passage suivant (le bouton peut
+    -- resservir pour une unite permise). Toute autre erreur : signalee une fois.
     function na:SafeStyle(e)
         local ok, err = pcall(self.Style, self, e)
-        if not ok and not self.styleErr then
+        if ok then return end
+        if type(err) == "string" and err:find("forbidden", 1, true) then return end
+        if not self.styleErr then
             self.styleErr = true
             geterrorhandler()(err)
         end
