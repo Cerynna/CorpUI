@@ -206,6 +206,12 @@ local function apply()
 end
 ns.TotemsApply = apply
 
+-- place prise sous le cadre joueur (minuteur de coups blancs : en dessous)
+function ns.TotemBarBlock()
+    if not bar or not db or not db.attach or not bar:IsShown() then return 0 end
+    return (bar:GetHeight() or 0) + GAP
+end
+
 -- poignees affichees : la barre se montre (cases vides comprises)
 local lastMovers = false
 ns.Listen(function()

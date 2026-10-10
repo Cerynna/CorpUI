@@ -41,6 +41,8 @@ local KEYS = {
     dispel = { assign = true }, cd = { chars = true, diag = true },
     -- ajoutees le 09/10 (style Moderne) : centre de l ecran
     center = {},
+    -- ajoutee le 10/10 : fenetre de menace
+    threat = {},
 }
 
 local function copy(v)

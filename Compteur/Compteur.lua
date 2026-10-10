@@ -14,7 +14,9 @@
       - le journal de combat brut est interdit aux addons.
 
     Modes : degats, DPS, soins, HPS, absorptions, interruptions,
-    dissipations, degats subis, degats evitables, morts, degats des ennemis.
+    dissipations, degats subis, degats evitables, morts, degats des ennemis,
+    et menace (pas une donnee du compteur du jeu : lue par Menace\Menace.lua,
+    groupe sur la liste de menace de la cible, 5 fois par seconde).
     Segments : combat en cours, global, et les combats precedents gardes
     par le jeu (C_DamageMeter.GetAvailableCombatSessions).
 ----------------------------------------------------------------------------]]
@@ -43,11 +45,15 @@ local MODES = {
     { key = "AvoidableDamageTaken", label = "DAMAGE_METER_TYPE_AVOIDABLE_DAMAGE_TAKEN" },
     { key = "Deaths", label = "DAMAGE_METER_TYPE_DEATHS", nops = true, deaths = true },
     { key = "EnemyDamageTaken", label = "DAMAGE_METER_TYPE_ENEMY_DAMAGE_TAKEN", noIcon = true },
+    -- menace du groupe sur la cible (Menace\Menace.lua : ns.Threat), pas une
+    -- donnee du compteur du jeu : ni segment, ni detail
+    { key = "Threat", threat = true, nops = true },
 }
 local MODE_BY_KEY = {}
 for _, m in ipairs(MODES) do MODE_BY_KEY[m.key] = m end
 
 local function modeName(m)
+    if m.threat then return L.MOD_THREAT end
     local g = _G[m.label]
     if type(g) == "string" and g ~= "" then return g end
     return L["CM_MODE_" .. m.key] or m.key
@@ -299,6 +305,48 @@ local function fillRow(r, w, mode, src, index, session)
     r:Show()
 end
 
+-- mode Menace : une ligne par membre sur la liste de menace de la cible ;
+-- barre = % de la menace qu il faut pour prendre l aggro (secret accepte)
+local function fillThreatRow(r, e, index)
+    r.src, r.index, r.threat = nil, index, e
+    local c = e.class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[e.class]
+    local cr, cg, cb
+    if c and db.classColors then cr, cg, cb = c.r, c.g, c.b else cr, cg, cb = C.violet[1], C.violet[2], C.violet[3] end
+    r.bar:SetStatusBarColor(cr, cg, cb, 1)
+    local fill = r.bar:GetStatusBarTexture()
+    if fill then ns.UI.Gradient(fill, "HORIZONTAL", cr * 0.55, cg * 0.55, cb * 0.55, 1, cr, cg, cb, 1) end
+    -- icone : bouclier du tank, sinon la classe
+    local tank = readable(e.tanking) and e.tanking or false
+    if tank then
+        r.icon:SetTexture(ns.Threat.TANK_ICON)
+        r.icon:SetTexCoord(0, 1, 0, 1)
+    elseif e.class and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[e.class] then
+        r.icon:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
+        r.icon:SetTexCoord(unpack(CLASS_ICON_TCOORDS[e.class]))
+    else
+        r.icon:SetTexture(nil)
+    end
+    r.bar:SetMinMaxValues(0, 100)
+    local v = e.scaled
+    if not issecret(v) and v == nil then v = 0 end
+    if not pcall(r.bar.SetValue, r.bar, v) then r.bar:SetValue(0) end
+    local okN
+    if db.rank then
+        okN = pcall(r.text.SetFormattedText, r.text, "%d. %s", index, e.name)
+    else
+        okN = pcall(r.text.SetFormattedText, r.text, "%s", e.name)
+    end
+    if not okN then r.text:SetText("?") end
+    local ok
+    if ns.Threat.ShowRaw() and readable(e.value) and readable(e.scaled) then
+        ok = pcall(r.value.SetFormattedText, r.value, "%s (%d%%)", abbr(e.value), e.scaled)
+    else
+        ok = pcall(r.value.SetFormattedText, r.value, "%d%%", v)
+    end
+    if not ok then r.value:SetText("") end
+    r:Show()
+end
+
 ---------------------------------------------------------------------------
 -- Fenetre de detail : sorts d un joueur (et cibles au survol)
 ---------------------------------------------------------------------------
@@ -478,7 +526,20 @@ local rowTooltip
 -- infobulle d une barre : nom, valeurs, et les 3 premiers sorts quand le
 -- jeu les donne (hors combat ; en combat, seulement les notres)
 rowTooltip = function(w, r)
-    if not db.tooltip or not r.src then return end
+    if not db.tooltip then return end
+    -- mode Menace : nom, %, valeur, tank
+    if r.threat and MODE_BY_KEY[w.conf.mode].threat then
+        local e = r.threat
+        local tip = GameTooltip
+        tip:SetOwner(r, "ANCHOR_LEFT")
+        if not pcall(tip.AddLine, tip, e.name) then tip:AddLine("?") end
+        if readable(e.scaled) then tip:AddLine(string.format(L.THREAT_WARN_PCT, e.scaled), 1, 1, 1) end
+        if readable(e.value) then pcall(tip.AddDoubleLine, tip, L.THREAT_RAW, abbr(e.value), 1, 0.82, 0, 1, 1, 1) end
+        if readable(e.tanking) and e.tanking then tip:AddLine(L.THREAT_FAKE_TANK, 0.6, 0.8, 1) end
+        tip:Show()
+        return
+    end
+    if not r.src then return end
     local src = r.src
     local mode = MODE_BY_KEY[w.conf.mode]
     local tip = GameTooltip
@@ -516,6 +577,18 @@ end
 local function report(w, channel)
     if InCombatLockdown() then ns.Say(L.CM_REPORT_COMBAT) return end
     local mode = MODE_BY_KEY[w.conf.mode]
+    if mode.threat then
+        local list = ns.Threat.Collect()
+        local lines = { string.format("CorpUI - %s", modeName(mode)) }
+        for i = 1, math.min(#list, 8) do
+            local e = list[i]
+            if readable(e.name) and readable(e.scaled) then
+                table.insert(lines, string.format("%d. %s  %d%%", i, e.name, e.scaled))
+            end
+        end
+        for _, line in ipairs(lines) do pcall(SendChatMessage, line, channel) end
+        return
+    end
     local session = fetch(w.conf.mode, w.conf.session)
     local list = sources(session)
     local total = field(session, "totalAmount")
@@ -752,6 +825,12 @@ createWindow = function(conf)
     w.body = CreateFrame("Frame", nil, f)
     w.body:SetPoint("TOPLEFT", 2, -HEADER_H - 2)
     w.body:SetPoint("BOTTOMRIGHT", -2, 2)
+    -- mode Menace sans ligne : pas de cible ennemie, ou personne sur sa liste
+    w.note = w.body:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    w.note:SetPoint("TOPLEFT", 4, -4)
+    w.note:SetPoint("RIGHT", -4, 0)
+    w.note:SetJustifyH("LEFT")
+    w.note:Hide()
     f:SetScript("OnMouseWheel", function(_, d)
         w.offset = math.max(0, w.offset - d)
         dirty = true
@@ -781,12 +860,59 @@ createWindow = function(conf)
     return w
 end
 
+-- lignes d une fenetre (creees a la demande, placees les unes sous les autres)
+local function rowAt(w, i, step)
+    local r = w.rows[i]
+    if not r then
+        r = makeRow(w.body)
+        r:SetScript("OnClick", function(self, button)
+            if button == "LeftButton" then openDetail(w, self) end
+        end)
+        r:SetScript("OnEnter", function(self) rowTooltip(w, self) end)
+        r:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        w.rows[i] = r
+    end
+    styleRow(r)
+    r:ClearAllPoints()
+    r:SetPoint("TOPLEFT", 0, -(i - 1) * step)
+    r:SetPoint("RIGHT")
+    return r
+end
+
+-- mode Menace : la cible dans le titre, le groupe sur sa liste de menace ;
+-- au deverrouillage, lignes fictives
+local function refreshThreat(w, mode)
+    if not pcall(w.mode.fs.SetFormattedText, w.mode.fs, "%s  |cff9a93aa%s|r", modeName(mode), ns.Threat.TargetName()) then
+        w.mode.fs:SetText(modeName(mode))
+    end
+    local list = ns.moversShown and ns.Threat.Fake() or ns.Threat.Collect()
+    local n = #list
+    local step = db.barHeight + db.barSpacing
+    local visible = math.max(1, math.floor((w.body:GetHeight() + db.barSpacing) / step))
+    w.offset = math.max(0, math.min(w.offset, n - visible))
+    -- ta ligne toujours visible : a la place de la derniere si tu es plus bas
+    local meIndex
+    for i = 1, n do if list[i].me then meIndex = i break end end
+    for i = 1, visible do
+        local r = rowAt(w, i, step)
+        local index = w.offset + i
+        if i == visible and meIndex and meIndex > w.offset + visible then index = meIndex end
+        local e = index <= n and list[index]
+        if e then fillThreatRow(r, e, index) else r.src, r.threat = nil, nil r:Hide() end
+    end
+    for i = visible + 1, #w.rows do w.rows[i]:Hide() end
+    w.note:SetShown(n == 0)
+    if n == 0 then w.note:SetText(ns.Threat.HostileTarget() and L.THREAT_NONE or L.THREAT_NO_TARGET) end
+end
+
 refreshWindow = function(w)
     local conf = w.conf
     local mode = MODE_BY_KEY[conf.mode]
-    w.mode.fs:SetText(modeName(mode) .. "  |cff9a93aa" .. sessionLabel(conf.session) .. "|r")
     w.grip:SetShown(not db.locked)
     windowAlpha(w.f)
+    if mode.threat and ns.Threat then return refreshThreat(w, mode) end
+    w.note:Hide()
+    w.mode.fs:SetText(modeName(mode) .. "  |cff9a93aa" .. sessionLabel(conf.session) .. "|r")
     local session = fetch(conf.mode, conf.session)
     local list = sources(session)
     local okN, n = pcall(function() return #list end)
@@ -801,20 +927,8 @@ refreshWindow = function(w)
         if readable(me) and me then meIndex = i break end
     end
     for i = 1, visible do
-        local r = w.rows[i]
-        if not r then
-            r = makeRow(w.body)
-            r:SetScript("OnClick", function(self, button)
-                if button == "LeftButton" then openDetail(w, self) end
-            end)
-            r:SetScript("OnEnter", function(self) rowTooltip(w, self) end)
-            r:SetScript("OnLeave", function() GameTooltip:Hide() end)
-            w.rows[i] = r
-        end
-        styleRow(r)
-        r:ClearAllPoints()
-        r:SetPoint("TOPLEFT", 0, -(i - 1) * step)
-        r:SetPoint("RIGHT")
+        local r = rowAt(w, i, step)
+        r.threat = nil
         local index = w.offset + i
         if i == visible and meIndex and (meIndex > w.offset + visible) and not MODE_BY_KEY[conf.mode].deaths then
             index = meIndex
@@ -919,6 +1033,9 @@ local function buildOptions()
     check("tooltip", L.CM_OPT_TOOLTIP)
     form:EndColumns()
 
+    -- menace : mode des fenetres ; alerte avant l aggro (Menace\Menace.lua)
+    if ns.ThreatOptions then ns.ThreatOptions(form, win) end
+
     -- fenetres : en ouvrir une, remettre les donnees a zero
     form:Gap(4)
     form:Header(L.CM_H_WINDOWS)
@@ -968,8 +1085,17 @@ ev:SetScript("OnEvent", function(_, event)
     end
 end)
 for _, e in ipairs({ "PLAYER_LOGIN", "DAMAGE_METER_COMBAT_SESSION_UPDATED", "DAMAGE_METER_CURRENT_SESSION_UPDATED",
-                     "DAMAGE_METER_RESET", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "GROUP_ROSTER_UPDATE" }) do
+                     "DAMAGE_METER_RESET", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "GROUP_ROSTER_UPDATE",
+                     "PLAYER_TARGET_CHANGED" }) do
     pcall(ev.RegisterEvent, ev, e)
+end
+
+-- une fenetre affiche la menace : relevee 5 fois par seconde
+local function threatShown()
+    for _, w in ipairs(windows) do
+        if w.f:IsShown() and MODE_BY_KEY[w.conf.mode] and MODE_BY_KEY[w.conf.mode].threat then return true end
+    end
+    return false
 end
 
 -- rafraichissement : sur evenement (au plus 5 fois par seconde), et chaque
@@ -980,6 +1106,7 @@ ev:SetScript("OnUpdate", function(_, dt)
     since = since + dt
     tick = tick + dt
     if tick >= 1 and InCombatLockdown() then tick = 0 dirty = true end
+    if since >= 0.2 and threatShown() then dirty = true end
     if dirty and since >= 0.2 then
         since = 0
         refreshAll()

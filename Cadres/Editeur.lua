@@ -7,7 +7,8 @@
       Tous les cadres : reglages communs (cadres de Blizzard, echelle,
                         barres de sort, listes de filtres d auras)
       Joueur          : affichage, apparence et textes, barre de sort,
-                        buffs et debuffs, ressources
+                        buffs et debuffs, ressources, centre, totems,
+                        minuteur de coups blancs
       Cible           : affichage, apparence et textes, barre de sort, auras
       Cible de la cible, Familier : affichage, apparence et textes
       Focalisation    : affichage, apparence et textes, barre de sort
@@ -65,6 +66,7 @@ local function sections(key)
             add(ns.BuildResourceOptions)
             add(O.Center)
             add(O.Totems)
+            add(O.Swing)
         elseif key == "target" then
             add(O.TargetAuras)
         end

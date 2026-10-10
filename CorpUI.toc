@@ -69,6 +69,8 @@ Cadres\StringsCentre.lua
 Cadres\Centre.lua
 Cadres\StringsTotems.lua
 Cadres\Totems.lua
+Cadres\StringsCoups.lua
+Cadres\Coups.lua
 
 # Module Groupe
 Groupe\Strings.lua
@@ -133,6 +135,9 @@ Degats\Strings.lua
 Degats\DamageMeter.lua
 Compteur\Strings.lua
 Compteur\Compteur.lua
+# Menace : mode "Menace" du compteur, alerte avant de prendre l aggro
+Menace\Strings.lua
+Menace\Menace.lua
 
 # Module Chat
 Discussion\Strings.lua
