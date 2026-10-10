@@ -707,6 +707,24 @@ local function layoutButtons()
     local host = DEFAULT_CHAT_FRAME and hostOf(DEFAULT_CHAT_FRAME)
     if not host then return end
     local C = ns.COLORS
+    -- En combat, la colonne et ses cases sont protegees : le bouton securise
+    -- du journal de combat est accroche a sa case, et tout cadre de sa chaine
+    -- d accroche le devient. Les afficher, cacher ou deplacer etait refuse
+    -- (taint.log du 10/10 : "action was blocked in combat ...
+    -- CorpUIChatColumn:SetShown()", message rouge a chaque releve). Seuls les
+    -- liseres suivent ; le reste se refait hors combat.
+    local okP, protected = pcall(column.IsProtected, column)
+    if InCombatLockdown() and (not okP or protected) then
+        for _, e in ipairs(slots) do
+            local slot = e.slot
+            if slot and slot:IsShown() and slot.cuiBorder then
+                local c = e.button:IsMouseOver() and C.gold or C.border
+                if e.combat and not e.button:IsMouseOver() and SELECTED_CHAT_FRAME == _G.ChatFrame2 then c = C.violet end
+                slot.cuiBorder:SetColorTexture(c[1], c[2], c[3], 1)
+            end
+        end
+        return
+    end
     if column.host ~= host then
         column.host = host
         column:ClearAllPoints()
