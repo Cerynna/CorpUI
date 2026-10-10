@@ -13,7 +13,12 @@
       C_SwingTimer.IsTargetWithinSwingRange(0 : main droite / 2 : distance)
         -> vrai, faux, ou nil (pas de cible attaquable, pas d arme) ;
       CheckInteractDistance("target", 3) -> moins de ~10 m (duel).
-    Aucune n est secrete ni restreinte. Melee prioritaire, puis tir ; ni
+    Aucune n est secrete ni restreinte. La mesure de portee de l attaque
+    automatique n est faite que si elle est activee (EnableRangeCheck :
+    10/10, sinon IsTargetWithinSwingRange repond nil). Le minuteur de
+    Blizzard l active quand il s affiche ; CorpUI le cache : on l active
+    nous-memes (connexion, changement de cible, et si le jeu ne repond plus),
+    sans jamais la couper (reglage partage avec Blizzard). Melee prioritaire, puis tir ; ni
     l un ni l autre et proche = zone morte, sinon trop loin. Pas de distance
     au metre pres : une zone.
 ----------------------------------------------------------------------------]]
@@ -48,6 +53,18 @@ local function bool(ok, v)
     return v and true or false
 end
 
+-- active la mesure de portee (main droite, distance) ; reactivee au plus
+-- toutes les 2 s si le jeu ne repond plus (Blizzard a pu la couper)
+local armedAt = -10
+local function armRange(force)
+    local ST = C_SwingTimer
+    if not (hunter and ST and ST.EnableRangeCheck) then return end
+    if not force and GetTime() - armedAt < 2 then return end
+    armedAt = GetTime()
+    pcall(ST.EnableRangeCheck, 0, true)
+    pcall(ST.EnableRangeCheck, 2, true)
+end
+
 local function targetOk()
     if not UnitExists("target") then return false end
     local okA, can = pcall(UnitCanAttack, "player", "target")
@@ -60,10 +77,15 @@ local function zone()
     if not targetOk() then return nil end
     local ST = C_SwingTimer
     if not (ST and ST.IsTargetWithinSwingRange) then return nil end
-    if bool(pcall(ST.IsTargetWithinSwingRange, 0)) then return "melee" end
+    local melee = bool(pcall(ST.IsTargetWithinSwingRange, 0))
+    if melee then return "melee" end
     local ranged = bool(pcall(ST.IsTargetWithinSwingRange, 2))
     if ranged then return "ranged" end
-    if ranged == nil then return nil end          -- pas d arme a distance
+    if ranged == nil then
+        -- pas de mesure : on la (re)active, reponse au releve suivant
+        if melee == nil then armRange() end
+        return nil
+    end
     local close = CheckInteractDistance and bool(pcall(CheckInteractDistance, "target", 3))
     if close then return "dead" end
     if close == false then return "far" end
@@ -230,12 +252,14 @@ ev:SetScript("OnEvent", function(_, event)
         local _, class = UnitClass("player")
         hunter = class == "HUNTER"
         build()
+        armRange(true)
         apply()
         return
     end
     if not db then return end
     if event == "PLAYER_TARGET_CHANGED" then
         current = nil          -- nouvelle cible : pas de son pour une zone deja la
+        armRange(true)
         update()
     else
         update()
