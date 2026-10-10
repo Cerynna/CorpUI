@@ -398,6 +398,12 @@ local function styleTab(tab)
     ns.NoSnap(t.bottom)
     t.bottom:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 1)
     t.bottom:Hide()
+    -- message non lu (onglet ferme) : voile a la couleur d accent qui pulse,
+    -- a la place de la lueur de Blizzard (videe avec ses autres textures)
+    t.glow = labelHost:CreateTexture(nil, "BACKGROUND", nil, 2)
+    t.glow:SetAllPoints(t.plate)
+    ns.NoSnap(t.glow)
+    t.glow:Hide()
     t.label = labelHost:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     t.label:SetPoint("CENTER", t.plate, "CENTER", 0, -1)
     t.label:SetShadowColor(0, 0, 0, 1)
@@ -427,8 +433,32 @@ local function tabGeom(t, tab, host)
     t.plate:SetHeight(h)
 end
 
+-- Message non lu sur un onglet ferme : le jeu le signale lui-meme
+-- (FCF_StartAlertFlash pose tab.alerting et fait clignoter tab.glow, que
+-- styleTab a vide ; FCF_StopAlertFlash a l ouverture de l onglet). On ne
+-- fait que lire ces champs, sans crochet.
+local function tabAlert(tab)
+    if rawget(tab, "alerting") == true then return true end
+    local g = rawget(tab, "glow")
+    if type(g) == "table" and g.IsShown then
+        local ok, shown = pcall(g.IsShown, g)
+        return ok and shown == true
+    end
+    return false
+end
+
+-- plaques en alerte : leur voile pulse a chaque image (periode ~1,8 s)
+local pulsing = {}
+local function pulse()
+    if not next(pulsing) then return end
+    local C = ns.COLORS
+    local a = 0.12 + 0.36 * (0.5 + 0.5 * math.sin(GetTime() * 3.5))
+    for look in pairs(pulsing) do look.glow:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], a) end
+end
+
 -- couleurs de la plaque : "on" (onglet actif, couleur du chat), "over"
--- (survol), sinon repos (en retrait, sombre)
+-- (survol), "alert" (message non lu : liseré d accent), sinon repos (en
+-- retrait, sombre)
 local function plateLook(t, state)
     -- (opacite du chat changee dans les options : la plaque suit)
     if t.state == state and t.alpha == db.alpha then return end
@@ -440,20 +470,28 @@ local function plateLook(t, state)
         fa, ea = db.alpha, 0.14
     elseif state == "over" then
         fa, ea = db.alpha * 0.75, 0.12
+    elseif state == "alert" then
+        fa, ea = db.alpha * 0.75, 0.8
     else
         fa, ea = db.alpha * 0.5, 0.06
     end
     local fr, fg, fb = C.bg[1], C.bg[2], C.bg[3]
     t.bottom:SetShown(state == "on")
     t.plate:SetColorTexture(fr, fg, fb, fa)
-    for _, e in ipairs(t.edges) do e:SetColorTexture(1, 1, 1, ea) end
+    local er, eg, eb = 1, 1, 1
+    if state == "alert" then er, eg, eb = C.violet[1], C.violet[2], C.violet[3] end
+    for _, e in ipairs(t.edges) do e:SetColorTexture(er, eg, eb, ea) end
 end
 
 local function showLook(t, on)
     t.label:SetShown(on)
     t.plate:SetShown(on)
     for _, e in ipairs(t.edges) do e:SetShown(on) end
-    if not on then t.bottom:Hide() end
+    if not on then
+        t.bottom:Hide()
+        t.glow:Hide()
+        pulsing[t] = nil
+    end
 end
 
 local function styleEdit(eb)
@@ -967,8 +1005,11 @@ local function refresh()
                     look.label:SetWidth(w - 10)
                 end
                 tabGeom(look, s.tab, hostOf(cf))
-                plateLook(look, on and "on" or (s.tab:IsMouseOver() and "over" or "rest"))
-                if on or s.tab:IsMouseOver() then look.label:SetTextColor(1, 1, 1)
+                local alert = not on and tabAlert(s.tab)
+                pulsing[look] = alert or nil
+                look.glow:SetShown(alert)
+                plateLook(look, on and "on" or (s.tab:IsMouseOver() and "over" or (alert and "alert" or "rest")))
+                if on or alert or s.tab:IsMouseOver() then look.label:SetTextColor(1, 1, 1)
                 else look.label:SetTextColor(C.text[1] * 0.75, C.text[2] * 0.75, C.text[3] * 0.75) end
             end
         end
@@ -1453,6 +1494,7 @@ ev:SetScript("OnUpdate", function(_, dt)
     -- a chaque image : ancrage des onglets ; changement d onglet : releve
     -- complet tout de suite (plaques, trait du bas) plutot qu au suivant
     pcall(holdDock)
+    pulse()
     since = since + dt
     local sel = SELECTED_CHAT_FRAME
     if since < 0.2 and sel == lastSelected then return end
