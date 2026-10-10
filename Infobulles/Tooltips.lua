@@ -28,7 +28,8 @@ local L = ns.L
 
 local issecret = issecretvalue or function() return false end
 local TIPS = { "GameTooltip", "ItemRefTooltip", "ShoppingTooltip1", "ShoppingTooltip2",
-               "ItemRefShoppingTooltip1", "ItemRefShoppingTooltip2", "EmbeddedItemTooltip", "CorpUITooltip" }
+               "ItemRefShoppingTooltip1", "ItemRefShoppingTooltip2", "EmbeddedItemTooltip", "CorpUITooltip",
+               "CorpUICompareTooltip1", "CorpUICompareTooltip2" }
 -- infobulles qui recoivent le bandeau d infos en plus (CorpUITooltip :
 -- sacs, banque, butin et metiers de CorpUI)
 local EXTRA_TIPS = { "GameTooltip", "ItemRefTooltip", "CorpUITooltip" }
@@ -513,7 +514,7 @@ ev:SetScript("OnUpdate", function(_, dt)
     if type(gt) == "table" and gt.IsShown then
         if gt:IsShown() then place(gt) else ours[gt] = nil end
         combatHide(gt, true)
-        for _, name in ipairs({ "ShoppingTooltip1", "ShoppingTooltip2" }) do
+        for _, name in ipairs({ "ShoppingTooltip1", "ShoppingTooltip2", "CorpUICompareTooltip1", "CorpUICompareTooltip2" }) do
             local t = _G[name]
             if type(t) == "table" and t.SetAlpha then combatHide(t, false) end
         end

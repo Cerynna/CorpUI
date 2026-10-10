@@ -473,11 +473,176 @@ end
 
 -- Infobulle privee : on ne touche pas au GameTooltip partage
 local tip
+
+-- Comparaison avec l equipement porte, comme le jeu : touche "comparer"
+-- (Maj) enfoncee, ou "toujours comparer". Deux infobulles privees a cote
+-- de la notre, remplies par le client (C_TooltipComparison). Jamais le
+-- gestionnaire de Blizzard (TooltipComparisonManager) : partage avec le
+-- GameTooltip, notre code le souillerait.
+-- Aucun crochet : l objet pose par le module est lu a l image suivante
+-- (ns.Tooltip), puis a chaque appui ou relachement de Maj.
+local cmpTips, cmpItem = {}, nil
+local cmpPending = false
+-- donnees d objet d avant ns.Tooltip : l infobulle les garde jusqu a se
+-- cacher (GameTooltip_OnHide), un texte pose ensuite ne les efface pas
+local cmpStale
+local CMP_GAP = 2
+
+local function hideCompare()
+    for _, c in ipairs(cmpTips) do c:Hide() end
+end
+
+local function compareTip(i)
+    local c = cmpTips[i]
+    if not c then
+        c = CreateFrame("GameTooltip", "CorpUICompareTooltip" .. i, UIParent, "ShoppingTooltipTemplate")
+        c:SetFrameStrata("TOOLTIP")
+        c:SetClampedToScreen(true)
+        c:Hide()
+        cmpTips[i] = c
+    end
+    return c
+end
+
+local function wantCompare()
+    local ok, v = pcall(IsModifiedClick, "COMPAREITEMS")
+    if ok and v and not issecret(v) then return true end
+    local get = (C_CVar and C_CVar.GetCVarBool) or GetCVarBool
+    if not get then return false end
+    ok, v = pcall(get, "alwaysCompareItems")
+    return ok and v == true
+end
+
+local function primaryInfo(t)
+    local ok, info = pcall(t.GetPrimaryTooltipInfo, t)
+    if ok and type(info) == "table" then return info end
+end
+
+-- objet montre par une infobulle, sous la forme attendue par le client
+-- (seulement s il a ete pose depuis le dernier ns.Tooltip)
+local function itemOf(t)
+    local info = primaryInfo(t)
+    if not info or info == cmpStale then return nil end
+    local d = info.tooltipData
+    if type(d) ~= "table" then return nil end
+    local T = Enum and Enum.TooltipDataType
+    if T and T.Item and d.type ~= T.Item then return nil end
+    local function usable(v) return v ~= nil and not issecret(v) and v ~= "" end
+    if usable(d.guid) then return { guid = d.guid, overrideItemLevel = d.overrideItemLevel } end
+    if usable(d.hyperlink) then return { hyperlink = d.hyperlink, overrideItemLevel = d.overrideItemLevel } end
+end
+
+local function fillCompare(c, eq, owner)
+    c:SetOwner(owner, "ANCHOR_NONE")
+    local ok = false
+    if eq.guid and c.SetItemByGUID then ok = pcall(c.SetItemByGUID, c, eq.guid) end
+    if not ok and eq.hyperlink then ok = pcall(c.SetHyperlink, c, eq.hyperlink) end
+    if not ok and eq.guid and C_Item and C_Item.GetItemLinkByGUID then
+        local okL, link = pcall(C_Item.GetItemLinkByGUID, eq.guid)
+        if okL and type(link) == "string" then ok = pcall(c.SetHyperlink, c, link) end
+    end
+    if ok and (c:NumLines() or 0) > 0 then return true end
+    c:Hide()
+    return false
+end
+
+-- a cote de l infobulle, du cote ou elle s ouvre s il y a la place
+local function placeCompare(t, list)
+    if #list == 0 then return end
+    local total = 0
+    for _, c in ipairs(list) do total = total + (c:GetWidth() or 0) + CMP_GAP end
+    local l, r = t:GetLeft(), t:GetRight()
+    local left = false
+    if l and r then
+        local sw = GetScreenWidth() * UIParent:GetEffectiveScale() / t:GetEffectiveScale()
+        local wantLeft = tostring(t:GetAnchorType() or ""):find("LEFT") ~= nil
+        if wantLeft and l >= total then left = true
+        elseif not wantLeft and r + total <= sw then left = false
+        else left = (sw - r) < l end
+    end
+    local prev = t
+    for _, c in ipairs(list) do
+        c:ClearAllPoints()
+        if left then c:SetPoint("TOPRIGHT", prev, "TOPLEFT", -CMP_GAP, 0)
+        else c:SetPoint("TOPLEFT", prev, "TOPRIGHT", CMP_GAP, 0) end
+        prev = c
+    end
+end
+
+local function refreshCompare(t)
+    hideCompare()
+    local CT = C_TooltipComparison
+    if not cmpItem or not (CT and CT.GetItemComparisonInfo) or not wantCompare() then return end
+    local ok, info = pcall(CT.GetItemComparisonInfo, cmpItem)
+    if not ok or type(info) ~= "table" or type(info.item) ~= "table" then return end
+    local M = (Enum and Enum.TooltipComparisonMethod) or {}
+    local single = info.method == nil or info.method == M.Single
+    local paired = info.method ~= nil and (info.method == M.WithBagMainHandItem or info.method == M.WithBagOffHandItem)
+    local second = type(info.additionalItems) == "table" and info.additionalItems[1] or nil
+    local shown = {}
+    for i, eq in ipairs({ info.item, second }) do
+        local okC, c = pcall(compareTip, i)
+        if okC and c and fillCompare(c, eq, t) then
+            -- bandeau "Equipe" ("Si equipes ensemble" pour la paire d armes)
+            local head = (i == 2 and paired) and IF_EQUIPPED_TOGETHER or EQUIPPED
+            if c.CompareHeader and c.CompareHeader.Label and head then
+                c.CompareHeader.Label:SetText(head)
+                c.CompareHeader:SetWidth(c.CompareHeader.Label:GetStringWidth() + 30)
+                c.CompareHeader:Show()
+            end
+            -- ecart de caracteristiques, comme le jeu : toujours sur la
+            -- premiere, sur la seconde si chacune se compare seule (anneaux)
+            if (i == 1 or single) and CT.GetItemComparisonDelta then
+                local okD, delta = pcall(CT.GetItemComparisonDelta, cmpItem, eq, (not single) and second or nil, paired)
+                if okD and type(delta) == "table" and #delta > 0 then
+                    local sum = (i == 1 and info.method == M.WithBothHands and ITEM_DELTA_MULTIPLE_COMPARISON_DESCRIPTION)
+                        or ITEM_DELTA_DESCRIPTION
+                    c:AddLine(" ")
+                    if sum then c:AddLine(sum, 1, 0.82, 0, true) end
+                    for _, line in ipairs(delta) do c:AddLine(line, 1, 1, 1, true) end
+                end
+            end
+            c:Show()
+            table.insert(shown, c)
+        end
+    end
+    pcall(placeCompare, t, shown)
+end
+
+-- objet montre par notre infobulle : comparaison selon Maj
+function ns.TooltipCompare(t)
+    if not tip or t ~= tip then return end
+    cmpItem = itemOf(t)
+    refreshCompare(t)
+end
+
+-- Maj enfoncee ou relachee sur l objet : comparaison montree ou retiree
+local cmpEv = CreateFrame("Frame")
+cmpEv:RegisterEvent("MODIFIER_STATE_CHANGED")
+cmpEv:SetScript("OnEvent", function()
+    if tip and tip:IsShown() then ns.TooltipCompare(tip) end
+end)
+
+-- image suivante : le module a pose son objet (ou son texte)
+local function deferredCompare()
+    cmpPending = false
+    if tip and tip:IsShown() then ns.TooltipCompare(tip) end
+end
+
 function ns.Tooltip(owner, anchor)
     if not tip then
         tip = CreateFrame("GameTooltip", "CorpUITooltip", UIParent, "GameTooltipTemplate")
+        tip:HookScript("OnHide", hideCompare)
     end
+    -- nouvel emploi : l ancienne comparaison s en va
+    cmpItem = nil
+    cmpStale = primaryInfo(tip)
+    hideCompare()
     tip:SetOwner(owner, anchor or "ANCHOR_RIGHT")
+    if not cmpPending and C_Timer and C_Timer.After then
+        cmpPending = true
+        C_Timer.After(0, deferredCompare)
+    end
     return tip
 end
 
