@@ -7,10 +7,14 @@
       - la barre se remplit jusqu au prochain coup, temps restant a droite ;
       - attaque "au prochain coup" en attente (Frappe heroique,
         Enchainement, Attaque du raptor, Mutiler) : barre de la main droite
-        en or ;
+        a sa couleur (or par defaut) ;
       - cible hors de portee de l arme : barre estompee (lecture
         C_SwingTimer.IsTargetWithinSwingRange 5 fois par seconde, sans
         toucher au reglage de portee partage avec Blizzard).
+    Armes portees : lues sur la vitesse d attaque, secrete en combat sur ce
+    client ; gardees de la derniere lecture lisible et de chaque coup.
+    Apparence : couleur de chaque barre et de l attaque en attente (palette
+    ns.ColorOf), opacite du fond, taille et etiquettes du texte.
     Affichage : "auto" (une barre n apparait qu en frappant, en combat :
     rien pour un lanceur de sorts), "combat" (armes equipees, en combat) ou
     "toujours". Accrochee sous le cadre joueur, sa barre de sort et les
@@ -34,7 +38,11 @@ local KINDS = {
 local DEFAULTS = {
     enabled = true, attach = true, width = 180, height = 8, off = true, ranged = true, time = true,
     vis = "auto", hideBlizzard = true, queue = true, range = true,
+    -- apparence (10/10) : couleurs au choix (ns.ColorOf), fond, texte
+    colorMain = "accent", colorOff = "accentlight", colorRanged = "green", colorQueue = "gold",
+    bgAlpha = 80, textSize = 9, labels = true,
 }
+local COLOR_KEY = { main = "colorMain", off = "colorOff", ranged = "colorRanged" }
 local VIS_VALUES = { "auto", "combat", "always" }
 local BLIZZ = { "SwingTimerMainHandFrame", "SwingTimerOffHandFrame", "SwingTimerRangedFrame" }
 local GAP = 4          -- sous le cadre joueur, sa barre de sort, les totems
@@ -56,6 +64,11 @@ local known = {}        -- attaques au prochain coup connues
 local pending = false
 
 local function readable(v) return v ~= nil and not issecret(v) end
+
+-- armes portees : lues sur la vitesse d attaque, SECRETE en combat sur ce
+-- client (UnitAttackSpeed : SecretWhenUnitStatsRestricted). Gardees de la
+-- derniere lecture lisible (10/10 : les barres disparaissaient en combat).
+local lastHas = { main = true, off = false, ranged = false }
 
 -- vitesses d attaque : main droite, main gauche, distance (0 / nil : pas d arme)
 local function speeds()
@@ -92,10 +105,7 @@ end
 ---------------------------------------------------------------------------
 
 local function colorOf(kind)
-    if kind.key == "ranged" then return { 0.45, 0.78, 0.35 } end
-    local c = C.violet
-    if kind.key == "off" then return { c[1] * 0.6 + 0.4, c[2] * 0.6 + 0.4, c[3] * 0.6 + 0.4 } end
-    return c
+    return { ns.ColorOf(db and db[COLOR_KEY[kind.key]] or "accent") }
 end
 
 local function makeBar(kind)
@@ -122,7 +132,7 @@ end
 
 local function paint(b)
     local c = colorOf(b.kind)
-    if b.kind.key == "main" and b.queued then c = C.gold end
+    if b.kind.key == "main" and b.queued then c = { ns.ColorOf(db.colorQueue or "gold") } end
     b.sb:SetStatusBarColor(c[1], c[2], c[3])
 end
 
@@ -142,7 +152,10 @@ local function wanted()
     end
     if not db.enabled then return list end
     local mh, oh, rg = speeds()
-    local has = { main = mh ~= nil, off = oh ~= nil and db.off, ranged = rg ~= nil and db.ranged }
+    if mh or oh or rg then
+        lastHas = { main = mh ~= nil, off = oh ~= nil, ranged = rg ~= nil }
+    end
+    local has = { main = lastHas.main, off = lastHas.off and db.off, ranged = lastHas.ranged and db.ranged }
     local fight = inCombat()
     local now = GetTime()
     for _, k in ipairs(KINDS) do
@@ -184,7 +197,9 @@ local function layout(force)
     shownSig = sig
     local h = db.height
     local font = (ns.FontFile and ns.FontFile("regular")) or STANDARD_TEXT_FONT
-    local size = math.max(7, math.min(12, h + 1))
+    local size = db.textSize or 9
+    -- fond : le liseré de ns.UI.Skin est un aplat sous le fond, meme opacite
+    local bgA = (db.bgAlpha or 80) / 100
     for _, k in ipairs(KINDS) do bars[k.key]:Hide() end
     for i, b in ipairs(list) do
         b:ClearAllPoints()
@@ -193,8 +208,10 @@ local function layout(force)
         b:SetHeight(h)
         pcall(b.label.SetFont, b.label, font, size, "OUTLINE")
         pcall(b.time.SetFont, b.time, font, size, "OUTLINE")
+        b.cuiBg:SetAlpha(bgA)
+        b.cuiBorder:SetAlpha(bgA)
         -- etiquette et temps seulement si la barre est assez haute
-        b.label:SetShown(h >= 8)
+        b.label:SetShown(db.labels ~= false and h >= 8)
         b.time:SetShown(db.time and h >= 8)
         b.label:SetText(L[b.kind.label])
         paint(b)
@@ -233,6 +250,8 @@ local function onSwing(duration, swingType)
             b.dur = duration
             b.endT = GetTime() + duration
             b.lastEnd = b.endT
+            -- un coup avec cette arme : elle est portee (vitesse illisible en combat)
+            lastHas[k.key] = true
         end
     end
     layout()
@@ -359,6 +378,20 @@ function ns.FramesOpt.Swing(parent, y)
         if db then db.height = math.max(4, math.min(30, math.floor(v + 0.5))) end
     end, 4, 30, 1)
     form:EndColumns()
+    -- apparence : couleurs, fond, texte
+    form:Header(L.SWING_H_LOOK)
+    form:Columns(2)
+    form:Number(L.SWING_BG, function() return db and db.bgAlpha or 80 end, function(v) if db then db.bgAlpha = v end end, 0, 100, 5)
+    form:Number(L.SWING_TEXT_SIZE, function() return db and db.textSize or 9 end, function(v) if db then db.textSize = v end end, 6, 16, 1)
+    chk(L.SWING_OPT_LABELS, "labels")
+    form:EndColumns()
+    local function color(text, key)
+        form:Color(text, function() return db and db[key] end, function(v) if db then db[key] = v end end)
+    end
+    color(L.SWING_COLOR_MH, "colorMain")
+    color(L.SWING_COLOR_OH, "colorOff")
+    color(L.SWING_COLOR_RANGED, "colorRanged")
+    color(L.SWING_COLOR_QUEUE, "colorQueue")
     local hint = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("TOPLEFT", parent, "TOPLEFT", 8, form.y - 6)
     hint:SetWidth(420)

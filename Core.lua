@@ -74,6 +74,31 @@ ns.THEMES = {
     { key = "class" },
 }
 
+-- Couleurs au choix des reglages (pastilles, form:Color) : la couleur
+-- d accent et sa version claire, la couleur de classe, celles du theme,
+-- l or et le blanc. Valeur gardee = la cle (l accent suit le theme).
+ns.COLOR_CHOICES = { "accent", "accentlight", "class", "violet", "blue", "cyan", "green", "amber", "red",
+                     "pink", "silver", "gold", "white" }
+local EXTRA_RGB = { gold = { 1, 0.82, 0.25 }, white = { 0.95, 0.95, 0.95 } }
+
+function ns.ColorOf(key)
+    local a = ns.COLORS.violet
+    if key == "accent" then return a[1], a[2], a[3] end
+    if key == "accentlight" then return a[1] * 0.6 + 0.4, a[2] * 0.6 + 0.4, a[3] * 0.6 + 0.4 end
+    local e = EXTRA_RGB[key]
+    if e then return e[1], e[2], e[3] end
+    local t = ns.ThemeColor(key)
+    return t[1], t[2], t[3]
+end
+
+function ns.ColorName(key)
+    if key == "accent" then return L.COLOR_ACCENT end
+    if key == "accentlight" then return L.COLOR_ACCENTLIGHT end
+    if key == "gold" then return L.COLOR_GOLD end
+    if key == "white" then return L.COLOR_WHITE end
+    return L["THEME_" .. string.upper(key)] or key
+end
+
 function ns.ThemeColor(key)
     if key == "class" then
         local _, class = UnitClass("player")
@@ -952,6 +977,49 @@ function ns.UI.Form(parent, y, onChange, width)
         c:SetPoint("TOPLEFT", parent, "TOPLEFT", 4 + x, y - 2)
         table.insert(self.refreshers, function() c:SetChecked(get() and true or false) end)
         return c
+    end
+    -- couleur au choix : libelle, puis une rangee de pastilles
+    -- (ns.COLOR_CHOICES) ; la choisie est cerclee d or, nom au survol
+    function form:Color(text, get, set)
+        self:EndColumns()
+        local fs = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        fs:SetPoint("TOPLEFT", parent, "TOPLEFT", 8, self.y)
+        fs:SetText(text)
+        local swatches = {}
+        for i, key in ipairs(ns.COLOR_CHOICES) do
+            local s = CreateFrame("Button", nil, parent)
+            s:SetSize(20, 14)
+            s:SetPoint("TOPLEFT", parent, "TOPLEFT", 10 + (i - 1) * 25, self.y - 16)
+            s.ring = s:CreateTexture(nil, "BACKGROUND")
+            s.ring:SetPoint("TOPLEFT", -2, 2)
+            s.ring:SetPoint("BOTTOMRIGHT", 2, -2)
+            s.ring:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
+            local edge = s:CreateTexture(nil, "BORDER")
+            edge:SetAllPoints()
+            edge:SetColorTexture(0, 0, 0, 1)
+            s.fill = s:CreateTexture(nil, "ARTWORK")
+            s.fill:SetPoint("TOPLEFT", 1, -1)
+            s.fill:SetPoint("BOTTOMRIGHT", -1, 1)
+            s.key = key
+            s:SetScript("OnEnter", function(self)
+                local tip = ns.Tooltip(self, "ANCHOR_TOP")
+                tip:AddLine(ns.ColorName(self.key))
+                tip:Show()
+            end)
+            s:SetScript("OnLeave", ns.HideTooltip)
+            s:SetScript("OnClick", function(self) set(self.key) changed() end)
+            swatches[i] = s
+        end
+        self.y = self.y - 36
+        table.insert(self.refreshers, function()
+            local cur = get()
+            for _, s in ipairs(swatches) do
+                local r, g, b = ns.ColorOf(s.key)
+                s.fill:SetColorTexture(r, g, b, 1)
+                s.ring:SetShown(s.key == cur)
+            end
+        end)
+        return swatches
     end
     -- interrupteur (ns.UI.Switch), meme emploi que form:Check
     function form:Switch(text, get, set)

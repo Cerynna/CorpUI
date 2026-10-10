@@ -3,6 +3,10 @@ local _, ns = ...
 
 ns.AddStrings({
     enUS = {
+        COLOR_ACCENT = "Theme accent",
+        COLOR_ACCENTLIGHT = "Light accent",
+        COLOR_GOLD = "Gold",
+        COLOR_WHITE = "White",
         CAT_INTERFACE = "Interface",
         CAT_COMBAT = "Combat",
         CAT_RAID = "Group & raid",
@@ -51,6 +55,10 @@ ns.AddStrings({
         GEN_UNLOCK = "Unlock the interface (move frames and bars)",
     },
     frFR = {
+        COLOR_ACCENT = "Accent du thème",
+        COLOR_ACCENTLIGHT = "Accent clair",
+        COLOR_GOLD = "Or",
+        COLOR_WHITE = "Blanc",
         CAT_INTERFACE = "Interface",
         CAT_COMBAT = "Combat",
         CAT_RAID = "Groupe & raid",
@@ -99,6 +107,10 @@ ns.AddStrings({
         GEN_UNLOCK = "Déverrouiller l'interface (déplacer cadres et barres)",
     },
     deDE = {
+        COLOR_ACCENT = "Themen-Akzent",
+        COLOR_ACCENTLIGHT = "Heller Akzent",
+        COLOR_GOLD = "Gold",
+        COLOR_WHITE = "Weiß",
         CAT_INTERFACE = "Oberfläche",
         CAT_COMBAT = "Kampf",
         CAT_RAID = "Gruppe & Schlachtzug",
@@ -147,6 +159,10 @@ ns.AddStrings({
         GEN_UNLOCK = "Oberfläche entsperren (Fenster und Leisten verschieben)",
     },
     esES = {
+        COLOR_ACCENT = "Acento del tema",
+        COLOR_ACCENTLIGHT = "Acento claro",
+        COLOR_GOLD = "Dorado",
+        COLOR_WHITE = "Blanco",
         CAT_INTERFACE = "Interfaz",
         CAT_COMBAT = "Combate",
         CAT_RAID = "Grupo y banda",
@@ -195,6 +211,10 @@ ns.AddStrings({
         GEN_UNLOCK = "Desbloquear la interfaz (mover marcos y barras)",
     },
     ptBR = {
+        COLOR_ACCENT = "Destaque do tema",
+        COLOR_ACCENTLIGHT = "Destaque claro",
+        COLOR_GOLD = "Dourado",
+        COLOR_WHITE = "Branco",
         CAT_INTERFACE = "Interface",
         CAT_COMBAT = "Combate",
         CAT_RAID = "Grupo e raide",
@@ -243,6 +263,10 @@ ns.AddStrings({
         GEN_UNLOCK = "Destravar a interface (mover quadros e barras)",
     },
     itIT = {
+        COLOR_ACCENT = "Accento del tema",
+        COLOR_ACCENTLIGHT = "Accento chiaro",
+        COLOR_GOLD = "Oro",
+        COLOR_WHITE = "Bianco",
         CAT_INTERFACE = "Interfaccia",
         CAT_COMBAT = "Combattimento",
         CAT_RAID = "Gruppo e incursione",
@@ -291,6 +315,10 @@ ns.AddStrings({
         GEN_UNLOCK = "Sblocca l'interfaccia (sposta riquadri e barre)",
     },
     ruRU = {
+        COLOR_ACCENT = "Акцент темы",
+        COLOR_ACCENTLIGHT = "Светлый акцент",
+        COLOR_GOLD = "Золотой",
+        COLOR_WHITE = "Белый",
         CAT_INTERFACE = "Интерфейс",
         CAT_COMBAT = "Бой",
         CAT_RAID = "Группа и рейд",
@@ -339,6 +367,10 @@ ns.AddStrings({
         GEN_UNLOCK = "Разблокировать интерфейс (двигать рамки и панели)",
     },
     zhCN = {
+        COLOR_ACCENT = "主题强调色",
+        COLOR_ACCENTLIGHT = "浅强调色",
+        COLOR_GOLD = "金色",
+        COLOR_WHITE = "白色",
         CAT_INTERFACE = "界面",
         CAT_COMBAT = "战斗",
         CAT_RAID = "小队与团队",
@@ -387,6 +419,10 @@ ns.AddStrings({
         GEN_UNLOCK = "解锁界面（移动框体和动作条）",
     },
     zhTW = {
+        COLOR_ACCENT = "主題強調色",
+        COLOR_ACCENTLIGHT = "淺強調色",
+        COLOR_GOLD = "金色",
+        COLOR_WHITE = "白色",
         CAT_INTERFACE = "介面",
         CAT_COMBAT = "戰鬥",
         CAT_RAID = "隊伍與團隊",
@@ -435,6 +471,10 @@ ns.AddStrings({
         GEN_UNLOCK = "解鎖介面（移動框架和快捷列）",
     },
     koKR = {
+        COLOR_ACCENT = "테마 강조색",
+        COLOR_ACCENTLIGHT = "밝은 강조색",
+        COLOR_GOLD = "금색",
+        COLOR_WHITE = "흰색",
         CAT_INTERFACE = "인터페이스",
         CAT_COMBAT = "전투",
         CAT_RAID = "파티 & 공격대",
