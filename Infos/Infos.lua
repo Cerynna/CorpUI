@@ -684,10 +684,18 @@ local function apply(B)
     bar:SetShown(c.enabled)
     bar:SetScale(c.scale)
     bar:SetHeight(c.height)
-    bar.cuiBg:SetAlpha(c.alpha / 100)
+    -- opacite : le fond, mais aussi le liseré et l ombre de ns.UI.Skin, qui
+    -- sont des aplats pleins SOUS le fond (10/10 : seul le fond suivait,
+    -- l aplat noir restait visible dessous et l opacite ne changeait rien)
+    local a = c.alpha / 100
+    bar.cuiBg:SetAlpha(a)
+    bar.cuiBorder:SetAlpha(a)
     bar.cuiBg:SetShown(c.backdrop)
     bar.cuiBorder:SetShown(c.backdrop)
-    for _, t in ipairs(bar.shadow) do t:SetShown(c.backdrop) end
+    for _, t in ipairs(bar.shadow) do
+        t:SetShown(c.backdrop)
+        t:SetAlpha(a)
+    end
     -- sans fond : contour pour rester lisible sur le decor
     local file = (ns.FontFile and ns.FontFile("regular")) or STANDARD_TEXT_FONT
     for _, fs in pairs(B.texts) do

@@ -219,7 +219,8 @@ local function shape(r)
     local h = db.height
     r:SetSize(db.width, h)
     r.cuiBg:SetColorTexture(C.bg[1], C.bg[2], C.bg[3], db.bgAlpha / 100)
-    r.cuiBorder:SetColorTexture(0, 0, 0, math.min(1, db.bgAlpha / 100 + 0.2))
+    -- le liseré de ns.UI.Skin est un aplat sous le fond : meme opacite que lui
+    r.cuiBorder:SetColorTexture(0, 0, 0, db.bgAlpha / 100)
     r.iconEdge:ClearAllPoints()
     r.iconEdge:SetPoint("LEFT", r, "LEFT", 4, 0)
     r.iconEdge:SetSize(h - 4, h - 4)
