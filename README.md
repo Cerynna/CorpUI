@@ -4,16 +4,16 @@
 
 # CorpUI
 
-**Une interface complète et modulaire pour World of Warcraft Classic, pensée pour le client Forever.**
+**Une interface complète et modulaire pour WoWForever.**
 
 Cadres, barres d'action, chat, sacs, hôtel des ventes, outils de groupe et de raid : tout se règle dans une seule fenêtre, `/corp`.
 
-![WoW Classic](https://img.shields.io/badge/WoW_Classic-Forever-d65cff?style=for-the-badge)
+![WoWForever](https://img.shields.io/badge/WoWForever-d65cff?style=for-the-badge)
 ![Interface](https://img.shields.io/badge/Interface-16001-ffd100?style=for-the-badge)
 ![Langues](https://img.shields.io/badge/Langues-10-5b8def?style=for-the-badge)
 ![Version](https://img.shields.io/badge/Version-1.0-3fb950?style=for-the-badge)
 
-[Modules](#ce-quil-contient) · [Installation](#installation) · [Commandes](#commandes) · [Apparence](#apparence) · [Pensé pour Forever](#pensé-pour-forever) · [Crédits](#crédits)
+[Modules](#ce-quil-contient) · [Installation](#installation) · [Commandes](#commandes) · [Apparence](#apparence) · [Pensé pour WoWForever](#pensé-pour-wowforever) · [Crédits](#crédits)
 
 </div>
 
@@ -118,9 +118,9 @@ Les mini-jeux peuvent s'ouvrir tout seuls pendant les trajets en griffon.
 - Police **Saira Semi Condensed** (repli sur la police du jeu en russe, chinois et coréen), au choix dans **Général**.
 - Disposition prête à l'emploi au premier lancement ; **Profils › Réinitialiser** la remet.
 
-## Pensé pour Forever
+## Pensé pour WoWForever
 
-Le client Forever protège beaucoup de données en combat (valeurs « secrètes ») et bloque le code des addons qui touche à l'interface de Blizzard. CorpUI est écrit en conséquence :
+WoWForever protège beaucoup de données en combat (valeurs « secrètes ») et bloque le code des addons qui touche à l'interface de Blizzard. CorpUI est écrit en conséquence :
 
 - aucun crochet ni remplacement de fonction de Blizzard, aucune variable globale qu'il lit ;
 - les actions protégées passent par des boutons sécurisés et leurs extraits (lancer un sort, choisir un totem, ouvrir le journal de quêtes), donc elles fonctionnent aussi en combat ;
