@@ -261,6 +261,14 @@ end
 -- refuse aux addons. Le bouton du sac de Blizzard (cache, mais ses sacs
 -- sont ouverts par le jeu a l HV) est donc clique par l action securisee
 -- "click" : son propre code met l objet en vente, sans trace de l addon.
+-- courrier : onglet d envoi affiche (le clic droit y joint l objet)
+local function mailSending()
+    local f = rawget(_G, "SendMailFrame")
+    if type(f) ~= "table" or not f.IsVisible then return false end
+    local ok, v = pcall(f.IsVisible, f)
+    return ok and v == true
+end
+
 local function blizzardItemButton(bag, slot)
     local find = ContainerFrameUtil_GetItemButtonAndContainer
     if type(find) ~= "function" then return nil end
@@ -341,17 +349,28 @@ local function createItemButton(parent, bag, slot, secure, name, size)
     if secure then
         b:SetScript("PreClick", function(self, button, down)
             if InCombatLockdown() then return end
-            -- clic droit : a l HV par le bouton du jeu ; ailleurs comme avant
-            -- (utiliser hors PNJ, sinon l addon s en charge a la fin du clic)
+            -- clic droit chez un PNJ (marchand, banque, courrier, HV,
+            -- echange) : par le bouton du sac du jeu (le jeu ouvre ses sacs
+            -- a ces endroits) ; son code vend, depose, joint ou utilise
+            -- l objet, sans trace de l addon (10/10 : un patron utilise
+            -- depuis la boite aux lettres par UseContainerItem de l addon
+            -- etait bloque, "desactiver ou ignorer"). Hors PNJ : utiliser.
             if button == "RightButton" then
-                local target = contexts.auction and blizzardItemButton(self.bag, self.slot) or nil
+                local npc = atNPC()
+                local target = npc and blizzardItemButton(self.bag, self.slot) or nil
                 self.viaBlizzard = target ~= nil
                 if target then
                     self:SetAttribute("type2", "click")
                     self:SetAttribute("clickbutton2", target)
+                    self.secureUse = false
                 else
-                    self:SetAttribute("type2", atNPC() and "" or "item")
+                    -- bouton du jeu introuvable : boite de reception (rien a
+                    -- joindre) = utiliser, par l action securisee ; sinon
+                    -- l addon s en charge a la fin du clic (vendre, deposer)
+                    local use = not npc or (contexts.mail and not mailSending())
+                    self:SetAttribute("type2", use and "item" or "")
                     self:SetAttribute("clickbutton2", nil)
+                    self.secureUse = use and true or false
                 end
                 return
             end
@@ -389,7 +408,7 @@ local function createItemButton(parent, bag, slot, secure, name, size)
                 if not InCombatLockdown() then pcall(C_Container.PickupContainerItem, self.bag, self.slot) end
                 return
             end
-            if not self.secure or atNPC() then useItem(self) end
+            if not self.secure or (atNPC() and not self.secureUse) then useItem(self) end
             return
         end
         if button ~= "LeftButton" or down then return end
