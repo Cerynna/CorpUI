@@ -1,12 +1,13 @@
 --[[--------------------------------------------------------------------------
-    CorpUI - centre de l ecran (avec le module Cadres ; style Moderne)
+    CorpUI - centre de l ecran (avec le module Cadres)
     Entre les cadres joueur et cible, comme la maquette :
       - barre de puissance du joueur (mana, rage, energie), texte centre
         "3 060 / 4 230" (ou valeur seule, ou %) ;
       - procs : buffs courts du joueur (duree d au plus N secondes, les
         buffs permanents et longs restent en haut a droite), en ligne
         centree sous la barre.
-    Coupe par defaut : la disposition Moderne l allume (Disposition.lua).
+    Coupe par defaut ; allume dans les reglages par defaut de CorpUI
+    (Defauts.lua).
     Deplacable avec les autres poignees.
 
     Valeurs secretes : la barre recoit UnitPower / UnitPowerMax tels quels

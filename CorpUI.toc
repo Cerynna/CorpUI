@@ -22,7 +22,6 @@ Core.lua
 Movers.lua
 Media\Fonts\Fonts.lua
 Polices.lua
-Disposition.lua
 Defauts.lua
 
 # Communication entre CorpUI (ns.Comm : avant les modules qui l utilisent)

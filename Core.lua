@@ -1879,10 +1879,21 @@ function ns.InitRoot()
     local fresh = type(CorpUIDB) ~= "table"
     if fresh then CorpUIDB = {} end
     local db = CorpUIDB
-    -- toute premiere connexion : style Moderne et disposition de reference
-    -- (Defauts.lua), completes ensuite par les valeurs des modules
+    -- toute premiere connexion : disposition de reference (Defauts.lua),
+    -- completee ensuite par les valeurs des modules
     if fresh and ns.DefaultProfile then
         for k, v in pairs(ns.DefaultProfile()) do db[k] = v end
+    end
+    -- cles abandonnees le 10/10 (un seul style, une seule disposition) :
+    -- retirees de la sauvegarde et des profils ranges
+    local OLD = { "style", "styleBackup", "layoutBackup" }
+    for _, k in ipairs(OLD) do db[k] = nil end
+    if type(db.profiles) == "table" then
+        for _, p in pairs(db.profiles) do
+            if type(p) == "table" then
+                for _, k in ipairs(OLD) do p[k] = nil end
+            end
+        end
     end
     -- reprise de BuffForever : langue et minicarte etaient dans les buffs
     local b = db.buffs
@@ -2604,27 +2615,6 @@ local function buildGeneral()
     scaleHint:SetText(L.GEN_SCALE_HINT)
     form:Gap(26)
 
-    -- disposition des maquettes (Disposition.lua) et retour en arriere
-    if ns.ModernLayout then
-        local lay = ns.UI.Button(general, L.LAYOUT_APPLY, 170, function()
-            ns.ModernLayout.Apply()
-            form.Changed()
-        end)
-        lay:SetPoint("TOPLEFT", general, "TOPLEFT", 8, form.y - 2)
-        local back = ns.UI.Button(general, L.LAYOUT_RESTORE, 170, function()
-            ns.ModernLayout.Restore()
-            form.Changed()
-        end)
-        back:SetPoint("LEFT", lay, "RIGHT", 6, 0)
-        form.y = form.y - 28
-        local layHint = general:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        layHint:SetPoint("TOPLEFT", general, "TOPLEFT", 8, form.y)
-        layHint:SetWidth(420)
-        layHint:SetJustifyH("LEFT")
-        layHint:SetText(L.LAYOUT_HINT)
-        form.y = form.y - 30
-        table.insert(form.refreshers, function() back:SetEnabled(ns.ModernLayout.HasBackup()) end)
-    end
     form:Gap(4)
     local themeTitle = form:Header(L.GEN_THEME)
     local themeHint = general:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")

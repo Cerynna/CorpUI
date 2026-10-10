@@ -116,7 +116,7 @@ Les mini-jeux peuvent s'ouvrir tout seuls pendant les trajets en griffon.
 
 - Thème plat, liserés fins, fonds neutres ; la couleur d'accent se choisit dans **Général** (couleur de la classe par défaut).
 - Police **Saira Semi Condensed** (repli sur la police du jeu en russe, chinois et coréen), au choix dans **Général**.
-- Bouton **Disposition Moderne** : place les cadres, les barres, la minicarte, le chat et le compteur d'un coup ; **Ma disposition d'avant** revient en arrière.
+- Disposition prête à l'emploi au premier lancement ; **Profils › Réinitialiser** la remet.
 
 ## Pensé pour Forever
 
