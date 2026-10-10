@@ -65,6 +65,38 @@ local function armRange(force)
     pcall(ST.EnableRangeCheck, 2, true)
 end
 
+-- Deuxieme source (10/10 : en jeu, la portee de l attaque automatique
+-- restait muette meme activee) : la portee des sorts du chasseur,
+-- C_Spell.IsSpellInRange (vrai / faux / nil), par leur nom localise (le
+-- rang le plus haut connu). Melee : Attaque du raptor, Coupure d ailes ;
+-- tir : Tir automatique (faux aussi sous sa portee minimale de 8 m).
+local MELEE_SPELLS = { 2973, 2974 }
+local RANGED_SPELLS = { 75 }
+
+local function spellName(id)
+    if C_Spell and C_Spell.GetSpellName then
+        local ok, n = pcall(C_Spell.GetSpellName, id)
+        if ok and type(n) == "string" and not issecret(n) then return n end
+    end
+end
+
+local function spellRange(list)
+    if not (C_Spell and C_Spell.IsSpellInRange) then return nil end
+    for _, id in ipairs(list) do
+        for _, key in ipairs({ spellName(id) or id, id }) do
+            local ok, v = pcall(C_Spell.IsSpellInRange, key, "target")
+            if ok and not issecret(v) and v ~= nil then return v and true or false end
+        end
+    end
+    return nil
+end
+
+local function swingRange(t)
+    local ST = C_SwingTimer
+    if not (ST and ST.IsTargetWithinSwingRange) then return nil end
+    return bool(pcall(ST.IsTargetWithinSwingRange, t))
+end
+
 local function targetOk()
     if not UnitExists("target") then return false end
     local okA, can = pcall(UnitCanAttack, "player", "target")
@@ -75,17 +107,17 @@ end
 
 local function zone()
     if not targetOk() then return nil end
-    local ST = C_SwingTimer
-    if not (ST and ST.IsTargetWithinSwingRange) then return nil end
-    local melee = bool(pcall(ST.IsTargetWithinSwingRange, 0))
+    local melee = swingRange(0)
+    if melee == nil then melee = spellRange(MELEE_SPELLS) end
     if melee then return "melee" end
-    local ranged = bool(pcall(ST.IsTargetWithinSwingRange, 2))
-    if ranged then return "ranged" end
+    local ranged = swingRange(2)
     if ranged == nil then
-        -- pas de mesure : on la (re)active, reponse au releve suivant
-        if melee == nil then armRange() end
-        return nil
+        -- pas de mesure de l attaque automatique : on la (re)active
+        armRange()
+        ranged = spellRange(RANGED_SPELLS)
     end
+    if ranged then return "ranged" end
+    if ranged == nil then return nil end           -- ni arme a distance ni sort connu
     local close = CheckInteractDistance and bool(pcall(CheckInteractDistance, "target", 3))
     if close then return "dead" end
     if close == false then return "far" end
@@ -296,6 +328,10 @@ ns.RegisterModule({
                 ST and ST.IsTargetWithinSwingRange and show(pcall(ST.IsTargetWithinSwingRange, 0)) or "absent",
                 ST and ST.IsTargetWithinSwingRange and show(pcall(ST.IsTargetWithinSwingRange, 2)) or "absent",
                 CheckInteractDistance and show(pcall(CheckInteractDistance, "target", 3)) or "absent"))
+            local sp = C_Spell and C_Spell.IsSpellInRange
+            ns.Say(string.format("  sorts : %s %s, %s %s",
+                tostring(spellName(2973)), sp and show(pcall(sp, spellName(2973) or 2973, "target")) or "absent",
+                tostring(spellName(75)), sp and show(pcall(sp, spellName(75) or 75, "target")) or "absent"))
             ns.Say(string.format("  zone %s, pastille %s", tostring(zone()), pill and tostring(pill:IsShown()) or "absente"))
             return
         end
