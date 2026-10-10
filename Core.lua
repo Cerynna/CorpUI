@@ -28,7 +28,14 @@
 local ADDON_NAME, ns = ...
 local L = ns.L
 
-ns.VERSION = "1.0"
+-- version : celle du .toc (## Version), seule a changer a chaque release
+-- (.github/scripts/release.sh) ; repli si le client ne la donne pas
+do
+    local fn = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+    local ok, v = false, nil
+    if fn then ok, v = pcall(fn, ADDON_NAME, "Version") end
+    ns.VERSION = (ok and type(v) == "string" and v ~= "") and v or "1.0"
+end
 ns.TITLE = "|cffd65cffCorp|r|cffffd100UI|r"
 
 -- Textures de CorpUI (dossier Media) : logo genere avec Nano Banana, barre lisse calculee

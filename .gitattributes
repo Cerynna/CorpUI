@@ -4,3 +4,8 @@
 *.ogg binary
 *.ttf binary
 *.otf binary
+
+# hors du zip des releases (git archive, .github/workflows/release.yml)
+.github export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore

@@ -92,10 +92,14 @@ Les mini-jeux peuvent s'ouvrir tout seuls pendant les trajets en griffon.
 
 ## Installation
 
-1. Télécharge le dépôt : bouton **Code** puis **Download ZIP**, ou `git clone https://github.com/Cerynna/CorpUI.git`.
-2. Place le dossier dans `World of Warcraft\_classic_beta_\Interface\AddOns\`.
-3. Renomme-le en **`CorpUI`** s'il porte un autre nom (le ZIP de GitHub ajoute le nom de la branche : `CorpUI-main`).
-4. Lance le jeu, active CorpUI dans la liste des addons, puis tape `/corp`.
+1. Ouvre la [dernière version](https://github.com/Cerynna/CorpUI/releases/latest) (rubrique **Releases** du dépôt) et télécharge **CorpUI-X.Y.Z.zip**, pas « Source code ».
+2. Décompresse-le dans `World of Warcraft\_classic_beta_\Interface\AddOns\` : tu obtiens un dossier `CorpUI`.
+3. Lance le jeu, active CorpUI dans la liste des addons, puis tape `/corp`.
+
+Mise à jour : remplace le dossier `CorpUI` par celui de la nouvelle version. Tes réglages sont gardés (ils sont dans `WTF`). `/corp qui` montre la version de CorpUI des joueurs de ta guilde et de ton groupe.
+
+> [!NOTE]
+> Version en cours de développement : bouton **Code** puis **Download ZIP** (ou `git clone`), et renomme le dossier en **`CorpUI`** (le ZIP de GitHub l'appelle `CorpUI-main`).
 
 > [!TIP]
 > Les nouvelles images, polices et sons ne sont pris en compte qu'après un redémarrage complet du jeu ; un `/reload` suffit pour le reste.
@@ -126,6 +130,10 @@ WoWForever protège beaucoup de données en combat (valeurs « secrètes ») et 
 - les actions protégées passent par des boutons sécurisés et leurs extraits (lancer un sort, choisir un totem, ouvrir le journal de quêtes), donc elles fonctionnent aussi en combat ;
 - les valeurs secrètes sont transmises telles quelles aux barres et aux textes, jamais comparées ni calculées ;
 - les auras passent par le conteneur sécurisé de Blizzard (`CustomAuraContainerTemplate`).
+
+## Publier une version
+
+Depuis le dossier `CorpUI`, dans Git Bash : `.github/scripts/release.sh 1.2.0`. Le script met la version dans le `.toc` (et le badge ci-dessus), commite, pose le tag `v1.2.0` et pousse. GitHub construit alors `CorpUI-1.2.0.zip` (un dossier `CorpUI` sans les fichiers de développement) et publie la release, avec la liste des changements depuis la version précédente.
 
 ## Crédits
 
