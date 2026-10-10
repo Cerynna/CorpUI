@@ -45,6 +45,8 @@ local KEYS = {
     threat = {},
     -- ajoutee le 10/10 : modules allumes / coupes (page Modules)
     modules = {},
+    -- ajoutee le 10/10 : fil du butin
+    lootfeed = {},
 }
 
 local function copy(v)

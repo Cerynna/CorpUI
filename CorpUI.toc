@@ -185,6 +185,9 @@ Installation\Assistant.lua
 # Module Butin
 Butin\Strings.lua
 Butin\Butin.lua
+# Fil du butin (objets, argent, experience, reputation, quetes ; or par heure)
+Butin\StringsFil.lua
+Butin\Fil.lua
 
 # Module Hotel des ventes (scan, prix dans les infobulles ; fonctions facon
 # TSM : valeur marche, volet CorpUI a cote de l HV, vente, mes encheres,
