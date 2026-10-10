@@ -1914,6 +1914,30 @@ function ns.HideBlizzard(names, hide)
     return true
 end
 
+-- Blizzard ressort lui-meme certains cadres de notre parent cache (audit de
+-- la branche forever, 10/10) : le mode Edition (ApplySystemAnchor ->
+-- AddManagedFrame / BreakFromFrameManager) a chaque application de
+-- disposition (connexion, sauvegarde, sortie du mode Edition, changement de
+-- specialisation) pour le suivi de quetes, les barres de recharges, le
+-- minuteur de coups, la barre de sort ; PlayerFrame_AttachCastBar... Sans
+-- erreur : le cadre de Blizzard reapparait. Un releve leger (1 fois par
+-- seconde, hors combat) remet dans le parent cache tout cadre cache qui en
+-- est sorti.
+do
+    local watch = CreateFrame("Frame")
+    local acc = 0
+    watch:SetScript("OnUpdate", function(_, dt)
+        acc = acc + dt
+        if acc < 1 then return end
+        acc = 0
+        if not next(hiddenOrig) or InCombatLockdown() then return end
+        for f in pairs(hiddenOrig) do
+            local ok, p = pcall(f.GetParent, f)
+            if ok and p ~= ns.hiddenParent then pcall(f.SetParent, f, ns.hiddenParent) end
+        end
+    end)
+end
+
 ---------------------------------------------------------------------------
 -- Notifications internes : les interfaces s abonnent ici
 ---------------------------------------------------------------------------
