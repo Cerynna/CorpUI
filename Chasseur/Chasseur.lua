@@ -254,6 +254,28 @@ ns.RegisterModule({
     icon = "Interface\\Icons\\Ability_Hunter_SniperShot",
     title = function() return L.MOD_HUNTER end,
     desc = function() return L.HUNTER_DESC end,
-    Slash = function() toggle() end,
+    Slash = function(input)
+        if strlower(strtrim(input or "")) == "diag" then
+            -- ce que le jeu repond, valeur par valeur (cible ennemie vivante)
+            local function show(ok, v)
+                if not ok then return "erreur" end
+                if issecret(v) then return "secret" end
+                return tostring(v)
+            end
+            local ST = C_SwingTimer
+            ns.Say(string.format("chasseur diag : chasseur %s, module %s, affichage %s, combat %s",
+                tostring(hunter), db and "pret" or "non charge", db and db.show or "?", tostring(InCombatLockdown())))
+            ns.Say(string.format("  cible %s, attaquable %s, morte %s",
+                tostring(UnitExists("target")), show(pcall(UnitCanAttack, "player", "target")),
+                show(pcall(UnitIsDeadOrGhost, "target"))))
+            ns.Say(string.format("  melee (0) %s, tir (2) %s, moins de 10 m %s",
+                ST and ST.IsTargetWithinSwingRange and show(pcall(ST.IsTargetWithinSwingRange, 0)) or "absent",
+                ST and ST.IsTargetWithinSwingRange and show(pcall(ST.IsTargetWithinSwingRange, 2)) or "absent",
+                CheckInteractDistance and show(pcall(CheckInteractDistance, "target", 3)) or "absent"))
+            ns.Say(string.format("  zone %s, pastille %s", tostring(zone()), pill and tostring(pill:IsShown()) or "absente"))
+            return
+        end
+        toggle()
+    end,
     Open = toggle,
 })
