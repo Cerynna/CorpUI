@@ -1,0 +1,64 @@
+# Release de CorpUI : a chaque tag vX.Y.Z pousse sur GitHub, construit
+# CorpUI-X.Y.Z.zip (un dossier CorpUI pret a poser dans AddOns, sans les
+# fichiers de developpement : voir .gitattributes) et cree la release avec
+# la liste des changements depuis la version precedente.
+# Lancer une version : .github/scripts/release.sh X.Y.Z
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Version du .toc identique au tag
+        id: ver
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          TOC=$(grep -m1 '^## Version:' CorpUI.toc | sed 's/^## Version:[[:space:]]*//' | tr -d '\r')
+          if [ "$TOC" != "$VER" ]; then
+            echo "::error::Le .toc annonce la version $TOC, le tag est $GITHUB_REF_NAME"
+            exit 1
+          fi
+          echo "ver=$VER" >> "$GITHUB_OUTPUT"
+
+      - name: Archive CorpUI-X.Y.Z.zip
+        run: git archive --format=zip --prefix=CorpUI/ -o "CorpUI-${{ steps.ver.outputs.ver }}.zip" "$GITHUB_REF_NAME"
+
+      - name: Notes de version
+        run: |
+          VER="${{ steps.ver.outputs.ver }}"
+          PREV=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+          cat > notes.md <<'EOF'
+          ## Installation
+
+          1. Télécharge **CorpUI-@VER@.zip** ci-dessous (pas « Source code »).
+          2. Décompresse-le dans `World of Warcraft\_classic_beta_\Interface\AddOns\` : tu obtiens un dossier `CorpUI`.
+          3. Pour une mise à jour, remplace l'ancien dossier `CorpUI` (tes réglages sont gardés : ils sont dans `WTF`), puis relance le jeu.
+
+          ## Changements
+
+          EOF
+          sed -i "s/@VER@/$VER/g; s/^          //" notes.md
+          if [ -n "$PREV" ]; then
+            git log --no-merges --pretty='- %s' "$PREV..$GITHUB_REF_NAME" | grep -v -E '^- Version [0-9]' >> notes.md || true
+          else
+            echo "- Première version publiée." >> notes.md
+          fi
+
+      - name: Release GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "CorpUI-${{ steps.ver.outputs.ver }}.zip" \
+            --title "CorpUI ${{ steps.ver.outputs.ver }}" --notes-file notes.md
