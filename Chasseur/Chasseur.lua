@@ -2,8 +2,12 @@
     CorpUI - module Chasseur : distance a la cible
 
     La zone morte du chasseur : entre 5 et 8 metres, ni coup de melee (5 m
-    au plus) ni tir (8 m au moins). Une pastille sous le personnage dit ou
-    l on est, a sa couleur :
+    au plus) ni tir (8 m au moins). Deux styles (reglage) :
+      - regle a zones (defaut, 10/10) : 0-5 / 5-8 (rouge) / 8-35 / au-dela,
+        un curseur qui glisse a la place estimee (le jeu ne donne pas la
+        distance d un monstre : tranches de melee, tir, 10, 11 et 28 m) ;
+      - pastille : le nom de la zone, a sa couleur.
+    Couleurs :
       Melee (0 a 5 m) orange, Zone morte (5 a 8 m) rouge et qui pulse,
       A portee (8 a 35 m) vert, Trop loin (plus de 35 m) gris ;
     un son (au choix, liste partagee avec l alerte de dissipation) a
@@ -29,7 +33,7 @@ local C = ns.COLORS
 
 local issecret = issecretvalue or function() return false end
 
-local DEFAULTS = { show = "always", problems = false, scale = 100, sound = true, soundKey = "f_alarme" }
+local DEFAULTS = { show = "always", problems = false, scale = 100, sound = true, soundKey = "f_alarme", style = "ruler" }
 local ZONES = {
     melee = { text = "HUNTER_Z_MELEE", range = "HUNTER_R_MELEE", rgb = { 0.94, 0.62, 0.15 } },
     dead = { text = "HUNTER_Z_DEAD", range = "HUNTER_R_DEAD", rgb = { 0.95, 0.3, 0.3 } },
@@ -42,7 +46,7 @@ local SOUND_GAP = 2         -- secondes au moins entre deux sons
 
 local db
 local hunter = false
-local pill
+local pill               -- cadre porteur (pastille, ou regle dans pill.ruler)
 local current, lastSound = nil, 0
 
 ---------------------------------------------------------------------------
@@ -134,33 +138,152 @@ local function zone()
         armRange()
         ranged = spellRange(RANGED_SPELLS)
     end
-    if ranged then return "ranged" end
+    if ranged then
+        -- place sur la regle : tranches du jeu (10, 11, 28 m)
+        if within(3) then return "ranged", 9 end
+        if within(2) then return "ranged", 10.5 end
+        if within(4) or within(1) then return "ranged", 19.5 end
+        return "ranged", 31.5
+    end
     local melee = swingRange(0)
     if melee == nil then melee = spellRange(MELEE_SPELLS) end
-    if melee then return "melee" end
+    if melee then return "melee", 2.5 end
     if ranged == nil then return nil end           -- ni arme a distance ni sort connu
     -- ni tir ni melee : sous les 8 m ou au-dela de 35 m. A moins de 28 m
     -- sans pouvoir tirer, on est forcement sous les 8 m.
     local near, mid = within(3) or within(2), within(4) or within(1)
     if near or mid then
-        if melee == false then return "dead" end
-        return "close"                             -- melee inconnue : 0 a 8 m
+        if melee == false then return "dead", 6.5 end
+        return "close", 4                          -- melee inconnue : 0 a 8 m
     end
     if near == nil and mid == nil then
         -- mesures du jeu muettes : la zone d avant (pas de saut a plus de 35 m)
-        if current == "melee" or current == "dead" then return "dead" end
-        if current == "close" then return "close" end
+        if current == "melee" or current == "dead" then return "dead", 6.5 end
+        if current == "close" then return "close", 4 end
     end
-    return "far"
+    return "far", 38
 end
 
 ---------------------------------------------------------------------------
 -- Pastille
 ---------------------------------------------------------------------------
 
-local function paint(z, preview)
+---------------------------------------------------------------------------
+-- Regle a zones
+---------------------------------------------------------------------------
+
+local RULER_W, BAR_H = 220, 10
+-- largeur de chaque tranche sur la regle (pas a l echelle : la zone morte
+-- aussi large que la melee, pour la voir)
+local SEGS = {
+    { key = "melee", from = 0, to = 5, w = 0.22 },
+    { key = "dead", from = 5, to = 8, w = 0.22 },
+    { key = "ranged", from = 8, to = 35, w = 0.42 },
+    { key = "far", from = 35, to = 40, w = 0.14 },
+}
+
+-- metres -> position sur la regle (0 a 1)
+local function frac(yd)
+    local acc = 0
+    for _, sg in ipairs(SEGS) do
+        if yd <= sg.to then return acc + math.max(0, yd - sg.from) / (sg.to - sg.from) * sg.w end
+        acc = acc + sg.w
+    end
+    return 1
+end
+
+local function buildRuler()
+    local r = CreateFrame("Frame", nil, pill)
+    r:SetAllPoints()
+    r.zone = r:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    ns.UI.HeadFont(r.zone, 12)
+    r.zone:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
+    r.range = r:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    r.range:SetPoint("TOPRIGHT", r, "TOPRIGHT", 0, -1)
+    r.bar = CreateFrame("Frame", nil, r)
+    r.bar:SetPoint("TOPLEFT", r, "TOPLEFT", 0, -17)
+    r.bar:SetSize(RULER_W, BAR_H)
+    ns.UI.Skin(r.bar, 0.9)
+    r.segs = {}
+    local x = 0
+    for _, sg in ipairs(SEGS) do
+        local t = r.bar:CreateTexture(nil, "ARTWORK")
+        t:SetPoint("TOPLEFT", r.bar, "TOPLEFT", math.floor(x * RULER_W + 0.5), 0)
+        t:SetSize(math.floor(sg.w * RULER_W + 0.5), BAR_H)
+        ns.NoSnap(t)
+        local c = ZONES[sg.key].rgb
+        t:SetColorTexture(c[1], c[2], c[3], 1)
+        r.segs[sg.key] = t
+        -- graduation au debut de chaque tranche (sauf la derniere : "35")
+        local lab = r:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+        lab:SetPoint("TOP", r.bar, "BOTTOMLEFT", math.floor(x * RULER_W + 0.5), -2)
+        lab:SetText(tostring(sg.from))
+        x = x + sg.w
+    end
+    local last = r:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    last:SetPoint("TOPRIGHT", r.bar, "BOTTOMRIGHT", 0, -2)
+    last:SetText(L.HUNTER_UNIT)
+    -- curseur : trait blanc liseré de noir, qui depasse de la barre
+    r.marker = CreateFrame("Frame", nil, r)
+    r.marker:SetSize(4, BAR_H + 8)
+    r.marker:SetFrameLevel(r.bar:GetFrameLevel() + 3)
+    local edge = r.marker:CreateTexture(nil, "OVERLAY")
+    edge:SetAllPoints()
+    edge:SetColorTexture(0, 0, 0, 1)
+    local core = r.marker:CreateTexture(nil, "OVERLAY", nil, 1)
+    core:SetPoint("TOPLEFT", 1, -1)
+    core:SetPoint("BOTTOMRIGHT", -1, 1)
+    core:SetColorTexture(1, 1, 1, 1)
+    r.pos, r.target = 0, 0
+    r:SetScript("OnUpdate", function(self, dt)
+        -- glissement du curseur vers la place estimee
+        local d = self.target - self.pos
+        if math.abs(d) > 0.3 then self.pos = self.pos + d * math.min(1, dt * 10) else self.pos = self.target end
+        self.marker:ClearAllPoints()
+        self.marker:SetPoint("CENTER", self.bar, "LEFT", self.pos, 0)
+        -- zone morte : sa tranche clignote
+        if self.pulse then
+            self.segs.dead:SetAlpha(0.55 + 0.45 * math.abs(math.sin(GetTime() * 5)))
+        end
+    end)
+    return r
+end
+
+local function paintRuler(z, yd, preview)
+    local r = pill.ruler
+    local d = ZONES[z]
+    local c = d.rgb
+    r.zone:SetText(L[d.text])
+    r.zone:SetTextColor(math.min(1, c[1] + 0.15), math.min(1, c[2] + 0.15), math.min(1, c[3] + 0.15))
+    local exact = not preview and exactYards()
+    r.range:SetText(exact and string.format("%.0f %s", exact, L.HUNTER_UNIT) or L[d.range])
+    -- tranche(s) allumee(s) ; "trop pres" : melee et zone morte
+    for key, t in pairs(r.segs) do
+        local on = key == z or (z == "close" and (key == "melee" or key == "dead"))
+        t:SetAlpha(on and 1 or 0.28)
+    end
+    r.pulse = (z == "dead") and not preview
+    r.target = frac(exact or yd or 0) * RULER_W
+end
+
+local function paint(z, preview, yd)
     local d = ZONES[z]
     if not d then pill:Hide() return end
+    local ruler = db.style ~= "pill"
+    pill.ruler:SetShown(ruler)
+    pill.cuiBg:SetShown(not ruler)
+    pill.cuiBorder:SetShown(not ruler)
+    pill.text:SetShown(not ruler)
+    pill.range:SetShown(not ruler)
+    if ruler then
+        pill:SetSize(RULER_W, 42)
+        if pill.pulse then pill.pulse:Stop() end
+        pill:SetAlpha(1)
+        paintRuler(z, yd, preview)
+        pill:Show()
+        return
+    end
+    pill:SetHeight(22)
     local c = d.rgb
     pill.cuiBorder:SetColorTexture(c[1], c[2], c[3], 1)
     pill.cuiBg:SetColorTexture(c[1] * 0.18, c[2] * 0.18, c[3] * 0.18, 0.92)
@@ -191,10 +314,11 @@ local function update()
     if not pill then return end
     if ns.moversShown then
         -- apercu pour la placer (chasseurs seulement)
-        if hunter then paint("dead", true) else pill:Hide() end
+        if hunter then paint("dead", true, 6.5) else pill:Hide() end
         return
     end
-    local z = wanted() and zone() or nil
+    local z, yd
+    if wanted() then z, yd = zone() end
     if z == "ranged" and db.problems then z = nil end
     -- son a l entree dans la zone morte
     if z == "dead" and current ~= "dead" and db.sound and GetTime() - lastSound >= SOUND_GAP then
@@ -202,7 +326,7 @@ local function update()
         if ns.PlaySoundKey then ns.PlaySoundKey(db.soundKey) end
     end
     current = z
-    if z then paint(z) else
+    if z then paint(z, false, yd) else
         if pill.pulse then pill.pulse:Stop() end
         pill:Hide()
     end
@@ -228,6 +352,8 @@ local function build()
         a:SetDuration(0.45)
         pill.pulse = g
     end)
+    pill.ruler = buildRuler()
+    pill.ruler:Hide()
     pill.mover = ns.UI.Mover(pill, db.pos, L.HUNTER_MOVER)
     pill:Hide()
     -- distance : relue 10 fois par seconde
@@ -267,6 +393,8 @@ local function buildOptions()
     form:Cycle(L.HUNTER_OPT_SHOW, { "always", "combat" }, { always = L.HUNTER_SHOW_ALWAYS, combat = L.HUNTER_SHOW_COMBAT },
         function() return db.show end, function(v) db.show = v end)
     form:Number(L.HUNTER_OPT_SCALE, function() return db.scale end, function(v) db.scale = v end, 50, 200, 5)
+    form:Cycle(L.HUNTER_OPT_STYLE, { "ruler", "pill" }, { ruler = L.HUNTER_STYLE_RULER, pill = L.HUNTER_STYLE_PILL },
+        function() return db.style end, function(v) db.style = v end)
     form:EndColumns()
     form:Switch(L.HUNTER_OPT_PROBLEMS, function() return db.problems end, function(v) db.problems = v end)
     form:Switch(L.HUNTER_OPT_SOUND, function() return db.sound end, function(v) db.sound = v end)
