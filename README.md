@@ -11,7 +11,7 @@ Cadres, barres d'action, chat, sacs, hôtel des ventes, outils de groupe et de r
 ![WoWForever](https://img.shields.io/badge/WoWForever-d65cff?style=for-the-badge)
 ![Interface](https://img.shields.io/badge/Interface-16001-ffd100?style=for-the-badge)
 ![Langues](https://img.shields.io/badge/Langues-10-5b8def?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.0-3fb950?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.0.0-3fb950?style=for-the-badge)
 
 [Modules](#ce-quil-contient) · [Installation](#installation) · [Commandes](#commandes) · [Apparence](#apparence) · [Pensé pour WoWForever](#pensé-pour-wowforever) · [Crédits](#crédits)
 
