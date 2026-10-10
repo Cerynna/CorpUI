@@ -2230,6 +2230,7 @@ local PAGES = {
     { cat = "CAT_INTERFACE" },
     -- un seul panneau, l editeur de tous les cadres (liste deroulante), qui defile
     { key = "units", label = "PAGE_UNITS", cmds = { "cadres" }, scroll = true },
+    { key = "chasseur", cmds = { "chasseur" } },
     { key = "bars", label = "PAGE_BARS", cmds = { "barres", "xp" } },
     { key = "map", label = "PAGE_MAP", cmds = { "minicarte", "infos", "quetes" } },
     { key = "plates", label = "PAGE_PLATES", cmds = { "plaques", "infobulles" } },

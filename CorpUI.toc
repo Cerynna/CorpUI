@@ -71,6 +71,10 @@ Cadres\Totems.lua
 Cadres\StringsCoups.lua
 Cadres\Coups.lua
 
+# Module Chasseur (distance a la cible : melee, zone morte, tir ; sons de Dissipation)
+Chasseur\Strings.lua
+Chasseur\Chasseur.lua
+
 # Module Groupe
 Groupe\Strings.lua
 Groupe\Groupe.lua

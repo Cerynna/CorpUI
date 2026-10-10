@@ -20,7 +20,8 @@ local C = ns.COLORS
 local LIST = {
     { cat = "CAT_INTERFACE" },
     { key = "cadres", label = "MODULES_UNITS", desc = "MODULES_UNITS_DESC" },
-    { key = "groupe" }, { key = "incantations" }, { key = "auras" }, { key = "barres" }, { key = "xp" },
+    { key = "groupe" }, { key = "incantations" }, { key = "auras" }, { key = "chasseur" }, { key = "barres" },
+    { key = "xp" },
     { key = "minicarte" }, { key = "infos" }, { key = "quetes" }, { key = "plaques" }, { key = "infobulles" },
     { key = "chat" }, { key = "compteur" }, { key = "sacs" }, { key = "butin" }, { key = "fil" },
     { key = "marchand" }, { key = "habillage" },

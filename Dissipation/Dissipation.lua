@@ -398,6 +398,24 @@ local function playSound(key)
     if id and PlaySound then pcall(PlaySound, id, "Master") end
 end
 
+-- Liste et lecture partagees avec les autres modules (alerte de zone morte
+-- du chasseur...) : choix pour ns.UI.Select, puis ns.PlaySoundKey(cle).
+-- Definies au chargement du fichier : utilisables meme module coupe.
+ns.PlaySoundKey = playSound
+function ns.SoundChoices()
+    local list = {}
+    for _, s in ipairs(SOUND_LIST) do
+        if s.title then
+            list[#list + 1] = { title = true, value = "#" .. s.title, text = L[s.title] }
+        else
+            local text = L["DSP_SOUND_" .. s[1]:upper()]
+            if s.weird then text = string.format(L.DSP_SOUND_WEIRD, s.weird) end
+            list[#list + 1] = { value = s[1], text = text or s[1] }
+        end
+    end
+    return list
+end
+
 local lastAlert = -ALERT_GAP
 -- un debuff a dissiper vient d apparaitre sur un cadre (appele par Groupe)
 function D.Alert(unit)

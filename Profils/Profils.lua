@@ -47,6 +47,8 @@ local KEYS = {
     modules = {},
     -- ajoutee le 10/10 : fil du butin
     lootfeed = {},
+    -- ajoutee le 10/10 : module Chasseur (distance)
+    hunter = {},
 }
 
 local function copy(v)
