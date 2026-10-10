@@ -447,6 +447,49 @@ local function tabAlert(tab)
     return false
 end
 
+-- Messages non lus suivis par CorpUI : ce client ne fait pas clignoter ses
+-- onglets (releve du 10/10 par /corp chat alerte : ni tab.alerting ni lueur
+-- apres un message de guilde sur un onglet ferme). Pour les messages que le
+-- jeu signalait (guilde, officiers, groupe, raid, instance, chuchotes), une
+-- fenetre cachee qui les recoit (inscrite a l evenement, ou au groupe de
+-- messages) passe "non lue" jusqu a son ouverture. Le texte n est jamais
+-- lu ; l auteur seulement, s il est lisible, pour ignorer nos messages.
+local UNREAD_EVENTS = { "CHAT_MSG_GUILD", "CHAT_MSG_OFFICER", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER",
+    "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_RAID_WARNING", "CHAT_MSG_INSTANCE_CHAT",
+    "CHAT_MSG_INSTANCE_CHAT_LEADER", "CHAT_MSG_WHISPER", "CHAT_MSG_BN_WHISPER" }
+local unread = {}           -- fenetre de chat -> true
+
+-- nom sans royaume (lisible seulement)
+local function shortName(n)
+    if type(n) ~= "string" or issecret(n) then return nil end
+    return n:match("^[^%-]+") or n
+end
+
+-- la fenetre recoit-elle ce type de message ? (comme le jeu la remplit)
+local function receives(cf, event)
+    local ok, reg = pcall(cf.IsEventRegistered, cf, event)
+    if ok and reg then return true end
+    local group = event:sub(10):gsub("_LEADER$", "")
+    local list = rawget(cf, "messageTypeList")
+    if type(list) == "table" then
+        for _, g in ipairs(list) do if g == group then return true end end
+    end
+    return false
+end
+
+local function onChatMessage(event, sender)
+    local who = shortName(sender)
+    if who and who == UnitName("player") then return end
+    local sel = SELECTED_CHAT_FRAME
+    for cf in pairs(skinned) do
+        if cf ~= sel and not cf:IsShown() and receives(cf, event) then
+            -- fenetre de chuchotement a part : seulement son correspondant
+            local target = rawget(cf, "isTemporary") and rawget(cf, "chatTarget")
+            if not target or (who and who == shortName(target)) then unread[cf] = true end
+        end
+    end
+end
+
 -- plaques en alerte : leur voile pulse a chaque image (periode ~1,8 s)
 local pulsing = {}
 local function pulse()
@@ -1005,7 +1048,9 @@ local function refresh()
                     look.label:SetWidth(w - 10)
                 end
                 tabGeom(look, s.tab, hostOf(cf))
-                local alert = not on and tabAlert(s.tab)
+                -- ouverte : lue
+                if on or cf:IsShown() then unread[cf] = nil end
+                local alert = not on and (unread[cf] or tabAlert(s.tab)) and true or false
                 pulsing[look] = alert or nil
                 look.glow:SetShown(alert)
                 plateLook(look, on and "on" or (s.tab:IsMouseOver() and "over" or (alert and "alert" or "rest")))
@@ -1487,6 +1532,14 @@ end)
 for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "UPDATE_CHAT_WINDOWS", "UPDATE_FLOATING_CHAT_WINDOWS" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
+local unreadEv = CreateFrame("Frame")
+unreadEv:SetScript("OnEvent", function(_, event, _, sender)
+    if ns.ModuleOff("chat", unreadEv) then return end
+    if not db or not db.enabled then return end
+    onChatMessage(event, sender)
+end)
+for _, e in ipairs(UNREAD_EVENTS) do pcall(unreadEv.RegisterEvent, unreadEv, e) end
+
 local since, tick = 0, 0
 local lastSelected
 ev:SetScript("OnUpdate", function(_, dt)
