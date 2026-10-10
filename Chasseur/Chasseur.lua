@@ -118,10 +118,19 @@ local function zone()
     end
     if ranged then return "ranged" end
     if ranged == nil then return nil end           -- ni arme a distance ni sort connu
-    local close = CheckInteractDistance and bool(pcall(CheckInteractDistance, "target", 3))
-    if close then return "dead" end
-    if close == false then return "far" end
-    return nil
+    -- ni melee ni tir : moins de 8 m (zone morte) ou plus de 35 m (trop
+    -- loin). Mesures courtes du jeu (10/10 : duel, 10 m, repond faux sur un
+    -- PNJ) : commerce (11 m), suivre (28 m) ; a moins de 28 m sans pouvoir
+    -- tirer, on est forcement sous les 8 m.
+    if CheckInteractDistance then
+        for _, i in ipairs({ 3, 2, 4 }) do
+            if bool(pcall(CheckInteractDistance, "target", i)) then return "dead" end
+        end
+    end
+    -- sinon la zone d avant : depuis la melee ou la zone morte, on ne passe
+    -- pas d un coup a plus de 35 m
+    if current == "melee" or current == "dead" then return "dead" end
+    return "far"
 end
 
 ---------------------------------------------------------------------------
@@ -324,6 +333,9 @@ ns.RegisterModule({
             ns.Say(string.format("  cible %s, attaquable %s, morte %s",
                 tostring(UnitExists("target")), show(pcall(UnitCanAttack, "player", "target")),
                 show(pcall(UnitIsDeadOrGhost, "target"))))
+            local cid = {}
+            for i = 1, 4 do cid[i] = CheckInteractDistance and show(pcall(CheckInteractDistance, "target", i)) or "absent" end
+            ns.Say(string.format("  distances du jeu : 28 m (1) %s, 11 m (2) %s, 10 m (3) %s, 28 m (4) %s", cid[1], cid[2], cid[3], cid[4]))
             ns.Say(string.format("  melee (0) %s, tir (2) %s, moins de 10 m %s",
                 ST and ST.IsTargetWithinSwingRange and show(pcall(ST.IsTargetWithinSwingRange, 0)) or "absent",
                 ST and ST.IsTargetWithinSwingRange and show(pcall(ST.IsTargetWithinSwingRange, 2)) or "absent",
