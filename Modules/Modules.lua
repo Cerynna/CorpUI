@@ -153,6 +153,52 @@ local function open()
     ns.ShowPanel(win)
 end
 
+-- Grille compacte des interrupteurs (assistant d installation) : intertitres
+-- et modules en colonnes (remplies de haut en bas), nom seul, a quoi il
+-- sert dans l infobulle. Renvoie le cadre (hauteur faite) ; :Refresh().
+local CELL_H = 20
+function ns.ModuleSwitchGrid(parent, width, cols)
+    local g = CreateFrame("Frame", nil, parent)
+    local per = math.ceil(#LIST / cols)
+    local colW = math.floor(width / cols)
+    g:SetSize(width, per * CELL_H)
+    local switches = {}
+    for i, e in ipairs(LIST) do
+        local col, row = math.floor((i - 1) / per), (i - 1) % per
+        local x, y = col * colW, -row * CELL_H
+        if e.cat then
+            local h = g:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            h:SetPoint("TOPLEFT", g, "TOPLEFT", x, y - 5)
+            h:SetText(L[e.cat])
+        else
+            local title, desc = textOf(e)
+            local s = ns.UI.Switch(g, nil, function(v) ns.SetModuleWanted(e.key, v) end)
+            s:SetPoint("TOPLEFT", g, "TOPLEFT", x, y - 2)
+            local fs = g:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            fs:SetPoint("LEFT", s, "RIGHT", 6, 0)
+            fs:SetWidth(colW - 42)
+            fs:SetJustifyH("LEFT")
+            fs:SetWordWrap(false)
+            fs:SetText(title)
+            s:SetHitRectInsets(0, -(colW - 40), -2, -2)
+            s:HookScript("OnEnter", function(self)
+                local tip = ns.Tooltip(self, "ANCHOR_RIGHT")
+                tip:AddLine(title)
+                if desc ~= "" then tip:AddLine(desc, 1, 1, 1, true) end
+                tip:Show()
+            end)
+            s:HookScript("OnLeave", ns.HideTooltip)
+            s.key = e.key
+            table.insert(switches, s)
+        end
+    end
+    function g:Refresh()
+        for _, s in ipairs(switches) do s:SetChecked(ns.ModuleWanted(s.key)) end
+    end
+    g:Refresh()
+    return g
+end
+
 ns.RegisterModule({
     command = "modules",
     panelName = "CorpUIModules",

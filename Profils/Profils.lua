@@ -156,6 +156,54 @@ function ns.SetCharProfile(n)
     db.profileOf[ns.CharKey()] = n
 end
 
+-- Assistant d un nouveau personnage : le profil change TOUT DE SUITE (les
+-- reglages vivants deviennent ceux du profil, les etapes suivantes s y
+-- ecrivent ; l assistant recharge l interface a la fin).
+function ns.ProfileAdopt(n)
+    local db = root()
+    db.profiles = db.profiles or {}
+    db.profileOf = db.profileOf or {}
+    if n ~= db.activeProfile then
+        saveLive()
+        load(db, db.profiles[n] or {})
+        db.activeProfile = n
+    end
+    db.profileOf[ns.CharKey()] = n
+end
+
+-- nouveau profil pour ce personnage : copie du profil "from", ou reglages
+-- par defaut de CorpUI (fresh). reuse : nom d un profil deja cree par
+-- l assistant (retour en arriere : pas de "Ilona 2"). Renvoie son nom.
+function ns.ProfileCreate(from, fresh, reuse)
+    local db = root()
+    db.profiles = db.profiles or {}
+    if from and from ~= db.activeProfile then ns.ProfileAdopt(from) end
+    saveLive()
+    local n = reuse
+    if not n or n == DEFAULT then
+        local base = UnitName("player") or "CorpUI"
+        n = base
+        local i = 2
+        while n == DEFAULT or db.profiles[n] do n = base .. " " .. i i = i + 1 end
+    end
+    if fresh then load(db, ns.DefaultProfile and ns.DefaultProfile() or {}) end
+    db.profiles[n] = snapshot(db)
+    db.activeProfile = n
+    db.profileOf = db.profileOf or {}
+    db.profileOf[ns.CharKey()] = n
+    return n
+end
+
+-- personnages qui utilisent un profil (noms sans royaume)
+function ns.ProfileUsers(n)
+    local db, who = root(), {}
+    for k, p in pairs(db.profileOf or {}) do
+        if p == n and k ~= ns.CharKey() then table.insert(who, (k:match("^([^-]+)") or k)) end
+    end
+    table.sort(who)
+    return who
+end
+
 ---------------------------------------------------------------------------
 -- Ecriture / lecture du texte d export
 ---------------------------------------------------------------------------
