@@ -35,6 +35,8 @@ local ZONES = {
     dead = { text = "HUNTER_Z_DEAD", range = "HUNTER_R_DEAD", rgb = { 0.95, 0.3, 0.3 } },
     ranged = { text = "HUNTER_Z_RANGED", range = "HUNTER_R_RANGED", rgb = { 0.45, 0.8, 0.3 } },
     far = { text = "HUNTER_Z_FAR", range = "HUNTER_R_FAR", rgb = { 0.6, 0.6, 0.62 } },
+    -- trop pres pour tirer, sans savoir si la melee porte (0 a 8 m)
+    close = { text = "HUNTER_Z_CLOSE", range = "HUNTER_R_CLOSE", rgb = { 0.95, 0.45, 0.25 } },
 }
 local SOUND_GAP = 2         -- secondes au moins entre deux sons
 
@@ -68,9 +70,11 @@ end
 -- Deuxieme source (10/10 : en jeu, la portee de l attaque automatique
 -- restait muette meme activee) : la portee des sorts du chasseur,
 -- C_Spell.IsSpellInRange (vrai / faux / nil), par leur nom localise (le
--- rang le plus haut connu). Melee : Attaque du raptor, Coupure d ailes ;
--- tir : Tir automatique (faux aussi sous sa portee minimale de 8 m).
-local MELEE_SPELLS = { 2973, 2974 }
+-- rang le plus haut connu). Melee : Attaque (attaque automatique de
+-- melee), Coupure d ailes ; PAS Attaque du raptor (diag en jeu : vrai a
+-- plus de 11 m, attaque "au prochain coup" sans vraie portee). Tir : Tir
+-- automatique (faux aussi sous sa portee minimale de 8 m).
+local MELEE_SPELLS = { 6603, 2974 }
 local RANGED_SPELLS = { 75 }
 
 local function spellName(id)
@@ -105,11 +109,25 @@ local function targetOk()
     return bool(okD, dead) ~= true
 end
 
+-- distance exacte, si le client la donne pour cette cible (d ordinaire
+-- seulement soi et son groupe : jamais un monstre) ; nil sinon
+local function exactYards()
+    if not UnitDistanceSquared then return nil end
+    local ok, d2, checked = pcall(UnitDistanceSquared, "target")
+    if not ok or issecret(d2) or issecret(checked) or not checked or type(d2) ~= "number" or d2 < 0 then return nil end
+    return math.sqrt(d2)
+end
+
+-- mesure du jeu (CheckInteractDistance) : 3 = 10 m, 2 = 11 m, 1 et 4 = 28 m ;
+-- marchent aussi sur un PNJ (diag en jeu du 10/10)
+local function within(i)
+    if not CheckInteractDistance then return nil end
+    return bool(pcall(CheckInteractDistance, "target", i))
+end
+
 local function zone()
     if not targetOk() then return nil end
-    local melee = swingRange(0)
-    if melee == nil then melee = spellRange(MELEE_SPELLS) end
-    if melee then return "melee" end
+    -- tir d abord (8 a 35 m)
     local ranged = swingRange(2)
     if ranged == nil then
         -- pas de mesure de l attaque automatique : on la (re)active
@@ -117,19 +135,22 @@ local function zone()
         ranged = spellRange(RANGED_SPELLS)
     end
     if ranged then return "ranged" end
+    local melee = swingRange(0)
+    if melee == nil then melee = spellRange(MELEE_SPELLS) end
+    if melee then return "melee" end
     if ranged == nil then return nil end           -- ni arme a distance ni sort connu
-    -- ni melee ni tir : moins de 8 m (zone morte) ou plus de 35 m (trop
-    -- loin). Mesures courtes du jeu (10/10 : duel, 10 m, repond faux sur un
-    -- PNJ) : commerce (11 m), suivre (28 m) ; a moins de 28 m sans pouvoir
-    -- tirer, on est forcement sous les 8 m.
-    if CheckInteractDistance then
-        for _, i in ipairs({ 3, 2, 4 }) do
-            if bool(pcall(CheckInteractDistance, "target", i)) then return "dead" end
-        end
+    -- ni tir ni melee : sous les 8 m ou au-dela de 35 m. A moins de 28 m
+    -- sans pouvoir tirer, on est forcement sous les 8 m.
+    local near, mid = within(3) or within(2), within(4) or within(1)
+    if near or mid then
+        if melee == false then return "dead" end
+        return "close"                             -- melee inconnue : 0 a 8 m
     end
-    -- sinon la zone d avant : depuis la melee ou la zone morte, on ne passe
-    -- pas d un coup a plus de 35 m
-    if current == "melee" or current == "dead" then return "dead" end
+    if near == nil and mid == nil then
+        -- mesures du jeu muettes : la zone d avant (pas de saut a plus de 35 m)
+        if current == "melee" or current == "dead" then return "dead" end
+        if current == "close" then return "close" end
+    end
     return "far"
 end
 
@@ -145,7 +166,8 @@ local function paint(z, preview)
     pill.cuiBg:SetColorTexture(c[1] * 0.18, c[2] * 0.18, c[3] * 0.18, 0.92)
     pill.text:SetText(L[d.text])
     pill.text:SetTextColor(math.min(1, c[1] + 0.15), math.min(1, c[2] + 0.15), math.min(1, c[3] + 0.15))
-    pill.range:SetText(L[d.range])
+    local y = not preview and exactYards()
+    pill.range:SetText(y and string.format("%.0f %s", y, L.HUNTER_UNIT) or L[d.range])
     local w = math.floor(pill.text:GetStringWidth() + pill.range:GetStringWidth() + 26)
     pill:SetWidth(math.max(90, w))
     if pill.pulse then
@@ -333,6 +355,10 @@ ns.RegisterModule({
             ns.Say(string.format("  cible %s, attaquable %s, morte %s",
                 tostring(UnitExists("target")), show(pcall(UnitCanAttack, "player", "target")),
                 show(pcall(UnitIsDeadOrGhost, "target"))))
+            local okD, d2, checked = pcall(UnitDistanceSquared or function() end, "target")
+            local okP, px = pcall(UnitPosition or function() end, "target")
+            ns.Say(string.format("  distance exacte : %s (mesuree %s), position %s",
+                show(okD, d2), show(okD, checked), show(okP, px)))
             local cid = {}
             for i = 1, 4 do cid[i] = CheckInteractDistance and show(pcall(CheckInteractDistance, "target", i)) or "absent" end
             ns.Say(string.format("  distances du jeu : 28 m (1) %s, 11 m (2) %s, 10 m (3) %s, 28 m (4) %s", cid[1], cid[2], cid[3], cid[4]))
@@ -341,9 +367,12 @@ ns.RegisterModule({
                 ST and ST.IsTargetWithinSwingRange and show(pcall(ST.IsTargetWithinSwingRange, 2)) or "absent",
                 CheckInteractDistance and show(pcall(CheckInteractDistance, "target", 3)) or "absent"))
             local sp = C_Spell and C_Spell.IsSpellInRange
-            ns.Say(string.format("  sorts : %s %s, %s %s",
-                tostring(spellName(2973)), sp and show(pcall(sp, spellName(2973) or 2973, "target")) or "absent",
-                tostring(spellName(75)), sp and show(pcall(sp, spellName(75) or 75, "target")) or "absent"))
+            local parts = {}
+            for _, id in ipairs({ 6603, 2974, 2973, 75 }) do
+                local n = spellName(id)
+                parts[#parts + 1] = tostring(n or id) .. " " .. (sp and show(pcall(sp, n or id, "target")) or "absent")
+            end
+            ns.Say("  sorts : " .. table.concat(parts, ", "))
             ns.Say(string.format("  zone %s, pastille %s", tostring(zone()), pill and tostring(pill:IsShown()) or "absente"))
             return
         end
