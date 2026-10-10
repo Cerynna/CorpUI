@@ -1506,6 +1506,85 @@ ev:SetScript("OnUpdate", function(_, dt)
     if tick >= 10 then tick = 0 scan() scanHistory() end
 end)
 
+---------------------------------------------------------------------------
+-- Diagnostic des alertes d onglets (/corp chat alerte) : apres le prochain
+-- message de guilde, de groupe, de raid ou chuchote, releve l etat de chaque
+-- onglet (champs a vrai ou parlant d alerte, morceaux visibles) dans
+-- db.alertDiag, lu dans la sauvegarde apres un rechargement. Lecture seule :
+-- les arguments des messages ne sont jamais lus.
+---------------------------------------------------------------------------
+
+local function fieldsOf(t)
+    local flags, named = {}, {}
+    local ok = pcall(function()
+        for k, v in pairs(t) do
+            if type(k) == "string" and not issecret(k) and not issecret(v) then
+                local lk = k:lower()
+                if v == true then table.insert(flags, k) end
+                if lk:find("alert") or lk:find("flash") or lk:find("glow") then
+                    local tv = type(v)
+                    if tv == "table" and v.GetObjectType then
+                        local okS, shown = pcall(v.IsShown, v)
+                        local okA, a = pcall(v.GetAlpha, v)
+                        table.insert(named, k .. "=" .. tostring(okS and shown) .. "/" .. tostring(okA and a))
+                    else
+                        table.insert(named, k .. "=" .. tostring(v))
+                    end
+                end
+            end
+        end
+    end)
+    if not ok then table.insert(named, "(lecture interrompue)") end
+    table.sort(flags)
+    table.sort(named)
+    return table.concat(flags, ","), table.concat(named, " ")
+end
+
+local function tabState(i)
+    local cf, tab = _G["ChatFrame" .. i], _G["ChatFrame" .. i .. "Tab"]
+    if not cf or not tab then return nil end
+    local okN, name = pcall(GetChatWindowInfo, i)
+    local r = { i = i, name = okN and not issecret(name) and name or "?",
+                frameShown = cf:IsShown() and true or false, tabShown = tab:IsShown() and true or false }
+    r.tabTrue, r.tabNamed = fieldsOf(tab)
+    r.cfTrue, r.cfNamed = fieldsOf(cf)
+    local g = _G["ChatFrame" .. i .. "TabGlow"]
+    if g then
+        local okS, shown = pcall(g.IsShown, g)
+        r.globalGlow = tostring(okS and shown)
+    end
+    return r
+end
+
+local alertProbe
+local function armAlertProbe()
+    if not alertProbe then
+        alertProbe = CreateFrame("Frame")
+        alertProbe:SetScript("OnEvent", function(_, event)
+            alertProbe:UnregisterAllEvents()
+            -- apres le traitement du message par le jeu
+            C_Timer.After(0.5, function()
+                local sel = SELECTED_CHAT_FRAME
+                local out = { event = event, at = date("%H:%M:%S"),
+                              selected = sel and sel.GetName and sel:GetName() or "?", tabs = {} }
+                for i = 1, MAX_WINDOWS do
+                    local r = tabState(i)
+                    if r then table.insert(out.tabs, r) end
+                end
+                db.alertDiag = out
+                local n = 0
+                for _, r in ipairs(out.tabs) do if r.tabNamed:find("alerting=true") then n = n + 1 end end
+                ns.Say(string.format("chat alerte : releve fait (%s, onglets en alerte : %d). Recharge pour l enregistrer.", event, n))
+            end)
+        end)
+    end
+    for _, e in ipairs({ "CHAT_MSG_GUILD", "CHAT_MSG_OFFICER", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER",
+                         "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_WHISPER", "CHAT_MSG_BN_WHISPER" }) do
+        pcall(alertProbe.RegisterEvent, alertProbe, e)
+    end
+    ns.Say("chat alerte : en attente du prochain message de guilde, groupe, raid ou chuchote (garde un autre onglet ouvert).")
+end
+
 ns.RegisterModule({
     command = "chat",
     panelName = "CorpUIChatOptions",
@@ -1518,6 +1597,8 @@ ns.RegisterModule({
             -- derniere adresse web vue, prete a copier
             local cf = SELECTED_CHAT_FRAME or DEFAULT_CHAT_FRAME
             if cf then openCopy(cf, true) end
+        elseif cmd == "alerte" or cmd == "alert" then
+            armAlertProbe()
         elseif cmd == "diag" then
             -- historique et fleches : etat utile pour comprendre un souci
             local eb = _G.ChatFrame1EditBox
