@@ -1358,6 +1358,39 @@ local SETUP = {
         "COMBAT_FACTION_CHANGE", "SKILL", "LOOT", "MONEY", "CURRENCY", "OPENING", "TRADESKILLS", "PET_INFO",
         "COMBAT_XP_GAIN", "COMBAT_HONOR_GAIN", "COMBAT_MISC_INFO" } },
 }
+-- Couleur de chaque type de message (0-255) et noms en couleur de classe
+-- (true), releves chez Ilona avec ses onglets (chat-cache.txt, 10/10) ;
+-- posees par ChangeChatColor / SetChatColorNameByClass, fonctions du client
+-- (memes appels que la fenetre de configuration du chat de Blizzard).
+local SETUP_COLORS = {
+    SYSTEM = { 255, 255, 0 }, SAY = { 255, 255, 255 }, PARTY = { 170, 170, 255 }, RAID = { 255, 127, 0 },
+    GUILD = { 64, 255, 64 }, OFFICER = { 64, 192, 64 }, YELL = { 255, 64, 64 }, WHISPER = { 255, 128, 255 },
+    WHISPER_FOREIGN = { 255, 128, 255 }, WHISPER_INFORM = { 255, 128, 255 }, EMOTE = { 255, 128, 64 }, TEXT_EMOTE = { 255, 128, 64 },
+    MONSTER_SAY = { 255, 255, 159 }, MONSTER_PARTY = { 170, 170, 255 }, MONSTER_YELL = { 255, 64, 64 }, MONSTER_WHISPER = { 255, 181, 235 },
+    MONSTER_EMOTE = { 255, 128, 64 }, CHANNEL = { 255, 192, 192 }, CHANNEL_JOIN = { 192, 128, 128 }, CHANNEL_LEAVE = { 192, 128, 128 },
+    CHANNEL_LIST = { 192, 128, 128 }, CHANNEL_NOTICE = { 192, 192, 192 }, CHANNEL_NOTICE_USER = { 192, 192, 192 }, AFK = { 255, 128, 255 },
+    DND = { 255, 128, 255 }, IGNORED = { 255, 0, 0 }, SKILL = { 85, 85, 255 }, LOOT = { 0, 170, 0 },
+    MONEY = { 255, 255, 0 }, OPENING = { 128, 128, 255 }, TRADESKILLS = { 255, 255, 255 }, PET_INFO = { 128, 128, 255 },
+    COMBAT_MISC_INFO = { 128, 128, 255 }, COMBAT_XP_GAIN = { 111, 111, 255 }, COMBAT_HONOR_GAIN = { 224, 202, 10 }, COMBAT_FACTION_CHANGE = { 128, 128, 255 },
+    BG_SYSTEM_NEUTRAL = { 255, 120, 10 }, BG_SYSTEM_ALLIANCE = { 0, 174, 239 }, BG_SYSTEM_HORDE = { 255, 0, 0 }, RAID_LEADER = { 255, 72, 9 },
+    RAID_WARNING = { 255, 72, 0 }, RAID_BOSS_EMOTE = { 255, 221, 0 }, RAID_BOSS_WHISPER = { 255, 221, 0 }, FILTERED = { 255, 0, 0 },
+    RESTRICTED = { 255, 0, 0 }, BATTLENET = { 255, 255, 255 }, ACHIEVEMENT = { 255, 255, 0 }, GUILD_ACHIEVEMENT = { 64, 255, 64 },
+    ARENA_POINTS = { 255, 255, 255 }, PARTY_LEADER = { 118, 200, 255 }, TARGETICONS = { 255, 255, 0 }, BN_WHISPER = { 0, 255, 246 },
+    BN_WHISPER_INFORM = { 0, 255, 246 }, BN_INLINE_TOAST_ALERT = { 130, 197, 255 }, BN_INLINE_TOAST_BROADCAST = { 130, 197, 255 }, BN_INLINE_TOAST_BROADCAST_INFORM = { 130, 197, 255 },
+    BN_INLINE_TOAST_CONVERSATION = { 130, 197, 255 }, BN_WHISPER_PLAYER_OFFLINE = { 255, 255, 0 }, CURRENCY = { 0, 170, 0 }, QUEST_BOSS_EMOTE = { 255, 128, 64 },
+    PET_BATTLE_COMBAT_LOG = { 231, 222, 171 }, PET_BATTLE_INFO = { 225, 222, 93 }, INSTANCE_CHAT = { 255, 127, 0 }, INSTANCE_CHAT_LEADER = { 255, 72, 9 },
+    GUILD_ITEM_LOOTED = { 64, 255, 64 }, COMMUNITIES_CHANNEL = { 255, 192, 192 }, VOICE_TEXT = { 158, 255, 252 }, PING = { 170, 170, 255 },
+    ENCOUNTER_EVENT = { 255, 221, 0 }, GUILD_DISCORD = { 114, 126, 255 }, ENCOUNTER_RAID_BOSS_EMOTE = { 255, 221, 0 }, ENCOUNTER_RAID_BOSS_WHISPER = { 255, 221, 0 },
+    COLLECTED_APPEARANCE = { 255, 255, 0 }, CHANNEL1 = { 255, 192, 192 }, CHANNEL2 = { 255, 192, 192 }, CHANNEL3 = { 255, 192, 192 },
+    CHANNEL4 = { 255, 192, 192 }, CHANNEL5 = { 255, 192, 192 }, CHANNEL6 = { 255, 192, 192 }, CHANNEL7 = { 255, 192, 192 },
+    CHANNEL8 = { 255, 192, 192 }, CHANNEL9 = { 255, 192, 192 }, CHANNEL10 = { 255, 192, 192 }, CHANNEL11 = { 255, 192, 192 },
+    CHANNEL12 = { 255, 192, 192 }, CHANNEL13 = { 255, 192, 192 }, CHANNEL14 = { 255, 192, 192 }, CHANNEL15 = { 255, 192, 192 },
+    CHANNEL16 = { 255, 192, 192 }, CHANNEL17 = { 255, 192, 192 }, CHANNEL18 = { 255, 192, 192 }, CHANNEL19 = { 255, 192, 192 },
+    CHANNEL20 = { 255, 192, 192 }, DISCORD_PLAYER_NAME = { 224, 227, 255 },
+}
+-- texte des onglets, fenetres verrouillees (comme chez Ilona)
+local SETUP_FONT_SIZE = 14
+
 -- fenetres propres a Blizzard (IsBuiltinChatWindow) : journal de combat,
 -- transcription vocale
 local BUILTIN = { [2] = true, [3] = true }
@@ -1406,8 +1439,10 @@ function ns.ChatSetupWindows()
                 engine(SetChatWindowShown, id, true)
                 -- place dans le dock (2 : journal de combat)
                 engine(SetChatWindowDocked, id, w.dock)
+                engine(SetChatWindowSize, id, SETUP_FONT_SIZE)
+                engine(SetChatWindowLocked, id, true)
+                engine(SetChatWindowUninteractable, id, false)
                 if id ~= 1 and okI then
-                    if type(size) == "number" and not issecret(size) and size > 0 then engine(SetChatWindowSize, id, size) end
                     if type(r) == "number" and not issecret(r) then engine(SetChatWindowColor, id, r, g, b) end
                     if type(a) == "number" and not issecret(a) then engine(SetChatWindowAlpha, id, a) end
                 end
@@ -1417,6 +1452,11 @@ function ns.ChatSetupWindows()
                 engine(SetChatWindowDocked, id, nil)
             end
         end
+    end
+    -- couleurs des messages et noms en couleur de classe
+    for chatType, c in pairs(SETUP_COLORS) do
+        engine(ChangeChatColor, chatType, c[1] / 255, c[2] / 255, c[3] / 255)
+        engine(SetChatColorNameByClass, chatType, c[4] == true)
     end
     return true
 end
