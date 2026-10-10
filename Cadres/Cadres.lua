@@ -413,6 +413,70 @@ local function updateRest(f)
     if r.pulse and not r.pulse:IsPlaying() then r.pulse:Play() end
 end
 
+-- Humeur du familier de chasseur (nourriture) : icones du jeu, liseré de
+-- couleur. Donnees du client (branche forever, PetHappiness.lua) :
+-- C_PetInfo.GetPetHappiness() -> humeur (1 mecontent, 2 satisfait,
+-- 3 content), % de degats, loyaute ; C_PetInfo.GetPetFoodTypes() -> regime.
+-- Le cadre du familier de Blizzard sur ce client ne l affiche pas.
+local MOOD_ATLAS = { "UI-PetMad", "UI-PetNeutral", "UI-PetHappiness" }
+local MOOD_RGB = { { 0.9, 0.2, 0.2 }, { 1, 0.82, 0.2 }, { 0.3, 0.85, 0.35 } }
+
+local function petMood()
+    if not (C_PetInfo and C_PetInfo.GetPetHappiness) then return nil end
+    local okH, _, hunter = pcall(HasPetUI)
+    if not okH or issecret(hunter) or not hunter then return nil end
+    local ok, h, dmg, loyalty = pcall(C_PetInfo.GetPetHappiness)
+    if not ok or issecret(h) or type(h) ~= "number" or not MOOD_ATLAS[h] then return nil end
+    return h, not issecret(dmg) and dmg or nil, not issecret(loyalty) and loyalty or nil
+end
+
+local function updateMood(f)
+    local m = f.mood
+    if not m then return end
+    local level
+    if db.petMood ~= false then
+        if UnitExists("pet") then
+            level = petMood()
+        elseif ns.PreviewOn("units") then
+            level = 3
+        end
+    end
+    m:SetShown(level ~= nil)
+    if not level then return end
+    pcall(m.tex.SetAtlas, m.tex, MOOD_ATLAS[level])
+    local c = MOOD_RGB[level]
+    m.cuiBorder:SetColorTexture(c[1], c[2], c[3], 1)
+end
+
+local function moodTooltip(self)
+    local level, dmg, loyalty = petMood()
+    if not level then return end
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetText(_G["PET_HAPPINESS" .. level] or "?", MOOD_RGB[level][1], MOOD_RGB[level][2], MOOD_RGB[level][3])
+    if type(dmg) == "number" and PET_DAMAGE_PERCENTAGE then
+        GameTooltip:AddLine(string.format(PET_DAMAGE_PERCENTAGE, dmg), 1, 1, 1)
+    end
+    if type(loyalty) == "number" and loyalty ~= 0 then
+        local t = loyalty < 0 and LOSING_LOYALTY or GAINING_LOYALTY
+        if t then GameTooltip:AddLine(t, 1, 1, 1) end
+    end
+    if C_PetInfo.GetPetFoodTypes and PET_DIET_TEMPLATE then
+        local res = { pcall(C_PetInfo.GetPetFoodTypes) }
+        local list = {}
+        if res[1] then
+            local first = res[2]
+            if type(first) == "table" then
+                for _, v in ipairs(first) do if type(v) == "string" then table.insert(list, v) end end
+            else
+                for i = 2, #res do if type(res[i]) == "string" then table.insert(list, res[i]) end end
+            end
+        end
+        local diet = #list > 0 and table.concat(list, PET_FOOD_DELIMIT or ", ") or (NONE or "-")
+        GameTooltip:AddLine(string.format(PET_DIET_TEMPLATE, diet), 1, 1, 1, true)
+    end
+    GameTooltip:Show()
+end
+
 local function renderInfo(fs, tag, f, unit)
     if tag == "name" or tag == "nameshort" then
         local ok, name = pcall(UnitName, unit)
@@ -726,6 +790,7 @@ local function fakeUpdate(f)
 end
 
 local function updateAll(f)
+    updateMood(f)
     if not UnitExists(f.unit) and ns.PreviewOn("units") and fakeUpdate(f) then return end
     if not UnitExists(f.unit) then
         -- apercu pour les placer (interface deverrouillee) : leur nom
@@ -853,6 +918,22 @@ local function build(u, store)
         end)
         r:Hide()
         f.rest = r
+    end
+    -- familier de chasseur : humeur (nourriture), a droite du cadre
+    if unit == "pet" then
+        local m = CreateFrame("Frame", nil, f)
+        m:SetSize(20, 20)
+        m:SetPoint("LEFT", f, "RIGHT", 4, 0)
+        m:SetFrameLevel(f:GetFrameLevel() + 6)
+        ns.UI.Skin(m, 0.92)
+        m.tex = m:CreateTexture(nil, "ARTWORK")
+        m.tex:SetPoint("TOPLEFT", 1, -1)
+        m.tex:SetPoint("BOTTOMRIGHT", -1, 1)
+        m:EnableMouse(true)
+        m:SetScript("OnEnter", moodTooltip)
+        m:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        m:Hide()
+        f.mood = m
     end
 
     -- textes libres (emplacements, voir SLOTS) ; ancres et polices : layoutFrame
@@ -1118,6 +1199,9 @@ end
 function ns.FramesOpt.Show(parent, y, key)
     local form = ns.UI.Form(parent, y, function() apply() end)
     form:Check(L.FRAMES_OPT_SHOW, function() return db[SHOW_KEY[key]] end, function(v) db[SHOW_KEY[key]] = v end)
+    if key == "pet" then
+        form:Check(L.FRAMES_OPT_PETMOOD, function() return db.petMood end, function(v) db.petMood = v end)
+    end
     parent:HookScript("OnShow", function() form:Refresh() end)
     return form.y
 end
@@ -1202,6 +1286,7 @@ ev:SetScript("OnEvent", function(_, event)
         db.scale = db.scale or 1
         if db.healPrediction == nil then db.healPrediction = true end
         if db.restIcon == nil then db.restIcon = true end
+        if db.petMood == nil then db.petMood = true end
         -- apparence par cadre : valeurs par defaut pour les reglages manquants
         db.style = db.style or {}
         for _, key in ipairs(STYLE_ORDER) do
@@ -1246,6 +1331,8 @@ ev:SetScript("OnEvent", function(_, event)
         for _, f in pairs(frames) do if f.preview then updateAll(f) end end
     elseif event == "PLAYER_UPDATE_RESTING" then
         if frames.player then updateRest(frames.player) end
+    elseif event == "UNIT_HAPPINESS" or event == "PET_UI_UPDATE" then
+        if frames.pet then updateMood(frames.pet) end
     elseif event == "GROUP_ROSTER_UPDATE" then
         -- etiquette "groupe en raid"
         for _, f in pairs(frames) do if UnitExists(f.unit) then updateInfo(f) end end
@@ -1260,7 +1347,7 @@ end)
 for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_TARGET_CHANGED", "PLAYER_ENTERING_WORLD",
                      "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "UNIT_PET", "PLAYER_FOCUS_CHANGED",
                      "INSTANCE_ENCOUNTER_ENGAGE_UNIT", "UNIT_TARGETABLE_CHANGED", "ARENA_OPPONENT_UPDATE",
-                     "GROUP_ROSTER_UPDATE", "PLAYER_UPDATE_RESTING" }) do
+                     "GROUP_ROSTER_UPDATE", "PLAYER_UPDATE_RESTING", "UNIT_HAPPINESS", "PET_UI_UPDATE" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
 pcall(ev.RegisterUnitEvent, ev, "UNIT_TARGET", "target")

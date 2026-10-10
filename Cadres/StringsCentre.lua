@@ -13,6 +13,7 @@ ns.AddStrings({
         CENTER_PROC_DURATION = "Longest proc: %d s", CENTER_OPT_PROC_TIME = "Time left under the procs",
         CENTER_HINT = "Procs are your buffs lasting at most the chosen time; longer buffs stay at the top right. To move it: unlock the interface.",
         FRAMES_OPT_REST = "\"Zz\" badge while the player is resting",
+        FRAMES_OPT_PETMOOD = "Hunter pet mood (food), right of the frame",
     },
     frFR = {
         CENTER_MOVER = "Centre : puissance et procs", CENTER_HEADER = "Centre de l'écran (entre joueur et cible)",
@@ -25,6 +26,7 @@ ns.AddStrings({
         CENTER_PROC_DURATION = "Proc le plus long : %d s", CENTER_OPT_PROC_TIME = "Temps restant sous les procs",
         CENTER_HINT = "Les procs sont tes buffs qui durent au plus le temps choisi ; les buffs plus longs restent en haut à droite. Pour le déplacer : déverrouiller l'interface.",
         FRAMES_OPT_REST = "Pastille « Zz » quand le joueur se repose",
+        FRAMES_OPT_PETMOOD = "Humeur du familier de chasseur (nourriture), à droite du cadre",
     },
     deDE = {
         CENTER_MOVER = "Mitte: Ressource und Procs", CENTER_HEADER = "Bildschirmmitte (zwischen Spieler und Ziel)",
@@ -37,6 +39,7 @@ ns.AddStrings({
         CENTER_PROC_DURATION = "Längster Proc: %d s", CENTER_OPT_PROC_TIME = "Restzeit unter den Procs",
         CENTER_HINT = "Procs sind deine Buffs, die höchstens die gewählte Zeit dauern; längere Buffs bleiben oben rechts. Zum Verschieben: Oberfläche entsperren.",
         FRAMES_OPT_REST = "„Zz“-Plakette, wenn der Spieler ausruht",
+        FRAMES_OPT_PETMOOD = "Laune des Jägertiers (Futter), rechts vom Fenster",
     },
     esES = {
         CENTER_MOVER = "Centro: poder y procs", CENTER_HEADER = "Centro de la pantalla (entre jugador y objetivo)",
@@ -49,6 +52,7 @@ ns.AddStrings({
         CENTER_PROC_DURATION = "Proc más largo: %d s", CENTER_OPT_PROC_TIME = "Tiempo restante bajo los procs",
         CENTER_HINT = "Los procs son tus beneficios que duran como mucho el tiempo elegido; los más largos siguen arriba a la derecha. Para moverlo: desbloquear la interfaz.",
         FRAMES_OPT_REST = "Insignia «Zz» cuando el jugador descansa",
+        FRAMES_OPT_PETMOOD = "Humor de la mascota de cazador (comida), a la derecha del marco",
     },
     ptBR = {
         CENTER_MOVER = "Centro: poder e procs", CENTER_HEADER = "Centro da tela (entre jogador e alvo)",
@@ -61,6 +65,7 @@ ns.AddStrings({
         CENTER_PROC_DURATION = "Proc mais longo: %d s", CENTER_OPT_PROC_TIME = "Tempo restante sob os procs",
         CENTER_HINT = "Procs são seus bônus que duram no máximo o tempo escolhido; os mais longos ficam no alto à direita. Para mover: desbloquear a interface.",
         FRAMES_OPT_REST = "Selo \"Zz\" quando o jogador descansa",
+        FRAMES_OPT_PETMOOD = "Humor do ajudante de caçador (comida), à direita do quadro",
     },
     itIT = {
         CENTER_MOVER = "Centro: energia e proc", CENTER_HEADER = "Centro dello schermo (tra giocatore e bersaglio)",
@@ -73,6 +78,7 @@ ns.AddStrings({
         CENTER_PROC_DURATION = "Proc più lungo: %d s", CENTER_OPT_PROC_TIME = "Tempo rimasto sotto i proc",
         CENTER_HINT = "I proc sono i tuoi benefici che durano al massimo il tempo scelto; quelli più lunghi restano in alto a destra. Per spostarlo: sbloccare l'interfaccia.",
         FRAMES_OPT_REST = "Indicatore \"Zz\" quando il giocatore riposa",
+        FRAMES_OPT_PETMOOD = "Umore del famiglio del cacciatore (cibo), a destra del riquadro",
     },
     ruRU = {
         CENTER_MOVER = "Центр: ресурс и проки", CENTER_HEADER = "Центр экрана (между игроком и целью)",
@@ -85,6 +91,7 @@ ns.AddStrings({
         CENTER_PROC_DURATION = "Самый долгий прок: %d с", CENTER_OPT_PROC_TIME = "Оставшееся время под проками",
         CENTER_HINT = "Проки — ваши баффы, длящиеся не дольше выбранного времени; более долгие остаются вверху справа. Чтобы переместить: разблокируйте интерфейс.",
         FRAMES_OPT_REST = "Значок «Zz», когда игрок отдыхает",
+        FRAMES_OPT_PETMOOD = "Настроение питомца охотника (еда), справа от рамки",
     },
     zhCN = {
         CENTER_MOVER = "中央：能量与触发", CENTER_HEADER = "屏幕中央（玩家与目标之间）",
@@ -97,6 +104,7 @@ ns.AddStrings({
         CENTER_PROC_DURATION = "触发最长持续：%d 秒", CENTER_OPT_PROC_TIME = "在触发图标下显示剩余时间",
         CENTER_HINT = "触发效果是持续时间不超过所选时间的增益；更长的增益仍在右上角。移动：解锁界面。",
         FRAMES_OPT_REST = "玩家休息时显示“Zz”标记",
+        FRAMES_OPT_PETMOOD = "猎人宠物心情（食物），显示在框体右侧",
     },
     zhTW = {
         CENTER_MOVER = "中央：能量與觸發", CENTER_HEADER = "畫面中央（玩家與目標之間）",
@@ -109,6 +117,7 @@ ns.AddStrings({
         CENTER_PROC_DURATION = "觸發最長持續：%d 秒", CENTER_OPT_PROC_TIME = "在觸發圖示下顯示剩餘時間",
         CENTER_HINT = "觸發效果是持續時間不超過所選時間的增益；更長的增益仍在右上角。移動：解鎖介面。",
         FRAMES_OPT_REST = "玩家休息時顯示「Zz」標記",
+        FRAMES_OPT_PETMOOD = "獵人寵物心情（食物），顯示在框架右側",
     },
     koKR = {
         CENTER_MOVER = "중앙: 자원과 발동", CENTER_HEADER = "화면 중앙 (플레이어와 대상 사이)",
@@ -121,5 +130,6 @@ ns.AddStrings({
         CENTER_PROC_DURATION = "가장 긴 발동: %d초", CENTER_OPT_PROC_TIME = "발동 아이콘 아래 남은 시간",
         CENTER_HINT = "발동 효과는 선택한 시간 이하로 지속되는 강화 효과입니다. 더 긴 효과는 오른쪽 위에 남습니다. 이동: 인터페이스 잠금 해제.",
         FRAMES_OPT_REST = "플레이어가 휴식 중일 때 \"Zz\" 표시",
+        FRAMES_OPT_PETMOOD = "사냥꾼 소환수 기분(먹이), 프레임 오른쪽",
     },
 })
