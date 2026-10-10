@@ -31,9 +31,10 @@
     natif du cadre Cooldown (aucune duree calculee ici).
 
     Barre du familier : 10 boutons securises (type "pet"), visible seulement
-    avec un familier (pilote d etat). Clic droit : auto-incantation, par une
-    fonction du bouton (type2 = "autocast", appelee hors du code securise,
-    comme le fait Blizzard avec TogglePetAutocast).
+    avec un familier (pilote d etat). Clic droit : auto-incantation, en
+    cliquant le bouton du familier de Blizzard (type2 = "click" sur
+    PetActionButtonN) : son propre code appelle TogglePetAutocast, que ce
+    client refuse au code d un addon (10/10 : fenetre "desactiver l addon").
 
     Barres ajoutees par d autres fichiers (ns.AddButtonBarPlugin) : la
     barre des totems du chaman (AppelTotems.lua), avec les memes reglages.
@@ -341,25 +342,23 @@ local function makeButton(header, bar, j)
     return b
 end
 
--- auto-incantation du familier (fonction de Blizzard ou du client)
-local function toggleAutocast(i)
-    local fn = TogglePetAutocast or (C_ActionBar and C_ActionBar.ToggleAutoCastPetAction)
-    if fn then pcall(fn, i) end
-end
-
 -- Bouton du familier : clic gauche securise (CastPetAction) ; clic droit :
--- type2 "autocast", que le modele securise resout en la fonction b.autocast
--- (code non securise : l auto-incantation n est pas protegee)
+-- le bouton du familier de Blizzard (PetActionButtonN, meme numero) est
+-- clique par l action securisee "click" ; son code (PetActionBar.lua,
+-- branche forever) appelle TogglePetAutocast, protegee sur ce client
 local function makePetButton(header, bar, j)
     local name = "CorpUIBarpetButton" .. j
     local b = CreateFrame("Button", name, header, "SecureActionButtonTemplate")
     b:RegisterForClicks("AnyUp", "AnyDown")
     b:RegisterForDrag("LeftButton")
     b:SetAttribute("type", "pet")
-    b:SetAttribute("type2", "autocast")
     b:SetAttribute("index", j)
     b:SetAttribute("action", j)
-    b.autocast = function() toggleAutocast(j) end
+    local blizz = _G["PetActionButton" .. j]
+    if type(blizz) == "table" and blizz.Click then
+        b:SetAttribute("type2", "click")
+        b:SetAttribute("clickbutton2", blizz)
+    end
     b.isPet, b.petIndex = true, j
     b.bindingName = bar.binding .. j
     b.bindCommand = b.bindingName
