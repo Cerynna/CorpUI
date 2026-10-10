@@ -499,6 +499,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("barres", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         root.menus = root.menus or {}

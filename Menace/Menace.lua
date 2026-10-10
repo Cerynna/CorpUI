@@ -228,6 +228,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function()
+    if ns.ModuleOff("compteur", ev) then return end
     local root = ns.InitRoot()
     if type(root.threat) ~= "table" then root.threat = {} end
     db = root.threat

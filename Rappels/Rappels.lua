@@ -383,6 +383,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event, unit)
+    if ns.ModuleOff("rappels", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         root.reminders = root.reminders or {}

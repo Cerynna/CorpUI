@@ -1089,6 +1089,7 @@ local wasShown, lastKey = false, nil
 local acc, walkAcc = 0, 0
 
 ev:SetScript("OnEvent", function(_, event, unit)
+    if ns.ModuleOff("habillage", ev) then return end
     if event == "UNIT_PORTRAIT_UPDATE" or event == "PLAYER_ENTERING_WORLD" then
         if event == "PLAYER_ENTERING_WORLD" or unit == "player" then portraitDirty = true end
         return

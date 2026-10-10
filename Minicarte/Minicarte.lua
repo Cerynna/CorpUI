@@ -242,6 +242,7 @@ local function openTrackMenu(owner)
         trackMenu.rows = {}
         pcall(trackMenu.RegisterEvent, trackMenu, "GLOBAL_MOUSE_DOWN")
         trackMenu:SetScript("OnEvent", function(self)
+            if ns.ModuleOff("minicarte", trackMenu) then return end
             if self:IsShown() and not self:IsMouseOver() and not (self.owner and self.owner:IsMouseOver()) then
                 self:Hide()
             end
@@ -957,6 +958,7 @@ local DEFAULTS = {
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("minicarte", ev) then return end
     if event ~= "PLAYER_LOGIN" or db then return end   -- une seule construction
     local root = ns.InitRoot()
     root.map = root.map or {}
@@ -972,6 +974,7 @@ ev:SetScript("OnEvent", function(_, event)
     -- evenements des icones, du zoom et des addons charges plus tard
     local watch = CreateFrame("Frame")
     watch:SetScript("OnEvent", function(_, event)
+        if ns.ModuleOff("minicarte", watch) then return end
         if event == "MINIMAP_UPDATE_ZOOM" then
             scheduleZoomReset()
         elseif event == "ADDON_LOADED" then

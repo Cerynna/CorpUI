@@ -1286,6 +1286,7 @@ function events.PLAYER_REGEN_ENABLED()
 end
 
 ev:SetScript("OnEvent", function(_, event, ...)
+    if ns.ModuleOff("buffs", ev) then return end
     local fn = events[event]
     if fn then fn(...) end
 end)
@@ -1417,4 +1418,7 @@ ns.RegisterModule({
 
 -- raccourci historique : /bf = /corp buffs
 SLASH_CORPUIBUFFS1 = "/bf"
-SlashCmdList["CORPUIBUFFS"] = slash
+SlashCmdList["CORPUIBUFFS"] = function(input)
+    if ns.SlashOff("buffs") then return end
+    slash(input)
+end

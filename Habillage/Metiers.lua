@@ -1191,6 +1191,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("habillage", ev) then return end
     if event == "PLAYER_REGEN_ENABLED" then
         for _, st in pairs(state) do st.shown = false end
     end

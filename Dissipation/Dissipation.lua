@@ -607,6 +607,7 @@ end
 local wasRaid = false
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("dissipation", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         root.dispel = root.dispel or {}

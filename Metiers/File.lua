@@ -1862,6 +1862,7 @@ end)
 
 local listPending = false
 ev:SetScript("OnEvent", function(_, event, a1, a2, a3)
+    if ns.ModuleOff("metiers", ev) then return end
     if event == "PLAYER_LOGIN" then
         M.Init()
         -- prix HV mis a jour (module Encheres, charge apres nous) : bilans

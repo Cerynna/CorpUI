@@ -1318,6 +1318,7 @@ local acc, walkAcc = 0, 0
 local wasShown, lastKey = false, nil
 
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("habillage", ev) then return end
     if event == "PLAYER_REGEN_ENABLED" then wasShown = false end
 end)
 pcall(ev.RegisterEvent, ev, "PLAYER_REGEN_ENABLED")

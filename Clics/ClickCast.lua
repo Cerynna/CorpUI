@@ -337,6 +337,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("clics", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         root.clickcast = root.clickcast or {}

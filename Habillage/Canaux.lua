@@ -928,6 +928,7 @@ local acc = 0
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("habillage", ev) then return end
     -- fin du combat : les fenetres ouvertes sont reparcourues tout de suite
     if event == "PLAYER_REGEN_ENABLED" then
         for _, st in pairs(state) do st.shown = false end

@@ -960,6 +960,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("infos", ev) then return end
     if event == "PLAYER_MONEY" then trackMoney() return end
     if event == "PLAYER_REGEN_ENABLED" then
         if hotPending and db then syncAllHot() end

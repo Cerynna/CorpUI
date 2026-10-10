@@ -253,6 +253,7 @@ ev:SetScript("OnUpdate", function(_, dt)
 end)
 ev:RegisterEvent("PLAYER_LOGIN")
 ev:SetScript("OnEvent", function()
+    if ns.ModuleOff("compteur", ev) then return end
     local root = ns.InitRoot()
     root.damage = root.damage or {}
     db = root.damage

@@ -674,6 +674,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("barres", ev) then return end
     if not h or not kitRef then return end
     if event == "UPDATE_MULTI_CAST_ACTIONBAR" then
         -- totems choisis : icones des cases (permis en combat)

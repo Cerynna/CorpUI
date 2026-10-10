@@ -1583,6 +1583,7 @@ local function openPicker(owner, onPick)
         end
         pcall(picker.RegisterEvent, picker, "GLOBAL_MOUSE_DOWN")
         picker:SetScript("OnEvent", function(self)
+            if ns.ModuleOff("note", picker) then return end
             if self:IsShown() and not self:IsMouseOver() and not (self.owner and self.owner:IsMouseOver()) then
                 self:Hide()
             end
@@ -1982,6 +1983,7 @@ hookComm()
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("note", ev) then return end
     if event == "PLAYER_LOGIN" then
         initDB()
         hookComm()

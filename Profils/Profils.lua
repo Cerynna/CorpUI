@@ -43,6 +43,8 @@ local KEYS = {
     center = {},
     -- ajoutee le 10/10 : fenetre de menace
     threat = {},
+    -- ajoutee le 10/10 : modules allumes / coupes (page Modules)
+    modules = {},
 }
 
 local function copy(v)

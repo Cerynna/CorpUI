@@ -540,6 +540,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event, unit, arg2, arg3)
+    if ns.ModuleOff("cadres", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         if type(root.resources) ~= "table" then root.resources = {} end

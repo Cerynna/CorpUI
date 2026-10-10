@@ -709,6 +709,7 @@ local DEFAULTS = {
 }
 
 ev:SetScript("OnEvent", function(_, event, unit)
+    if ns.ModuleOff("plaques", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         root.plates = root.plates or {}

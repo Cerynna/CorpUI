@@ -1052,7 +1052,9 @@ function ns.ResetBar()
     if bar:IsShown() then ns.PinTop(bar, ns.db.bar) end
 end
 
-table.insert(ns.inits, createBar)
+table.insert(ns.inits, function()
+    if not ns.ModuleOff("buffs") then createBar() end
+end)
 
 ns.Listen(function()
     if not bar then return end

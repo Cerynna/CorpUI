@@ -635,6 +635,7 @@ end)
 local ev = CreateFrame("Frame")
 local scanQueued = false
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("hv", ev) then return end
     if event == "PLAYER_LOGIN" then
         lastMoney = num(call(GetMoney))
         C_Timer.After(5, function()

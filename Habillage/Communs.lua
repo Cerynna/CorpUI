@@ -851,6 +851,7 @@ end
 local acc = 0
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function()
+    if ns.ModuleOff("habillage", ev) then return end
     -- fin du combat : les fenetres ouvertes sont reparcourues tout de suite,
     -- les delais de grace repartent de zero
     for f in pairs(shownWin) do shownWin[f] = nil end

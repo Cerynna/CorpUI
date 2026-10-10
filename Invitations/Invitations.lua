@@ -250,6 +250,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event, text, sender)
+    if ns.ModuleOff("inv", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         if type(root.invite) ~= "table" then root.invite = {} end

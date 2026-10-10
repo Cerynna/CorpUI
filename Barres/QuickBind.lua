@@ -161,6 +161,7 @@ end
 local ev = CreateFrame("Frame")
 ev:RegisterEvent("PLAYER_REGEN_DISABLED")
 ev:SetScript("OnEvent", function()
+    if ns.ModuleOff("barres", ev) then return end
     if ns.quickBinding and overlay then
         ns.quickBinding = false
         overlay:Hide()

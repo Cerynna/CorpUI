@@ -228,6 +228,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("cadres", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         if type(root.center) ~= "table" then root.center = {} end

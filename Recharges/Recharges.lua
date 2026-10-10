@@ -1559,6 +1559,7 @@ poll:Hide()
 
 local spellsTimer = false
 ev:SetScript("OnEvent", function(_, event, a1, a2, a3)
+    if ns.ModuleOff("cd", ev) then return end
     if event == "PLAYER_LOGIN" then
         init()
         rebuildOwn()

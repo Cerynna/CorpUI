@@ -946,6 +946,14 @@ function ns.UI.Form(parent, y, onChange, width)
         table.insert(self.refreshers, function() c:SetChecked(get() and true or false) end)
         return c
     end
+    -- interrupteur (ns.UI.Switch), meme emploi que form:Check
+    function form:Switch(text, get, set)
+        local x, y = self:Cell(26)
+        local s = ns.UI.Switch(parent, text, function(v) set(v) changed() end)
+        s:SetPoint("TOPLEFT", parent, "TOPLEFT", 9 + x, y - 6)
+        table.insert(self.refreshers, function() s:SetChecked(get() and true or false) end)
+        return s
+    end
     -- reglage numerique : libelle, puis curseur et saisie - / +
     function form:Number(fmt, get, set, lo, hi, step)
         local x, y, w = self:Cell(44)
@@ -1208,6 +1216,85 @@ function ns.UI.Check(parent, text, onClick)
     c:HookScript("OnLeave", function() borderColor(box, C.border) label:SetTextColor(C.text[1], C.text[2], C.text[3]) end)
     c:SetScript("OnClick", function(self) onClick(self:GetChecked() and true or false) end)
     return c
+end
+
+-- Interrupteur plat : glissiere de 30 x 16 au liseré noir, curseur carre
+-- qui glisse a droite (allume : couleur d accent) ou a gauche (eteint :
+-- gris). S emploie comme une case : SetChecked / GetChecked, onClick(v) au
+-- clic (sur le libelle aussi, s il y en a un). SetChecked ne joue pas le
+-- glissement : seul le clic l anime.
+local SW_W, SW_H, SW_KNOB = 30, 16, 10
+function ns.UI.Switch(parent, text, onClick)
+    local s = CreateFrame("Button", nil, parent)
+    s:SetSize(SW_W, SW_H)
+    local edge = s:CreateTexture(nil, "BORDER")
+    edge:SetAllPoints()
+    edge:SetColorTexture(C.border[1], C.border[2], C.border[3], 1)
+    ns.NoSnap(edge)
+    local track = s:CreateTexture(nil, "ARTWORK")
+    track:SetPoint("TOPLEFT", 1, -1)
+    track:SetPoint("BOTTOMRIGHT", -1, 1)
+    ns.NoSnap(track)
+    local knob = s:CreateTexture(nil, "OVERLAY")
+    knob:SetSize(SW_KNOB, SW_KNOB)
+    ns.NoSnap(knob)
+    local OFF_X, ON_X = 3, SW_W - 3 - SW_KNOB
+    local pos = OFF_X
+    local function place(x)
+        pos = x
+        knob:ClearAllPoints()
+        knob:SetPoint("LEFT", s, "LEFT", x, 0)
+    end
+    local function paint()
+        if s.cuiOn then
+            track:SetColorTexture(C.violet[1] * 0.85, C.violet[2] * 0.85, C.violet[3] * 0.85, 1)
+            knob:SetColorTexture(1, 1, 1, 1)
+        else
+            track:SetColorTexture(0.13, 0.135, 0.16, 1)
+            knob:SetColorTexture(0.5, 0.5, 0.55, 1)
+        end
+    end
+    local label
+    if text then
+        label = s:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        label:SetPoint("LEFT", s, "RIGHT", 6, 0)
+        label:SetText(text)
+        label:SetTextColor(C.text[1], C.text[2], C.text[3])
+        s.Text, s.label = label, label
+        -- le texte est cliquable aussi
+        s:SetHitRectInsets(0, -(label:GetStringWidth() + 8), -4, -4)
+    end
+    s:SetScript("OnEnter", function()
+        edge:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
+        if label then label:SetTextColor(1, 1, 1) end
+    end)
+    s:SetScript("OnLeave", function()
+        edge:SetColorTexture(C.border[1], C.border[2], C.border[3], 1)
+        if label then label:SetTextColor(C.text[1], C.text[2], C.text[3]) end
+    end)
+    function s:SetChecked(v)
+        self.cuiOn = v and true or false
+        self:SetScript("OnUpdate", nil)
+        place(self.cuiOn and ON_X or OFF_X)
+        paint()
+    end
+    function s:GetChecked() return self.cuiOn end
+    s:SetScript("OnClick", function(self)
+        self.cuiOn = not self.cuiOn
+        paint()
+        -- glissement : 0,12 s
+        local from, to, t = pos, self.cuiOn and ON_X or OFF_X, 0
+        self:SetScript("OnUpdate", function(me, dt)
+            t = math.min(1, t + dt / 0.12)
+            place(from + (to - from) * (1 - (1 - t) * (1 - t)))
+            if t >= 1 then me:SetScript("OnUpdate", nil) end
+        end)
+        if onClick then onClick(self.cuiOn) end
+    end)
+    s:HookScript("OnEnable", function(self) self:SetAlpha(1) end)
+    s:HookScript("OnDisable", function(self) self:SetAlpha(0.4) end)
+    s:SetChecked(false)
+    return s
 end
 
 -- Poignees de deplacement (grille, aimantation, reglage au pixel) :
@@ -1920,6 +2007,60 @@ function ns.RegisterModule(m)
     table.insert(ns.modules, m)
 end
 
+-- Modules allumes ou coupes (page Modules, Modules/Modules.lua) :
+-- CorpUIDB.modules[cle] = false coupe un module. Lu une fois par session,
+-- a la premiere question : un changement attend le prochain rechargement.
+-- Un module coupe ne construit rien (ses evenements sont desinscrits des
+-- le premier recu), n a ni page ni commande ; le jeu garde son interface.
+-- Les commandes rangees avec un autre module en prennent la cle.
+local MODULE_OF = { compta = "hv", degats = "compteur", murloc = "jeux", minerais = "jeux",
+                    reactifs = "marchand", menus = "barres" }
+local loadedOff
+
+-- allume pour cette session (avant la lecture de la sauvegarde : oui)
+function ns.ModuleOn(key)
+    if not ns.root then return true end
+    if not loadedOff then
+        loadedOff = {}
+        local m = ns.root.modules
+        if type(m) == "table" then
+            for k, v in pairs(m) do if v == false then loadedOff[k] = true end end
+        end
+    end
+    return not loadedOff[MODULE_OF[key] or key]
+end
+
+-- en tete des gestionnaires d evenements : vrai si le module est coupe
+-- (le cadre est alors desinscrit de tout)
+function ns.ModuleOff(key, frame)
+    if ns.ModuleOn(key) then return false end
+    if frame and frame.UnregisterAllEvents then pcall(frame.UnregisterAllEvents, frame) end
+    return true
+end
+
+-- choix enregistre (celui de la page Modules, effectif au rechargement)
+function ns.ModuleWanted(key)
+    local m = ns.root and ns.root.modules
+    return not (type(m) == "table" and m[key] == false)
+end
+
+-- commande d un module coupe : le dit dans le chat et renvoie vrai
+function ns.SlashOff(command)
+    if ns.ModuleOn(command) then return false end
+    local name = command
+    for _, m in ipairs(ns.modules) do
+        if m.command == command and m.title then name = m.title() end
+    end
+    ns.Say(string.format(L.MODULES_OFF, name))
+    return true
+end
+
+function ns.SetModuleWanted(key, on)
+    if type(ns.root.modules) ~= "table" then ns.root.modules = {} end
+    -- coupe = false ; allume = rien (pas de "x and false or nil" : vaut toujours nil)
+    if on then ns.root.modules[key] = nil else ns.root.modules[key] = false end
+end
+
 -- commande ou alias affiche par /corp (skins, tooltips, ah...)
 local function findModule(command)
     for _, m in ipairs(ns.modules) do
@@ -1979,8 +2120,11 @@ end
 local function help()
     ns.Say(L.HELP_TITLE)
     for _, m in ipairs(ns.modules) do
-        local alias = m.alias and (" (" .. m.alias .. ")") or ""
-        ns.Chat(string.format("  |cffffff00/corp %s|r%s - %s", m.command, alias, m.desc()))
+        -- un module coupe n est pas dans l aide
+        if ns.ModuleOn(m.command) then
+            local alias = m.alias and (" (" .. m.alias .. ")") or ""
+            ns.Chat(string.format("  |cffffff00/corp %s|r%s - %s", m.command, alias, m.desc()))
+        end
     end
     ns.Chat(string.format("  |cffffff00/corp lang|r - %s", L.HELP[16]))
     ns.Chat(string.format("  |cffffff00/corp minimap|r - %s", L.HELP[11]))
@@ -1997,6 +2141,8 @@ SlashCmdList["CORPUI"] = function(input)
     local m = findModule(cmd)
     if cmd == "" then
         ns.ToggleMain()
+    elseif m and ns.SlashOff(m.command) then
+        -- module coupe : message de SlashOff
     elseif m then
         m.Slash(rest or "")
     elseif cmd == "lang" or cmd == "langue" or cmd == "language" then
@@ -2029,6 +2175,8 @@ local SECTION_GAP = 14
 -- Un module absent de la liste a sa propre page, en fin de colonne.
 local PAGES = {
     { key = "general", label = "TAB_GENERAL", icon = ns.LOGO, cmds = { "@general", "profils" } },
+    -- allumer / couper chaque module (Modules/Modules.lua)
+    { key = "modules", label = "PAGE_MODULES", cmds = { "modules" }, scroll = true },
     { cat = "CAT_INTERFACE" },
     -- un seul panneau, l editeur de tous les cadres (liste deroulante), qui defile
     { key = "units", label = "PAGE_UNITS", cmds = { "cadres" }, scroll = true },
@@ -3055,7 +3203,11 @@ local function buildTabs()
     if not searchBox then buildSearch() end
     local byCmd, used = {}, {}
     for _, m in ipairs(ns.modules) do
-        if m.Open and m.panelName then byCmd[m.command] = m end
+        -- module coupe : ni page ni section (l editeur des cadres reste tant
+        -- qu un de ses modules est allume : m.hosts)
+        local on = ns.ModuleOn(m.command)
+        for _, k in ipairs(m.hosts or {}) do on = on or ns.ModuleOn(k) end
+        if m.Open and m.panelName and on then byCmd[m.command] = m end
         if m.desc and m.panelName then descs[m.panelName] = m.desc end
     end
     -- pages de la liste, puis une page par module non range
@@ -3066,7 +3218,7 @@ local function buildTabs()
         for _, p in ipairs(PAGES) do
             for _, c in ipairs(p.cmds or {}) do if c == m.command then listed = true end end
         end
-        if not listed and m.Open and m.panelName then table.insert(list, { key = m.command, cmds = { m.command } }) end
+        if not listed and byCmd[m.command] then table.insert(list, { key = m.command, cmds = { m.command } }) end
     end
 
     local y = -8 - SEARCH_H
@@ -3155,7 +3307,7 @@ local function createMini()
     mini:SetScript("OnClick", function(_, button)
         if button == "RightButton" then
             local m = ns.modules[1]
-            if m and m.Alt then m.Alt() end
+            if m and m.Alt and ns.ModuleOn(m.command) then m.Alt() end
         else
             ns.ToggleMain()
         end

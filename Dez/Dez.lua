@@ -224,6 +224,7 @@ ev:SetScript("OnUpdate", function(_, dt)
     if btn and btn:IsShown() then btn:SetAlpha(InCombatLockdown() and 0.4 or 1) end
 end)
 ev:SetScript("OnEvent", function(_, event, a, b)
+    if ns.ModuleOff("dez", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         if type(root.dez) ~= "table" then root.dez = {} end

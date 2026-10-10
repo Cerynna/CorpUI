@@ -348,6 +348,7 @@ driver:SetScript("OnUpdate", function(_, dt)
     acc = 0
 end)
 driver:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("hv", driver) then return end
     if event == "MAIL_SEND_SUCCESS" then
         lastAuto = nil
         local o = opts()

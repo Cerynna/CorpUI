@@ -1027,6 +1027,7 @@ events.TRADE_SKILL_SHOW = profs
 function events.UPDATE_INSTANCE_INFO() if db then snapLocks() end end
 
 ev:SetScript("OnEvent", function(_, event, ...)
+    if ns.ModuleOff("persos", ev) then return end
     local fn = events[event]
     if fn then fn(...) end
 end)
@@ -1046,4 +1047,7 @@ ns.RegisterModule({
 })
 
 SLASH_CORPUIALTS1 = "/alts"
-SlashCmdList["CORPUIALTS"] = function() toggle() end
+SlashCmdList["CORPUIALTS"] = function()
+    if ns.SlashOff("persos") then return end
+    toggle()
+end

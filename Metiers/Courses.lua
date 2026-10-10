@@ -1162,6 +1162,7 @@ ns.RegisterModule({
 local namesPending = false
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("metiers", ev) then return end
     if event == "PLAYER_LOGIN" then
         M.Init()
         return

@@ -471,6 +471,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("jeux", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         if type(root.games) ~= "table" then root.games = {} end

@@ -325,6 +325,7 @@ AH.AddTab({ key = "mine", order = 2, label = function() return L.AHP_TAB_MINE en
 -- evenements : liste de Blizzard a jour, encheres creees ou annulees
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("hv", ev) then return end
     if event == "OWNED_AUCTIONS_UPDATED" then
         readOwned()
         AH.Refresh("mine")

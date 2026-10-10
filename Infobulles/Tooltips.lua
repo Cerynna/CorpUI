@@ -533,6 +533,7 @@ ev:SetScript("OnUpdate", function(_, dt)
 end)
 ev:RegisterEvent("PLAYER_LOGIN")
 ev:SetScript("OnEvent", function()
+    if ns.ModuleOff("infobulles", ev) then return end
     local root = ns.InitRoot()
     root.tooltips = root.tooltips or {}
     db = root.tooltips

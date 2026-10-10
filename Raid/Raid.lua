@@ -668,6 +668,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event, a1, a2)
+    if ns.ModuleOff("raid", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         root.raid = root.raid or {}

@@ -292,6 +292,7 @@ driver:SetScript("OnUpdate", function(_, dt)
     acc = 0
 end)
 driver:SetScript("OnEvent", function(_, event, who)
+    if ns.ModuleOff("hv", driver) then return end
     if event == "MAIL_INBOX_UPDATE" then
         dirty()
     elseif (event == "ADDON_ACTION_BLOCKED" or event == "ADDON_ACTION_FORBIDDEN") and run then

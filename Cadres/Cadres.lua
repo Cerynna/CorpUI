@@ -912,6 +912,7 @@ local function build(u, store)
     -- evenements de cette unite seulement
     local ev = CreateFrame("Frame")
     ev:SetScript("OnEvent", function(_, event)
+        if ns.ModuleOff("cadres", ev) then return end
         if event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" or event == "UNIT_CONNECTION" then
             updateHealth(f)
         elseif event == "UNIT_HEAL_PREDICTION" then
@@ -1184,6 +1185,7 @@ ns.FramesDiag = function() if db then printDiag() end end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("cadres", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         root.frames = root.frames or {}

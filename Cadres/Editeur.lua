@@ -43,32 +43,33 @@ for _, f in ipairs(FRAMES) do LABEL[f.key] = f.label end
 local function sections(key)
     local O = ns.FramesOpt or {}
     local list = {}
-    local function add(fn, ...)
-        if type(fn) == "function" then
+    -- mod : module qui fournit la section (coupe : section absente)
+    local function add(mod, fn, ...)
+        if type(fn) == "function" and ns.ModuleOn(mod) then
             local args = { ... }
             table.insert(list, function(p, y) return fn(p, y, unpack(args)) end)
         end
     end
     if key == "common" then
-        add(O.Common)
-        add(O.CastCommon)
-        add(O.AuraLists)
+        add("cadres", O.Common)
+        add("incantations", O.CastCommon)
+        add("auras", O.AuraLists)
     elseif key == "party" or key == "raid" then
-        add(O.Group, key)
-        add(O.Healers)
-        add(O.GroupAuraFilter)
+        add("groupe", O.Group, key)
+        add("groupe", O.Healers)
+        add("auras", O.GroupAuraFilter)
     else
-        add(O.Show, key)
-        add(O.Style, key)
-        if key == "player" or key == "target" or key == "focus" then add(O.Cast, key) end
+        add("cadres", O.Show, key)
+        add("cadres", O.Style, key)
+        if key == "player" or key == "target" or key == "focus" then add("incantations", O.Cast, key) end
         if key == "player" then
-            add(O.PlayerAuras)
-            add(ns.BuildResourceOptions)
-            add(O.Center)
-            add(O.Totems)
-            add(O.Swing)
+            add("auras", O.PlayerAuras)
+            add("cadres", ns.BuildResourceOptions)
+            add("cadres", O.Center)
+            add("cadres", O.Totems)
+            add("cadres", O.Swing)
         elseif key == "target" then
-            add(O.TargetAuras)
+            add("auras", O.TargetAuras)
         end
     end
     return list
@@ -80,8 +81,14 @@ local db
 local win, picker
 local subs = {}
 
+-- premier cadre qui a des sections (modules coupes : certains n en ont plus)
+local function firstFrame()
+    for _, f in ipairs(FRAMES) do if subs[f.key] then return f.key end end
+end
+
 local function select(key)
-    if not subs[key] then key = "common" end
+    if not subs[key] then key = subs.player and "player" or firstFrame() end
+    if not key then return end
     if db then db.frameSel = key end
     for k, p in pairs(subs) do p:SetShown(k == key) end
     win:SetHeight(math.floor(-TOP_Y + subs[key]:GetHeight() + 10))
@@ -89,6 +96,8 @@ local function select(key)
 end
 
 local function buildSub(key)
+    local list = sections(key)
+    if #list == 0 then return end
     local p = CreateFrame("Frame", nil, win)
     p:SetPoint("TOPLEFT", win, "TOPLEFT", 0, TOP_Y)
     p:SetSize(WIN_W, 10)
@@ -97,7 +106,7 @@ local function buildSub(key)
     p.cuiReveal = function() select(key) end
     p.cuiLabel = L[LABEL[key]]
     local y = 0
-    for _, fn in ipairs(sections(key)) do
+    for _, fn in ipairs(list) do
         local ok, ny = pcall(fn, p, y)
         if ok and type(ny) == "number" then
             y = ny - 8
@@ -116,7 +125,9 @@ local function buildWindow()
     label:SetText(L.UF_FRAME)
     picker = ns.UI.Select(win, 230, function()
         local list = {}
-        for _, f in ipairs(FRAMES) do table.insert(list, { value = f.key, text = L[f.label] }) end
+        for _, f in ipairs(FRAMES) do
+            if subs[f.key] then table.insert(list, { value = f.key, text = L[f.label] }) end
+        end
         return list
     end, function() return db and db.frameSel or "player" end, function(v) select(v) end)
     picker:SetPoint("LEFT", label, "RIGHT", 10, 0)
@@ -154,6 +165,8 @@ pcall(ev.RegisterEvent, ev, "PLAYER_LOGIN")
 
 ns.RegisterModule({
     command = "cadres",
+    -- page gardee tant qu un des modules dont elle montre les reglages est allume
+    hosts = { "groupe", "incantations", "auras" },
     panelName = "CorpUIUnitFramesOptions",
     icon = "Interface\\Icons\\Achievement_Character_Human_Male",
     title = function() return L.MOD_FRAMES end,

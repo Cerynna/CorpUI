@@ -1635,6 +1635,7 @@ local function init()
 end
 
 driver:SetScript("OnEvent", function(_, event, ...)
+    if ns.ModuleOff("hv", driver) then return end
     if event == "PLAYER_LOGIN" then
         init()
     elseif not db then

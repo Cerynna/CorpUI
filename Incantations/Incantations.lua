@@ -380,6 +380,7 @@ local function makeBar(unit, store, label)
 
     local ev = CreateFrame("Frame")
     ev:SetScript("OnEvent", function(_, event)
+        if ns.ModuleOff("incantations", ev) then return end
         if not db or not db.show[unit] then return end
         if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_DELAYED" then
             start(f, false)
@@ -511,6 +512,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("incantations", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         root.cast = root.cast or {}

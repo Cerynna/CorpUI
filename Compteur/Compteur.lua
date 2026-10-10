@@ -1065,6 +1065,7 @@ ns.OpenMeterOptions = toggle
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("compteur", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         root.meter = root.meter or {}

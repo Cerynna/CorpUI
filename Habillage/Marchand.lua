@@ -830,6 +830,7 @@ end
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("habillage", ev) then return end
     -- fin du combat : parcours complet au tic suivant
     if event == "PLAYER_REGEN_ENABLED" then state.shown = false end
 end)

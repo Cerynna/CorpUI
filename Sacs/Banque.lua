@@ -602,6 +602,7 @@ local LIGHT = { ITEM_LOCK_CHANGED = true, BAG_UPDATE_COOLDOWN = true, PLAYER_MON
 
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("sacs", ev) then return end
     if event == "PLAYER_LOGIN" then
         S = ns.BagsShared
         local root = ns.InitRoot()

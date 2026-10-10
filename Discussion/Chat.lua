@@ -1416,6 +1416,7 @@ end
 local newCharDone = false
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
+    if ns.ModuleOff("chat", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
         root.chat = root.chat or {}

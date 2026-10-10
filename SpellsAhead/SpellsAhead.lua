@@ -1633,6 +1633,7 @@ end)
 -- (le sondage ci-dessus rattrape le cas ou l evenement n existe pas)
 local clicks = CreateFrame("Frame")
 clicks:SetScript("OnEvent", function(_, event, button)
+    if ns.ModuleOff("sorts", clicks) then return end
     if event ~= "GLOBAL_MOUSE_DOWN" then return end
     if button ~= nil and button ~= "LeftButton" then return end
     if inCombat() then return end
@@ -2002,6 +2003,7 @@ end
 SLASH_SPELLSAHEAD1 = "/sa"
 SLASH_SPELLSAHEAD2 = "/spellsahead"
 SlashCmdList["SPELLSAHEAD"] = function(input)
+    if ns.SlashOff("sorts") then return end
     local cmd = strlower(strtrim(input or ""))
 
     -- filet : la base doit exister meme si ADDON_LOADED a echoue
@@ -2063,6 +2065,7 @@ local ev = CreateFrame("Frame")
 -- du client fait lever une erreur par RegisterEvent, ce qui interromprait le
 -- reste du fichier. C est exactement ce qui a casse la version precedente.
 ev:SetScript("OnEvent", function(self, event, arg1)
+    if ns.ModuleOff("sorts", ev) then return end
     if event == "ADDON_LOADED" then
         if arg1 == ADDON_NAME then
             SpellsAheadDB = SpellsAheadDB or {}
