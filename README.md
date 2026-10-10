@@ -13,7 +13,7 @@ Cadres, barres d'action, chat, sacs, hôtel des ventes, outils de groupe et de r
 ![Langues](https://img.shields.io/badge/Langues-10-5b8def?style=for-the-badge)
 ![Version](https://img.shields.io/badge/Version-1.0-3fb950?style=for-the-badge)
 
-[Modules](#ce-quil-contient) · [Installation](#installation) · [Commandes](#commandes) · [Style Moderne](#style-moderne) · [Pensé pour Forever](#pensé-pour-forever) · [Crédits](#crédits)
+[Modules](#ce-quil-contient) · [Installation](#installation) · [Commandes](#commandes) · [Apparence](#apparence) · [Pensé pour Forever](#pensé-pour-forever) · [Crédits](#crédits)
 
 </div>
 
@@ -24,7 +24,7 @@ Cadres, barres d'action, chat, sacs, hôtel des ventes, outils de groupe et de r
 CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cadre du joueur jusqu'à l'hôtel des ventes. Chaque module s'active ou se coupe à part, se règle dans la même fenêtre et suit le profil du personnage.
 
 - **Une seule fenêtre de réglages** : une colonne de pages (Interface, Groupe et raid, Outils), une recherche dans toutes les options, un aperçu en direct des cadres pendant qu'on les règle.
-- **Deux styles** : *Classique* (violet et or, filigranes) et *Moderne* (plat, accent à la couleur de la classe), avec une disposition d'écran prête à l'emploi.
+- **Une apparence plate et sobre** : fonds neutres, liserés fins, accent à la couleur de la classe, avec une disposition d'écran prête à l'emploi.
 - **Profils** par personnage, copie et partage par texte.
 - **10 langues** : français, anglais, allemand, espagnol, portugais, italien, russe, chinois simplifié et traditionnel, coréen.
 - **Assistant d'installation** au premier lancement.
@@ -94,11 +94,8 @@ Les mini-jeux peuvent s'ouvrir tout seuls pendant les trajets en griffon.
 
 1. Télécharge le dépôt : bouton **Code** puis **Download ZIP**, ou `git clone https://github.com/Cerynna/CorpUI.git`.
 2. Place le dossier dans `World of Warcraft\_classic_beta_\Interface\AddOns\`.
-3. Renomme-le en **`CorpUI`** s'il porte un autre nom (le ZIP de GitHub ajoute le nom de la branche, par exemple `CorpUI-style-moderne`).
+3. Renomme-le en **`CorpUI`** s'il porte un autre nom (le ZIP de GitHub ajoute le nom de la branche : `CorpUI-main`).
 4. Lance le jeu, active CorpUI dans la liste des addons, puis tape `/corp`.
-
-> [!NOTE]
-> Le développement en cours se trouve sur la branche `style-moderne`. La branche `main` garde l'état d'avant le style Moderne.
 
 > [!TIP]
 > Les nouvelles images, polices et sons ne sont pris en compte qu'après un redémarrage complet du jeu ; un `/reload` suffit pour le reste.
@@ -115,12 +112,10 @@ Les mini-jeux peuvent s'ouvrir tout seuls pendant les trajets en griffon.
 
 `/corpui` et `/cui` sont des alias de `/corp`. Le bouton **Déverrouiller** de la page Général affiche les poignées pour déplacer les cadres et les barres.
 
-## Style Moderne
+## Apparence
 
-Le style se choisit dans **Général › Style**.
-
-- Thème plat, liserés fins, fonds neutres, accent à la couleur de la classe.
-- Police **Saira Semi Condensed** (repli sur la police du jeu en russe, chinois et coréen).
+- Thème plat, liserés fins, fonds neutres ; la couleur d'accent se choisit dans **Général** (couleur de la classe par défaut).
+- Police **Saira Semi Condensed** (repli sur la police du jeu en russe, chinois et coréen), au choix dans **Général**.
 - Bouton **Disposition Moderne** : place les cadres, les barres, la minicarte, le chat et le compteur d'un coup ; **Ma disposition d'avant** revient en arrière.
 
 ## Pensé pour Forever

@@ -29,7 +29,6 @@ local _, ns = ...
 local REF_W, REF_H = 1920, 1080
 
 local DATA = {
-    style = "moderne",
     theme = "class",
     font = "Saira",
     minimap = { angle = -136.725, hide = false },

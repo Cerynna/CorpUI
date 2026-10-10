@@ -326,18 +326,10 @@ local function skinPage(tf)
     for _, key in ipairs(ANIM_KEYS) do dim(field(tf, key)) end
     local fx = field(tf, "classActivationTextures")
     if fx then for _, t in ipairs(fx) do dim(t) end end
-    -- art de la classe : desature, teinte de l accent, tres discret ; en
-    -- style Moderne, retire (une grande image sur toute la page : ses zones
-    -- claires faisaient une bande sur le troisieme arbre)
+    -- art de la classe : retire (une grande image sur toute la page : ses
+    -- zones claires faisaient une bande sur le troisieme arbre)
     local art = field(tf, "ClassBackground")
-    if isTex(art) and ns.MODERN then
-        dim(art)
-    elseif isTex(art) then
-        local C = ns.COLORS
-        pcall(art.SetDesaturated, art, true)
-        pcall(art.SetVertexColor, art, C.violet[1] * 0.6, C.violet[2] * 0.6, C.violet[3] * 0.6, 1)
-        pcall(art.SetAlpha, art, 0.22)
-    end
+    if isTex(art) then dim(art) end
 end
 
 ---------------------------------------------------------------------------

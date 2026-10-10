@@ -848,9 +848,9 @@ local function update()
     if #quests == 0 then
         header.count:SetText("")
     else
-        header.count:SetText(ns.MODERN and tostring(#quests) or ("(" .. #quests .. ")"))
+        header.count:SetText(tostring(#quests))
     end
-    header.toggle.label:SetText(db.collapsed and "+" or (ns.MODERN and "−" or "-"))
+    header.toggle.label:SetText(db.collapsed and "+" or "−")
     for _, l in ipairs(lines) do l:Hide() l.block = nil end
     for k in pairs(blocks) do blocks[k] = nil end
     if db.collapsed or #quests == 0 then
@@ -879,12 +879,8 @@ local function update()
             local blk = { id = id, title = q.title, y1 = y }
             n = n + 1
             local first = n
-            if ns.MODERN then
-                -- titre et niveau a droite dans la couleur de difficulte
-                y = setLine(n, y, q.title, "GameFontNormal", r, g, b, 4, id, tostring(q.level), r, g, b)
-            else
-                y = setLine(n, y, q.title, "GameFontNormal", r, g, b, 4, id)
-            end
+            -- titre et niveau a droite dans la couleur de difficulte
+            y = setLine(n, y, q.title, "GameFontNormal", r, g, b, 4, id, tostring(q.level), r, g, b)
             if q.complete then
                 n = n + 1
                 y = setLine(n, y, L.QUESTS_READY, "GameFontHighlightSmall", 0.3, 0.9, 0.3, 14, id)
@@ -952,29 +948,17 @@ local function build()
     header:SetPoint("TOPLEFT")
     header:SetPoint("TOPRIGHT")
     header:SetHeight(22)
-    if ns.MODERN then
-        -- style Moderne : pas de bandeau, un filet fin sous le titre
-        local rule = header:CreateTexture(nil, "BORDER")
-        rule:SetPoint("BOTTOMLEFT", 0, 1)
-        rule:SetPoint("BOTTOMRIGHT", 0, 1)
-        rule:SetHeight(1)
-        ns.NoSnap(rule)
-        rule:SetColorTexture(1, 1, 1, 0.22)
-    else
-        ns.UI.Skin(header, 0.85)
-        local grad = header:CreateTexture(nil, "BORDER")
-        grad:SetPoint("TOPLEFT", 1, -1)
-        grad:SetPoint("BOTTOMRIGHT", -1, 1)
-        ns.UI.Gradient(grad, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.35, C.violet[1], C.violet[2], C.violet[3], 0)
-    end
+    -- pas de bandeau : un filet fin sous le titre
+    local rule = header:CreateTexture(nil, "BORDER")
+    rule:SetPoint("BOTTOMLEFT", 0, 1)
+    rule:SetPoint("BOTTOMRIGHT", 0, 1)
+    rule:SetHeight(1)
+    ns.NoSnap(rule)
+    rule:SetColorTexture(1, 1, 1, 0.22)
     header.title = header:CreateFontString(nil, "OVERLAY")
     ns.UI.HeadFont(header.title, 12)
-    header.title:SetPoint("LEFT", ns.MODERN and 2 or 8, 0)
-    if ns.MODERN then
-        header.title:SetTextColor(0.93, 0.93, 0.93)
-    else
-        header.title:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
-    end
+    header.title:SetPoint("LEFT", 2, 0)
+    header.title:SetTextColor(0.93, 0.93, 0.93)
     header.title:SetText(L.QUESTS_TITLE)
     header.count = header:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     header.count:SetPoint("LEFT", header.title, "RIGHT", 6, 0)
@@ -995,10 +979,7 @@ local function build()
     body:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT", 0, -2)
     body:SetHeight(1)
     ns.NoSnap(body)
-    local bg = body:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints()
-    ns.UI.Gradient(bg, "HORIZONTAL", 0, 0, 0, 0.45, 0, 0, 0, 0.1)
-    if ns.MODERN then bg:Hide() end      -- style Moderne : la liste sur le jeu
+    -- pas de fond : la liste est posee sur le jeu
     -- surbrillance de la quete survolee (tout son bloc)
     hover = body:CreateTexture(nil, "BORDER")
     ns.UI.Gradient(hover, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.32, C.violet[1], C.violet[2], C.violet[3], 0.04)

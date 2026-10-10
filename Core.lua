@@ -36,20 +36,21 @@ ns.MEDIA = "Interface\\AddOns\\CorpUI\\Media\\"
 ns.LOGO = ns.MEDIA .. "logo64"
 ns.BAR_TEXTURE = ns.MEDIA .. "statusbar"
 
--- Identite visuelle : obsidienne, cristal violet, filets d or.
--- Fond, bandeau et filigrane generes avec Nano Banana (Media/theme_*).
+-- Identite visuelle (un seul style depuis le 10/10, l ancien "Moderne") :
+-- plat, liserés noirs, fonds neutres, accent au choix (couleur de classe
+-- par defaut), l or pour les titres.
 ns.FONT_HEAD = ns.MEDIA .. "xpbold.ttf"      -- Archivo Black (licence OFL)
 ns.COLORS = {
-    bg      = { 0.035, 0.03, 0.055 },
-    panel   = { 0.075, 0.05, 0.11 },
-    border  = { 0.30, 0.20, 0.42 },
+    bg      = { 0.035, 0.038, 0.047 },
+    panel   = { 0.07, 0.075, 0.09 },
+    border  = { 0, 0, 0 },
     violet  = { 0.84, 0.36, 1.00 },
     gold    = { 1.00, 0.82, 0.25 },
     text    = { 0.86, 0.84, 0.90 },
 }
 
--- Couleur d accent au choix (onglet General). Le liseré, les fonds et les
--- degrades en derivent ; l or reste l or. Appliquee a la lecture de la
+-- Couleur d accent au choix (onglet General) ; l or reste l or. Appliquee a
+-- la lecture de la
 -- sauvegarde, avant la construction des cadres : un changement demande un
 -- rechargement de l interface.
 ns.THEMES = {
@@ -61,18 +62,10 @@ ns.THEMES = {
     { key = "red",     color = { 1.00, 0.26, 0.30 } },
     { key = "pink",    color = { 1.00, 0.42, 0.76 } },
     { key = "silver",  color = { 0.76, 0.79, 0.86 } },
-    -- sombre : anthracite et noir, accent gris neutre, images presque eteintes
-    { key = "dark",    color = { 0.58, 0.60, 0.64 },
-      border = { 0.20, 0.205, 0.22 }, panel = { 0.085, 0.085, 0.095 }, bg = { 0.025, 0.025, 0.028 },
-      tint = { 0.34, 0.34, 0.36 } },
+    -- sombre : accent gris neutre
+    { key = "dark",    color = { 0.58, 0.60, 0.64 } },
     { key = "class" },
 }
-
-local function themeDef(key)
-    for _, t in ipairs(ns.THEMES) do
-        if t.key == key then return t end
-    end
-end
 
 function ns.ThemeColor(key)
     if key == "class" then
@@ -88,66 +81,13 @@ function ns.ThemeColor(key)
 end
 
 local function applyTheme(key)
-    -- style Moderne (09/10) : plat, liserés noirs, fonds neutres
-    ns.MODERN = ns.root ~= nil and ns.root.style == "moderne"
     local a = ns.ThemeColor(key)
     local C = ns.COLORS
     C.violet = { a[1], a[2], a[3] }
-    local def = themeDef(key)
-    if def and def.border then
-        C.border, C.panel, C.bg = def.border, def.panel, def.bg
-    elseif key == "violet" or key == nil then
-        C.border = { 0.30, 0.20, 0.42 }
-        C.panel  = { 0.075, 0.05, 0.11 }
-        C.bg     = { 0.035, 0.03, 0.055 }
-    else
-        C.border = { a[1] * 0.36, a[2] * 0.36, a[3] * 0.36 }
-        C.panel  = { 0.02 + a[1] * 0.07, 0.02 + a[2] * 0.07, 0.02 + a[3] * 0.07 }
-        C.bg     = { 0.025 + a[1] * 0.012, 0.025 + a[2] * 0.012, 0.025 + a[3] * 0.012 }
-    end
     C.themeKey = key or "violet"
-    C.tint = def and def.tint
-    if ns.MODERN then
-        C.border = { 0, 0, 0 }
-        C.panel  = { 0.07, 0.075, 0.09 }
-        C.bg     = { 0.035, 0.038, 0.047 }
-        C.tint   = nil
-    end
 end
 ns.ApplyTheme = applyTheme
 
--- Style de l interface : "classique" (violet, images du theme) ou
--- "moderne" (plat ; passe a la couleur de classe et a la police Saira, en
--- gardant les choix d avant pour un retour au classique). Applique au
--- prochain rechargement, comme la couleur du theme.
-function ns.SetStyle(v)
-    local db = ns.root
-    if not db or (db.style or "classique") == v then return end
-    if v == "moderne" then
-        db.styleBackup = { theme = db.theme, font = db.font }
-        db.theme, db.font = "class", "Saira"
-    else
-        local b = db.styleBackup
-        if type(b) == "table" then db.theme, db.font = b.theme, b.font end
-        db.styleBackup = nil
-    end
-    db.style = v
-end
-
--- Les images du theme sont violettes : pour une autre couleur, on les
--- passe en gris puis on les teinte avec l accent ; style Moderne : retirees
-function ns.TintThemeTexture(tex, strength)
-    local C = ns.COLORS
-    if ns.MODERN then
-        tex:SetTexture(nil)
-        return
-    end
-    if C.themeKey == "violet" then return end
-    tex:SetDesaturated(true)
-    if C.tint then tex:SetVertexColor(C.tint[1], C.tint[2], C.tint[3]) return end
-    local k = strength or 1
-    tex:SetVertexColor(0.5 + (C.violet[1] - 0.5) * k, 0.5 + (C.violet[2] - 0.5) * k, 0.5 + (C.violet[3] - 0.5) * k)
-end
 local CHAT_PREFIX = ns.TITLE .. ": "
 
 ---------------------------------------------------------------------------
@@ -543,46 +483,38 @@ ns.UI = {}
 local W8 = "Interface\\Buttons\\WHITE8X8"
 local C = ns.COLORS
 
--- Degrade (API du client moderne), sinon couleur unie ; style Moderne :
--- toujours a plat (moyenne des deux bouts)
--- onglet choisi des habillages : couleur du fond, puis du liseré. Classique :
--- fond d accent assombri, liseré d or ; Moderne : fond sombre a peine releve,
--- liseré d accent (plus de plaque claire cerclee d or quand l accent est clair)
+-- onglet choisi des habillages : fond sombre a peine releve, liseré d accent
 function ns.UI.SelectedTab()
-    if ns.MODERN then return { 0.15, 0.155, 0.18 }, C.violet end
-    return { C.violet[1] * 0.35, C.violet[2] * 0.35, C.violet[3] * 0.35 }, C.gold
+    return { 0.15, 0.155, 0.18 }, C.violet
 end
 
+-- "Degrade" : toujours a plat. Les decors (meme couleur aux deux bouts,
+-- seule l opacite varie) deviennent sombres ou un voile de survol, les
+-- filets d or fins disparaissent ; le reste prend la moyenne des deux bouts
 function ns.UI.Gradient(tex, orientation, r1, g1, b1, a1, r2, g2, b2, a2)
     tex:SetTexture(W8)
-    if ns.MODERN then
-        -- les decors du theme (meme couleur aux deux bouts, seule l opacite
-        -- varie) : bandeau d accent -> sombre, survol -> voile clair, filet
-        -- d or fin -> retire ; le reste (remplissages a deux teintes) a plat
-        local function same(c)
-            return math.abs(r1 - c[1]) < 0.01 and math.abs(g1 - c[2]) < 0.01 and math.abs(b1 - c[3]) < 0.01
-                and math.abs(r2 - c[1]) < 0.01 and math.abs(g2 - c[2]) < 0.01 and math.abs(b2 - c[3]) < 0.01
-        end
-        if same(C.gold) then
-            local ok, h = pcall(tex.GetHeight, tex)
-            if ok and type(h) == "number" and h > 0 and h <= 2 then
-                tex:SetColorTexture(0, 0, 0, 0)
-                return
-            end
-        elseif same(C.violet) then
-            local ok, layer = pcall(tex.GetDrawLayer, tex)
-            if ok and layer == "HIGHLIGHT" then
-                tex:SetColorTexture(1, 1, 1, 0.08)
-            else
-                tex:SetColorTexture(0, 0, 0, math.max(a1, a2) * 0.9)
-            end
+    local function same(c)
+        return math.abs(r1 - c[1]) < 0.01 and math.abs(g1 - c[2]) < 0.01 and math.abs(b1 - c[3]) < 0.01
+            and math.abs(r2 - c[1]) < 0.01 and math.abs(g2 - c[2]) < 0.01 and math.abs(b2 - c[3]) < 0.01
+    end
+    if same(C.gold) then
+        -- filet d or fin : retire
+        local ok, h = pcall(tex.GetHeight, tex)
+        if ok and type(h) == "number" and h > 0 and h <= 2 then
+            tex:SetColorTexture(0, 0, 0, 0)
             return
         end
-        tex:SetColorTexture((r1 + r2) / 2, (g1 + g2) / 2, (b1 + b2) / 2, (a1 + a2) / 2)
+    elseif same(C.violet) then
+        -- bandeau d accent : sombre ; survol : voile clair
+        local ok, layer = pcall(tex.GetDrawLayer, tex)
+        if ok and layer == "HIGHLIGHT" then
+            tex:SetColorTexture(1, 1, 1, 0.08)
+        else
+            tex:SetColorTexture(0, 0, 0, math.max(a1, a2) * 0.9)
+        end
         return
     end
-    local ok = pcall(tex.SetGradient, tex, orientation, CreateColor(r1, g1, b1, a1), CreateColor(r2, g2, b2, a2))
-    if not ok then tex:SetColorTexture(r1, g1, b1, (a1 + a2) / 2) end
+    tex:SetColorTexture((r1 + r2) / 2, (g1 + g2) / 2, (b1 + b2) / 2, (a1 + a2) / 2)
 end
 
 -- Police des titres (Archivo Black), repli sur celle du jeu
@@ -2130,15 +2062,6 @@ local stacking
 local fitMain, stack
 local searchBox, results   -- recherche dans les options (plus bas)
 
--- Une image etiree garde ses proportions : on recadre par SetTexCoord
--- (iw, ih = proportions de l image source)
-local function cover(tex, w, h, iw, ih)
-    if not w or w <= 0 or not h or h <= 0 then return end
-    local fw, fh = 1, 1
-    if w / h > iw / ih then fh = (iw / ih) / (w / h) else fw = (w / h) / (iw / ih) end
-    tex:SetTexCoord(0.5 - fw / 2, 0.5 + fw / 2, 0.5 - fh / 2, 0.5 + fh / 2)
-end
-
 local function buildMain()
     ns.root.main = ns.root.main or { point = "CENTER", x = 0, y = 40 }
     local store = ns.root.main
@@ -2161,38 +2084,12 @@ local function buildMain()
     ns.UI.Shadow(main, 5)
     main:Hide()
 
-    -- fond : cercle runique, recadre sans deformation
-    local bg = main:CreateTexture(nil, "BACKGROUND", nil, 1)
-    bg:SetPoint("TOPLEFT", 1, -1)
-    bg:SetPoint("BOTTOMRIGHT", -1, 1)
-    bg:SetTexture(MEDIA .. "theme_bg")
-    ns.TintThemeTexture(bg, 1)
-    bg:SetAlpha(0.85)
-
-    -- bandeau : cristal et trainees violettes, filigrane d or en dessous
+    -- bandeau du titre : sombre et uni
     local head = main:CreateTexture(nil, "BACKGROUND", nil, 2)
     head:SetPoint("TOPLEFT", 1, -1)
     head:SetPoint("TOPRIGHT", -1, -1)
     head:SetHeight(HEAD_H - 6)
-    head:SetTexture(MEDIA .. "theme_header")
-    ns.TintThemeTexture(head, 1)
-    local headShade = main:CreateTexture(nil, "BACKGROUND", nil, 3)
-    headShade:SetAllPoints(head)
-    ns.UI.Gradient(headShade, "VERTICAL", 0, 0, 0, 0.55, 0, 0, 0, 0)
-    local fili = main:CreateTexture(nil, "ARTWORK")
-    fili:SetPoint("TOPLEFT", main, "TOPLEFT", 6, -(HEAD_H - 14))
-    fili:SetPoint("TOPRIGHT", main, "TOPRIGHT", -6, -(HEAD_H - 14))
-    fili:SetHeight(14)
-    fili:SetTexture(MEDIA .. "theme_filigree")
-    if ns.MODERN then fili:Hide() end
-
-    main:SetScript("OnSizeChanged", function(self, w, h)
-        cover(bg, w, h, 1, 1)
-        -- bandeau : on garde la gauche (le cristal), recadre en hauteur
-        local hh = HEAD_H - 6
-        local fh = math.min(1, (hh / w) * 4)
-        head:SetTexCoord(0, 1, 0.5 - fh / 2, 0.5 + fh / 2)
-    end)
+    head:SetColorTexture(0, 0, 0, 0.275)
 
     local logo = main:CreateTexture(nil, "ARTWORK", nil, 2)
     logo:SetSize(38, 38)
@@ -2707,15 +2604,6 @@ local function buildGeneral()
     scaleHint:SetText(L.GEN_SCALE_HINT)
     form:Gap(26)
 
-    -- couleur du theme : une pastille par accent, la choisie entouree d or
-    -- style : classique ou moderne (plat, couleur de classe, police Saira)
-    local styleSel = form:Cycle(L.GEN_STYLE, { "classique", "moderne" },
-        { classique = L.STYLE_CLASSIC, moderne = L.STYLE_MODERN },
-        function() return ns.root.style or "classique" end,
-        function(v) ns.SetStyle(v) end)
-    local styleHint = general:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    styleHint:SetPoint("LEFT", styleSel, "RIGHT", 8, 0)
-    general.styleHint = styleHint
     -- disposition des maquettes (Disposition.lua) et retour en arriere
     if ns.ModernLayout then
         local lay = ns.UI.Button(general, L.LAYOUT_APPLY, 170, function()
@@ -2795,7 +2683,6 @@ local function buildGeneral()
         for _, s in ipairs(general.swatches) do s.ring:SetShown(s.key == chosen) end
         -- choix different de la couleur en cours : il faut recharger
         general.themeHint:SetText(chosen ~= ns.COLORS.themeKey and L.GEN_THEME_HINT or "")
-        general.styleHint:SetText(((ns.root.style == "moderne") ~= (ns.MODERN and true or false)) and L.GEN_THEME_HINT or "")
     end
     general:SetScript("OnShow", function()
         update()

@@ -28,7 +28,7 @@ local PREFIX = "CorpUI:1:"
 -- sous-tables de CorpUIDB qui font partie d un profil ; pour chacune, les
 -- cles de donnees qui restent au compte (jamais copiees ni ecrasees)
 local KEYS = {
-    theme = {}, font = {}, style = {}, styleBackup = {}, layoutBackup = {}, minimap = {}, movers = {},
+    theme = {}, font = {}, layoutBackup = {}, minimap = {}, movers = {},
     frames = { diag = true }, group = {}, bars = {}, cast = {}, auras = {}, menus = {},
     xp = { chars = true }, map = {}, info = {}, quests = {}, bags = {}, chat = {},
     tooltips = {}, damage = {}, plates = {}, skins = {}, shop = {},

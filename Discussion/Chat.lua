@@ -2,9 +2,9 @@
     CorpUI - module Chat
     Style CorpUI pour les fenetres de discussion de Blizzard :
       - fond du theme (opacite reglable) a la place du fond de Blizzard ;
-      - onglets plats, l onglet de la fenetre choisie en or ; style
-        Moderne : le fond s arrete sous les onglets (plaques detachees,
-        l active soulignee) et la colonne d icones part du meme bord ;
+      - le fond s arrete sous les onglets (plaques detachees, l active
+        soulignee a la couleur d accent) ; colonne d icones a gauche, du
+        meme bord ;
       - zone de saisie au style du theme ;
       - bouton de copie : ouvre une fenetre ou le texte recent est
         selectionnable (Ctrl+C), liens et adresses compris ; les adresses
@@ -237,14 +237,13 @@ end
 ---------------------------------------------------------------------------
 
 local MEDIA = ns.MEDIA
-local STRIP = 30          -- hauteur du bandeau des onglets (au-dessus des messages)
 local EDIT = 24           -- hauteur de la zone de saisie (sous les messages)
--- style Moderne (10/10, variante B choisie parmi quatre) : le fond du chat
--- s arrete au bas des onglets (3 au-dessus des messages) ; les onglets sont
--- des plaques detachees, 3 au-dessus de ce bord ; la colonne d icones part
--- du meme bord. Classique : le bandeau des onglets fait partie du fond
+-- (10/10, variante B choisie parmi quatre) le fond du chat s arrete au bas
+-- des onglets, PANEL_TOP au-dessus des messages ; les onglets sont des
+-- plaques detachees, TAB_GAP au-dessus de ce bord ; la colonne d icones
+-- part du meme bord
+local PANEL_TOP = 3
 local TAB_GAP = 3
-local function panelTop() return ns.MODERN and 3 or (STRIP + 4) end
 -- place prise a gauche par la colonne d icones (0 si aucune icone) ;
 -- declaree ici : place() (zone de saisie) la lit, layoutButtons l ecrit
 local colOffset = 0
@@ -271,57 +270,13 @@ local function buildPanel(cf)
     ns.UI.SetBackdrop(p, db.alpha)
     ns.UI.Shadow(p, 4)
 
-    -- motif runique, tres discret, sous les messages
-    local art = p:CreateTexture(nil, "BACKGROUND", nil, 2)
-    art:SetPoint("TOPLEFT", 1, -(ns.MODERN and 1 or (STRIP + 1)))
-    art:SetPoint("BOTTOMRIGHT", -1, 1)
-    art:SetTexture(MEDIA .. "theme_bg")
-    art:SetTexCoord(0.05, 0.95, 0.3, 0.7)
-    ns.TintThemeTexture(art, 1)
-    p.art = art
-
-    -- bandeau des onglets
-    local strip = p:CreateTexture(nil, "BORDER")
-    strip:SetPoint("TOPLEFT", 1, -1)
-    strip:SetPoint("TOPRIGHT", -1, -1)
-    strip:SetHeight(STRIP)
-    if ns.MODERN then
-        -- style Moderne : pas de bande (les onglets sont au-dessus du fond) ;
-        -- bord du haut a la couleur d accent
-        strip:Hide()
-        p.accent = p:CreateTexture(nil, "ARTWORK")
-        p.accent:SetPoint("TOPLEFT", 1, -1)
-        p.accent:SetPoint("TOPRIGHT", -1, -1)
-        p.accent:SetHeight(1)
-        ns.NoSnap(p.accent)
-        p.accent:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.9)
-    else
-        ns.UI.Gradient(strip, "VERTICAL", C.violet[1], C.violet[2], C.violet[3], 0.04,
-                                          C.violet[1], C.violet[2], C.violet[3], 0.30)
-    end
-    -- filet d or net (1 px) sous les onglets : plein au centre, efface aux bords
-    local function goldLine(y)
-        local l = p:CreateTexture(nil, "ARTWORK")
-        l:SetPoint("TOPLEFT", p, "TOPLEFT", 1, y)
-        l:SetPoint("TOPRIGHT", p, "TOP", 0, y)
-        l:SetHeight(1)
-        ns.NoSnap(l)
-        ns.UI.Gradient(l, "HORIZONTAL", C.gold[1], C.gold[2], C.gold[3], 0, C.gold[1], C.gold[2], C.gold[3], 0.9)
-        local r = p:CreateTexture(nil, "ARTWORK")
-        r:SetPoint("TOPLEFT", p, "TOP", 0, y)
-        r:SetPoint("TOPRIGHT", p, "TOPRIGHT", -1, y)
-        r:SetHeight(1)
-        ns.NoSnap(r)
-        ns.UI.Gradient(r, "HORIZONTAL", C.gold[1], C.gold[2], C.gold[3], 0.9, C.gold[1], C.gold[2], C.gold[3], 0)
-    end
-    if not ns.MODERN then
-        goldLine(-STRIP)
-        local gem = p:CreateTexture(nil, "OVERLAY")
-        gem:SetSize(5, 5)
-        gem:SetPoint("CENTER", p, "TOP", 0, -STRIP)
-        gem:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
-        pcall(gem.SetRotation, gem, math.rad(45))
-    end
+    -- bord du haut a la couleur d accent (les onglets sont au-dessus du fond)
+    p.accent = p:CreateTexture(nil, "ARTWORK")
+    p.accent:SetPoint("TOPLEFT", 1, -1)
+    p.accent:SetPoint("TOPRIGHT", -1, -1)
+    p.accent:SetHeight(1)
+    ns.NoSnap(p.accent)
+    p.accent:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.9)
 
     -- zone de saisie, integree au bas du panneau
     local edit = CreateFrame("Frame", nil, p)
@@ -363,7 +318,7 @@ local function place(s, cf)
         s.host, s.withEdit = host, withEdit
         local p = s.panel
         p:ClearAllPoints()
-        p:SetPoint("TOPLEFT", host, "TOPLEFT", -6, panelTop())
+        p:SetPoint("TOPLEFT", host, "TOPLEFT", -6, PANEL_TOP)
         p:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", 6, withEdit and -(EDIT + 6) or -6)
         p.edit:SetShown(withEdit)
     end
@@ -420,11 +375,9 @@ local function styleTab(tab)
     local fs = tabText(tab)
     if fs then fade(fs) end
     local t = {}
-    -- onglet facon dossier (09/10, style choisi parmi quatre) : plaque posee
-    -- sur le bas de la bande, toute la largeur de l onglet de Blizzard ;
-    -- inactifs en retrait (plus bas, plus sombres), l actif plus haut, de la
-    -- couleur du chat, ouvert dessus, filet d accent en haut. Hauteur et
-    -- calage refaits par tabGeom (refresh)
+    -- onglet en plaque detachee (10/10, variante B) : toute la largeur de
+    -- l onglet de Blizzard, au-dessus du fond ; l actif a la couleur du chat
+    -- et souligne, les autres plus pales. Calage refait par tabGeom (refresh)
     t.plate = labelHost:CreateTexture(nil, "BACKGROUND", nil, 1)
     ns.NoSnap(t.plate)
     t.edges = {}
@@ -437,15 +390,7 @@ local function styleTab(tab)
         ns.NoSnap(e)
         t.edges[i] = e
     end
-    t.top = labelHost:CreateTexture(nil, "BACKGROUND", nil, 3)
-    t.top:SetPoint("TOPLEFT", t.plate, "TOPLEFT", 1, 0)
-    t.top:SetPoint("TOPRIGHT", t.plate, "TOPRIGHT", -1, 0)
-    t.top:SetHeight(2)
-    ns.NoSnap(t.top)
-    local ac = ns.MODERN and C.violet or C.gold
-    t.top:SetColorTexture(ac[1], ac[2], ac[3], 1)
-    t.top:Hide()
-    -- Moderne : onglet actif souligne en bas de sa plaque (detachee du fond)
+    -- onglet actif souligne en bas de sa plaque (detachee du fond)
     t.bottom = labelHost:CreateTexture(nil, "BACKGROUND", nil, 3)
     t.bottom:SetPoint("BOTTOMLEFT", t.plate, "BOTTOMLEFT", 0, 0)
     t.bottom:SetPoint("BOTTOMRIGHT", t.plate, "BOTTOMRIGHT", 0, 0)
@@ -460,37 +405,20 @@ local function styleTab(tab)
     -- coupe a la largeur de l onglet (les onglets d un dock charge sont
     -- etroits : "Journal de combat" debordait sur ses voisins)
     t.label:SetWordWrap(false)
-    t.under = labelHost:CreateTexture(nil, "OVERLAY")
-    t.under:SetPoint("TOPLEFT", t.label, "BOTTOMLEFT", -2, -3)
-    t.under:SetPoint("TOPRIGHT", t.label, "BOTTOMRIGHT", 2, -3)
-    t.under:SetHeight(2)
-    -- onglet actif souligne : or (classique), couleur d accent (moderne)
-    local uc = ns.MODERN and C.violet or C.gold
-    t.under:SetColorTexture(uc[1], uc[2], uc[3], 1)
-    t.glow = labelHost:CreateTexture(nil, "ARTWORK")
-    t.glow:SetPoint("BOTTOMLEFT", t.label, "BOTTOMLEFT", -6, -4)
-    t.glow:SetPoint("BOTTOMRIGHT", t.label, "BOTTOMRIGHT", 6, -4)
-    t.glow:SetHeight(16)
-    ns.UI.Gradient(t.glow, "VERTICAL", C.violet[1], C.violet[2], C.violet[3], 0.35, C.violet[1], C.violet[2], C.violet[3], 0)
-    t.under:Hide()
-    t.glow:Hide()
     return t
 end
 
--- hauteurs des plaques : l onglet actif depasse de 4 (dossier ouvert)
-local TAB_H_ON, TAB_H_OFF = 26, 22
+-- hauteur des plaques (toutes la meme)
+local TAB_H = 22
 
--- plaque posee sur le bas de la bande (3 au-dessus du haut du chat, comme le
--- bas des onglets de Blizzard : 3 pour General, 4 pour les onglets du cadre
--- defilant, mesure en jeu le 09/10)
-local function tabGeom(t, tab, host, on)
+-- plaque detachee, TAB_GAP au-dessus du bord du fond (lui-meme PANEL_TOP
+-- au-dessus du haut du chat, comme le bas des onglets de Blizzard : 3 pour
+-- General, 4 pour les onglets du cadre defilant, mesure en jeu le 09/10)
+local function tabGeom(t, tab, host)
     local hb, tb = host:GetTop(), tab:GetBottom()
     if not hb or not tb then return end
-    -- Moderne : plaques detachees, toutes de la meme hauteur, TAB_GAP au-dessus
-    -- du bord du fond
-    local lift = ns.MODERN and TAB_GAP or 0
-    local dy = math.floor((hb + 3 + lift - tb) * 10 + 0.5) / 10
-    local h = (on and not ns.MODERN) and TAB_H_ON or TAB_H_OFF
+    local dy = math.floor((hb + PANEL_TOP + TAB_GAP - tb) * 10 + 0.5) / 10
+    local h = TAB_H
     if t.dy == dy and t.h == h and t.anchor == tab then return end
     t.dy, t.h, t.anchor = dy, h, tab
     t.plate:ClearAllPoints()
@@ -505,31 +433,18 @@ local function plateLook(t, state)
     -- (opacite du chat changee dans les options : la plaque suit)
     if t.state == state and t.alpha == db.alpha then return end
     t.state, t.alpha = state, db.alpha
-    local fr, fg, fb, fa, ea
-    if ns.MODERN then
-        -- plaques detachees : l active a la couleur du fond du chat,
-        -- soulignee ; les autres plus pales
-        local C = ns.COLORS
-        if state == "on" then
-            fr, fg, fb, fa, ea = C.bg[1], C.bg[2], C.bg[3], db.alpha, 0.14
-        elseif state == "over" then
-            fr, fg, fb, fa, ea = C.bg[1], C.bg[2], C.bg[3], db.alpha * 0.75, 0.12
-        else
-            fr, fg, fb, fa, ea = C.bg[1], C.bg[2], C.bg[3], db.alpha * 0.5, 0.06
-        end
-        t.top:Hide()
-        t.bottom:SetShown(state == "on")
+    -- l active a la couleur du fond du chat, soulignee ; les autres plus pales
+    local C = ns.COLORS
+    local fa, ea
+    if state == "on" then
+        fa, ea = db.alpha, 0.14
+    elseif state == "over" then
+        fa, ea = db.alpha * 0.75, 0.12
     else
-        if state == "on" then
-            fr, fg, fb, fa, ea = 0, 0, 0, 0, 0.16
-        elseif state == "over" then
-            fr, fg, fb, fa, ea = 1, 1, 1, 0.06, 0.12
-        else
-            fr, fg, fb, fa, ea = 0, 0, 0, 0.38, 0.07
-        end
-        t.top:SetShown(state == "on")
-        t.bottom:Hide()
+        fa, ea = db.alpha * 0.5, 0.06
     end
+    local fr, fg, fb = C.bg[1], C.bg[2], C.bg[3]
+    t.bottom:SetShown(state == "on")
     t.plate:SetColorTexture(fr, fg, fb, fa)
     for _, e in ipairs(t.edges) do e:SetColorTexture(1, 1, 1, ea) end
 end
@@ -538,12 +453,7 @@ local function showLook(t, on)
     t.label:SetShown(on)
     t.plate:SetShown(on)
     for _, e in ipairs(t.edges) do e:SetShown(on) end
-    if not on then
-        t.top:Hide()
-        t.bottom:Hide()
-        t.under:Hide()
-        t.glow:Hide()
-    end
+    if not on then t.bottom:Hide() end
 end
 
 local function styleEdit(eb)
@@ -719,7 +629,7 @@ local function layoutButtons()
     if column.host ~= host then
         column.host = host
         column:ClearAllPoints()
-        column:SetPoint("TOPRIGHT", host, "TOPLEFT", -6 - COL_GAP, panelTop())
+        column:SetPoint("TOPRIGHT", host, "TOPLEFT", -6 - COL_GAP, PANEL_TOP)
         column:SetPoint("BOTTOMRIGHT", host, "BOTTOMLEFT", -6 - COL_GAP, -6)
         buttonBar:ClearAllPoints()
         buttonBar:SetPoint("TOP", column, "TOP", 0, -4)
@@ -1037,9 +947,8 @@ local function refresh()
         if s.panel then
             pcall(place, s, cf)
             s.panel:SetBackdropColor(C.bg[1], C.bg[2], C.bg[3], db.alpha)
-            s.panel.art:SetAlpha(0.22 * db.alpha / 0.6)
-            -- bord du haut (Moderne) : suit la couleur d accent du theme
-            if s.panel.accent then s.panel.accent:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.9) end
+            -- bord du haut : suit la couleur d accent du theme
+            s.panel.accent:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.9)
         end
         local look = s.tabLook
         if look then
@@ -1057,38 +966,10 @@ local function refresh()
                     look.w = w
                     look.label:SetWidth(w - 10)
                 end
-                tabGeom(look, s.tab, hostOf(cf), on)
+                tabGeom(look, s.tab, hostOf(cf))
                 plateLook(look, on and "on" or (s.tab:IsMouseOver() and "over" or "rest"))
-                if on and ns.MODERN then look.label:SetTextColor(1, 1, 1)
-                elseif on then look.label:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
-                elseif s.tab:IsMouseOver() then look.label:SetTextColor(1, 1, 1)
+                if on or s.tab:IsMouseOver() then look.label:SetTextColor(1, 1, 1)
                 else look.label:SetTextColor(C.text[1] * 0.75, C.text[2] * 0.75, C.text[3] * 0.75) end
-                look.under:Hide()
-                look.glow:Hide()
-            end
-        end
-        -- trait du bas de la bande : interrompu sous l onglet de cette
-        -- fenetre (le dossier ouvert), entier si son onglet est cache
-        local p = s.panel
-        if p and p.lineL and p:IsVisible() then
-            local pl, pr = p:GetLeft(), p:GetRight()
-            local tab = s.tab
-            local open = tab and look and look.plate:IsShown() and look.plate:GetLeft() and look.plate
-            if pl and pr then
-                local wl, wr
-                if open then
-                    wl = math.max(0, open:GetLeft() - pl - 1)
-                    wr = math.max(0, pr - 1 - open:GetRight())
-                else
-                    wl, wr = math.max(0, pr - pl - 2), 0
-                end
-                if p.wl ~= wl or p.wr ~= wr then
-                    p.wl, p.wr = wl, wr
-                    p.lineL:SetWidth(math.max(0.01, wl))
-                    p.lineR:SetWidth(math.max(0.01, wr))
-                    p.lineL:SetShown(wl > 0)
-                    p.lineR:SetShown(wr > 0)
-                end
             end
         end
         if s.eb and s.field and s.eb:IsVisible() then

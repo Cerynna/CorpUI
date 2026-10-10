@@ -157,12 +157,8 @@ end
 
 local function shortKey(key)  -- partage : ns.ShortKey
     if not key then return "" end
-    -- style Moderne : modificateurs en capitales ("S1", "C2", "A3")
-    if ns.MODERN then
-        key = key:gsub("SHIFT%-", "S"):gsub("CTRL%-", "C"):gsub("ALT%-", "A")
-    else
-        key = key:gsub("SHIFT%-", "s"):gsub("CTRL%-", "c"):gsub("ALT%-", "a")
-    end
+    -- modificateurs en capitales ("S1", "C2", "A3")
+    key = key:gsub("SHIFT%-", "S"):gsub("CTRL%-", "C"):gsub("ALT%-", "A")
     key = key:gsub("MOUSEWHEELUP", "MwH"):gsub("MOUSEWHEELDOWN", "MwB"):gsub("BUTTON", "M")
     key = key:gsub("NUMPAD", "N"):gsub("SPACE", "Esp")
     return key

@@ -612,7 +612,6 @@ end
 local function buildCollector()
     bar = CreateFrame("Frame", nil, Minimap)
     bar:SetFrameLevel(Minimap:GetFrameLevel() + 4)
-    ns.UI.Skin(bar, 0.9)
     bar:Hide()
 
     -- tiroir : petit bouton dans le coin bas-droit de la carte
@@ -671,11 +670,6 @@ local function buildCollector()
     end)
     hoverAlpha = db.collectMode == "hover" and 0 or 1
     bar:SetAlpha(hoverAlpha)
-    -- style Moderne : boutons poses sur le jeu, sans boite
-    if ns.MODERN then
-        if bar.cuiBg then bar.cuiBg:Hide() end
-        if bar.cuiBorder then bar.cuiBorder:Hide() end
-    end
 end
 
 ---------------------------------------------------------------------------
@@ -706,28 +700,19 @@ local function build()
     info = CreateFrame("Frame", nil, Minimap)
     info:SetPoint("TOPLEFT", Minimap, "BOTTOMLEFT", 0, -3)
     info:SetPoint("TOPRIGHT", Minimap, "BOTTOMRIGHT", 0, -3)
-    info:SetHeight(32)
-    ns.UI.Skin(info, 0.9)
+    info:SetHeight(16)
     zoneText = info:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    zoneText:SetPoint("TOPLEFT", 4, -3)
-    zoneText:SetPoint("TOPRIGHT", -4, -3)
     zoneText:SetWordWrap(false)
     coordText = info:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    coordText:SetPoint("BOTTOMLEFT", 4, 3)
     clockText = info:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    clockText:SetPoint("BOTTOMRIGHT", -4, 3)
-    -- style Moderne : bandeau sans fond (texte ombre sur le jeu), zone en or
-    -- un peu plus grande, coordonnees et heure en gris
-    if ns.MODERN then
-        if info.cuiBg then info.cuiBg:Hide() end
-        if info.cuiBorder then info.cuiBorder:Hide() end
-        -- comme la maquette : la zone au-dessus de la carte (icones a sa
-        -- gauche, placees par layoutIcons), coordonnees et heure dessous
+    -- bandeaux sans fond (texte ombre sur le jeu) : la zone en or au-dessus
+    -- de la carte (icones a sa gauche, placees par layoutIcons), coordonnees
+    -- et heure en gris dessous
+    do
         head = CreateFrame("Frame", nil, info)
         head:SetPoint("BOTTOMLEFT", Minimap, "TOPLEFT", 0, 3)
         head:SetPoint("BOTTOMRIGHT", Minimap, "TOPRIGHT", 0, 3)
         head:SetHeight(16)
-        info:SetHeight(16)
         zoneText:SetParent(head)
         zoneText:ClearAllPoints()
         zoneText:SetPoint("LEFT", head, "LEFT", 1, 0)
@@ -833,11 +818,11 @@ end
 -- Blizzard (masque) : on l accroche au coin haut-droit du bloc. Le bloc lui
 -- reste a la main du mode Edition (la carte suit s il est deplace).
 local CORNER_GAP = 4
-local MODERN_TOP = 22    -- style Moderne : la zone est au-dessus de la carte
+local ZONE_TOP = 22      -- la ligne de zone est au-dessus de la carte
 local function placeInCorner(on)
     if InCombatLockdown() then return end
     if on then
-        local top = (head and db.info) and MODERN_TOP or CORNER_GAP
+        local top = (head and db.info) and ZONE_TOP or CORNER_GAP
         local p, rel, _, x, y = Minimap:GetPoint(1)
         if p == "TOPRIGHT" and rel == MinimapCluster and type(x) == "number" and type(y) == "number"
             and math.abs(x + CORNER_GAP) < 0.5 and math.abs(y + top) < 0.5 then return end

@@ -200,14 +200,9 @@ local function skinWindow(w)
     line:SetPoint("TOPLEFT", p, "TOPLEFT", 1, -HEADER)
     line:SetPoint("TOPRIGHT", p, "TOPRIGHT", -1, -HEADER)
     line:SetHeight(1)
-    if ns.MODERN then
-        -- style Moderne : bandeau sombre et uni, sans filet d or
-        strip:SetColorTexture(0, 0, 0, 0.4)
-        line:Hide()
-    else
-        ns.UI.Gradient(strip, "VERTICAL", C.violet[1], C.violet[2], C.violet[3], 0.04, C.violet[1], C.violet[2], C.violet[3], 0.30)
-        ns.UI.Gradient(line, "HORIZONTAL", C.gold[1], C.gold[2], C.gold[3], 0.9, C.gold[1], C.gold[2], C.gold[3], 0.1)
-    end
+    -- bandeau sombre et uni, sans filet
+    strip:SetColorTexture(0, 0, 0, 0.4)
+    line:Hide()
     windows[w] = p
 end
 

@@ -1034,10 +1034,10 @@ local function full(cf)
         if type(s) == "table" and s.CreateTexture then pcall(skinSideTab, s) end
     end
     walk(cf, 1)
-    -- style Moderne : plus de bandeau sous "Pretresse de niveau 8" (ni fond
+    -- plus de bandeau sous "Pretresse de niveau 8" (ni fond
     -- ni filet du bas, demande du 09/10) ; textures de Blizzard : eteintes
     -- par la couleur (alpha 0), le texte du niveau reste
-    if ns.MODERN then
+    do
         local host = field(_G.PaperDollFrame, "TopBackgroundStripHost")
         if host and host.GetRegions then
             for _, r in ipairs({ host:GetRegions() }) do
