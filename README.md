@@ -11,7 +11,7 @@ Cadres, barres d'action, chat, sacs, hôtel des ventes, outils de groupe et de r
 ![WoWForever](https://img.shields.io/badge/WoWForever-d65cff?style=for-the-badge)
 ![Interface](https://img.shields.io/badge/Interface-16001-ffd100?style=for-the-badge)
 ![Langues](https://img.shields.io/badge/Langues-10-5b8def?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.0.0-3fb950?style=for-the-badge)
+[![Version](https://img.shields.io/github/v/release/Cerynna/CorpUI?style=for-the-badge&label=Version&color=3fb950)](https://github.com/Cerynna/CorpUI/releases/latest)
 
 [Modules](#ce-quil-contient) · [Installation](#installation) · [Commandes](#commandes) · [Apparence](#apparence) · [Pensé pour WoWForever](#pensé-pour-wowforever) · [Crédits](#crédits)
 
@@ -133,7 +133,7 @@ WoWForever protège beaucoup de données en combat (valeurs « secrètes ») et 
 
 ## Publier une version
 
-Depuis le dossier `CorpUI`, dans Git Bash : `.github/scripts/release.sh 1.2.0`. Le script met la version dans le `.toc` (et le badge ci-dessus), commite, pose le tag `v1.2.0` et pousse. GitHub construit alors `CorpUI-1.2.0.zip` (un dossier `CorpUI` sans les fichiers de développement) et publie la release, avec la liste des changements depuis la version précédente.
+Depuis le dossier `CorpUI`, dans Git Bash : `.github/scripts/release.sh 1.2.0`. Le script met la version dans le `.toc`, commite, pose le tag `v1.2.0` et pousse. GitHub construit alors `CorpUI-1.2.0.zip` (un dossier `CorpUI` sans les fichiers de développement) et publie la release, avec la liste des changements depuis la version précédente.
 
 ## Crédits
 

@@ -1,6 +1,6 @@
 #!/bin/sh
-# Lance une release de CorpUI : met la version dans le .toc (et le badge du
-# README), commite, pose le tag vX.Y.Z et pousse. GitHub construit ensuite
+# Lance une release de CorpUI : met la version dans le .toc, commite, pose
+# le tag vX.Y.Z et pousse. GitHub construit ensuite
 # CorpUI-X.Y.Z.zip et la release (.github/workflows/release.yml).
 # Usage (Git Bash, depuis le dossier CorpUI) : .github/scripts/release.sh 1.2.0
 set -e
@@ -19,8 +19,7 @@ if git rev-parse -q --verify "refs/tags/v$VER" >/dev/null; then
   exit 1
 fi
 sed -i "s/^## Version: .*/## Version: $VER/" CorpUI.toc
-sed -i "s#badge/Version-[0-9.]*-#badge/Version-$VER-#" README.md
-git add CorpUI.toc README.md
+git add CorpUI.toc
 git commit -m "Version $VER"
 git tag -a "v$VER" -m "CorpUI $VER"
 git push origin HEAD "v$VER"
