@@ -2,7 +2,9 @@
     CorpUI - module Chat
     Style CorpUI pour les fenetres de discussion de Blizzard :
       - fond du theme (opacite reglable) a la place du fond de Blizzard ;
-      - onglets plats, l onglet de la fenetre choisie en or ;
+      - onglets plats, l onglet de la fenetre choisie en or ; style
+        Moderne : le fond s arrete sous les onglets (plaques detachees,
+        l active soulignee) et la colonne d icones part du meme bord ;
       - zone de saisie au style du theme ;
       - bouton de copie : ouvre une fenetre ou le texte recent est
         selectionnable (Ctrl+C), liens et adresses compris ; les adresses
@@ -237,6 +239,15 @@ end
 local MEDIA = ns.MEDIA
 local STRIP = 30          -- hauteur du bandeau des onglets (au-dessus des messages)
 local EDIT = 24           -- hauteur de la zone de saisie (sous les messages)
+-- style Moderne (10/10, variante B choisie parmi quatre) : le fond du chat
+-- s arrete au bas des onglets (3 au-dessus des messages) ; les onglets sont
+-- des plaques detachees, 3 au-dessus de ce bord ; la colonne d icones part
+-- du meme bord. Classique : le bandeau des onglets fait partie du fond
+local TAB_GAP = 3
+local function panelTop() return ns.MODERN and 3 or (STRIP + 4) end
+-- place prise a gauche par la colonne d icones (0 si aucune icone) ;
+-- declaree ici : place() (zone de saisie) la lit, layoutButtons l ecrit
+local colOffset = 0
 
 -- Fenetre qui donne la place du panneau : pour les fenetres ancrees
 -- ensemble (General, Journal de combat...), toujours la principale. Le
@@ -262,7 +273,7 @@ local function buildPanel(cf)
 
     -- motif runique, tres discret, sous les messages
     local art = p:CreateTexture(nil, "BACKGROUND", nil, 2)
-    art:SetPoint("TOPLEFT", 1, -(STRIP + 1))
+    art:SetPoint("TOPLEFT", 1, -(ns.MODERN and 1 or (STRIP + 1)))
     art:SetPoint("BOTTOMRIGHT", -1, 1)
     art:SetTexture(MEDIA .. "theme_bg")
     art:SetTexCoord(0.05, 0.95, 0.3, 0.7)
@@ -275,18 +286,15 @@ local function buildPanel(cf)
     strip:SetPoint("TOPRIGHT", -1, -1)
     strip:SetHeight(STRIP)
     if ns.MODERN then
-        -- style Moderne : bande de la couleur du chat (l onglet actif, ouvert
-        -- dessus, s y fond) ; trait du bas interrompu sous l onglet actif
-        strip:SetColorTexture(0, 0, 0, 0)
-        for _, k in ipairs({ "lineL", "lineR" }) do
-            local l = p:CreateTexture(nil, "ARTWORK")
-            l:SetHeight(1)
-            l:SetColorTexture(1, 1, 1, 0.10)
-            ns.NoSnap(l)
-            p[k] = l
-        end
-        p.lineL:SetPoint("TOPLEFT", p, "TOPLEFT", 1, -(STRIP + 1))
-        p.lineR:SetPoint("TOPRIGHT", p, "TOPRIGHT", -1, -(STRIP + 1))
+        -- style Moderne : pas de bande (les onglets sont au-dessus du fond) ;
+        -- bord du haut a la couleur d accent
+        strip:Hide()
+        p.accent = p:CreateTexture(nil, "ARTWORK")
+        p.accent:SetPoint("TOPLEFT", 1, -1)
+        p.accent:SetPoint("TOPRIGHT", -1, -1)
+        p.accent:SetHeight(1)
+        ns.NoSnap(p.accent)
+        p.accent:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.9)
     else
         ns.UI.Gradient(strip, "VERTICAL", C.violet[1], C.violet[2], C.violet[3], 0.04,
                                           C.violet[1], C.violet[2], C.violet[3], 0.30)
@@ -355,7 +363,7 @@ local function place(s, cf)
         s.host, s.withEdit = host, withEdit
         local p = s.panel
         p:ClearAllPoints()
-        p:SetPoint("TOPLEFT", host, "TOPLEFT", -6, STRIP + 4)
+        p:SetPoint("TOPLEFT", host, "TOPLEFT", -6, panelTop())
         p:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", 6, withEdit and -(EDIT + 6) or -6)
         p.edit:SetShown(withEdit)
     end
@@ -437,6 +445,14 @@ local function styleTab(tab)
     local ac = ns.MODERN and C.violet or C.gold
     t.top:SetColorTexture(ac[1], ac[2], ac[3], 1)
     t.top:Hide()
+    -- Moderne : onglet actif souligne en bas de sa plaque (detachee du fond)
+    t.bottom = labelHost:CreateTexture(nil, "BACKGROUND", nil, 3)
+    t.bottom:SetPoint("BOTTOMLEFT", t.plate, "BOTTOMLEFT", 0, 0)
+    t.bottom:SetPoint("BOTTOMRIGHT", t.plate, "BOTTOMRIGHT", 0, 0)
+    t.bottom:SetHeight(2)
+    ns.NoSnap(t.bottom)
+    t.bottom:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 1)
+    t.bottom:Hide()
     t.label = labelHost:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     t.label:SetPoint("CENTER", t.plate, "CENTER", 0, -1)
     t.label:SetShadowColor(0, 0, 0, 1)
@@ -470,8 +486,11 @@ local TAB_H_ON, TAB_H_OFF = 26, 22
 local function tabGeom(t, tab, host, on)
     local hb, tb = host:GetTop(), tab:GetBottom()
     if not hb or not tb then return end
-    local dy = math.floor((hb + 3 - tb) * 10 + 0.5) / 10
-    local h = on and TAB_H_ON or TAB_H_OFF
+    -- Moderne : plaques detachees, toutes de la meme hauteur, TAB_GAP au-dessus
+    -- du bord du fond
+    local lift = ns.MODERN and TAB_GAP or 0
+    local dy = math.floor((hb + 3 + lift - tb) * 10 + 0.5) / 10
+    local h = (on and not ns.MODERN) and TAB_H_ON or TAB_H_OFF
     if t.dy == dy and t.h == h and t.anchor == tab then return end
     t.dy, t.h, t.anchor = dy, h, tab
     t.plate:ClearAllPoints()
@@ -483,19 +502,36 @@ end
 -- couleurs de la plaque : "on" (onglet actif, couleur du chat), "over"
 -- (survol), sinon repos (en retrait, sombre)
 local function plateLook(t, state)
-    if t.state == state then return end
-    t.state = state
+    -- (opacite du chat changee dans les options : la plaque suit)
+    if t.state == state and t.alpha == db.alpha then return end
+    t.state, t.alpha = state, db.alpha
     local fr, fg, fb, fa, ea
-    if state == "on" then
-        fr, fg, fb, fa, ea = 0, 0, 0, 0, 0.16
-    elseif state == "over" then
-        fr, fg, fb, fa, ea = 1, 1, 1, 0.06, 0.12
+    if ns.MODERN then
+        -- plaques detachees : l active a la couleur du fond du chat,
+        -- soulignee ; les autres plus pales
+        local C = ns.COLORS
+        if state == "on" then
+            fr, fg, fb, fa, ea = C.bg[1], C.bg[2], C.bg[3], db.alpha, 0.14
+        elseif state == "over" then
+            fr, fg, fb, fa, ea = C.bg[1], C.bg[2], C.bg[3], db.alpha * 0.75, 0.12
+        else
+            fr, fg, fb, fa, ea = C.bg[1], C.bg[2], C.bg[3], db.alpha * 0.5, 0.06
+        end
+        t.top:Hide()
+        t.bottom:SetShown(state == "on")
     else
-        fr, fg, fb, fa, ea = 0, 0, 0, 0.38, 0.07
+        if state == "on" then
+            fr, fg, fb, fa, ea = 0, 0, 0, 0, 0.16
+        elseif state == "over" then
+            fr, fg, fb, fa, ea = 1, 1, 1, 0.06, 0.12
+        else
+            fr, fg, fb, fa, ea = 0, 0, 0, 0.38, 0.07
+        end
+        t.top:SetShown(state == "on")
+        t.bottom:Hide()
     end
     t.plate:SetColorTexture(fr, fg, fb, fa)
     for _, e in ipairs(t.edges) do e:SetColorTexture(1, 1, 1, ea) end
-    t.top:SetShown(state == "on")
 end
 
 local function showLook(t, on)
@@ -504,6 +540,7 @@ local function showLook(t, on)
     for _, e in ipairs(t.edges) do e:SetShown(on) end
     if not on then
         t.top:Hide()
+        t.bottom:Hide()
         t.under:Hide()
         t.glow:Hide()
     end
@@ -567,7 +604,6 @@ local combatAsIcon
 -- place (zone de saisie) et ns.ChatBox (bandeau d infos sous le chat)
 local COL_W, COL_GAP = ICON + 8, 2
 local column
-local colOffset = 0
 -- ordre de haut en bas
 local RANK = { QuickJoinToastButton = 2, ChatFrameChannelButton = 3, ChatFrameMenuButton = 4,
                ChatFrameToggleVoiceDeafenButton = 5, ChatFrameToggleVoiceMuteButton = 6, TextToSpeechButton = 7 }
@@ -683,7 +719,7 @@ local function layoutButtons()
     if column.host ~= host then
         column.host = host
         column:ClearAllPoints()
-        column:SetPoint("TOPRIGHT", host, "TOPLEFT", -6 - COL_GAP, STRIP + 4)
+        column:SetPoint("TOPRIGHT", host, "TOPLEFT", -6 - COL_GAP, panelTop())
         column:SetPoint("BOTTOMRIGHT", host, "BOTTOMLEFT", -6 - COL_GAP, -6)
         buttonBar:ClearAllPoints()
         buttonBar:SetPoint("TOP", column, "TOP", 0, -4)
@@ -1002,6 +1038,8 @@ local function refresh()
             pcall(place, s, cf)
             s.panel:SetBackdropColor(C.bg[1], C.bg[2], C.bg[3], db.alpha)
             s.panel.art:SetAlpha(0.22 * db.alpha / 0.6)
+            -- bord du haut (Moderne) : suit la couleur d accent du theme
+            if s.panel.accent then s.panel.accent:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.9) end
         end
         local look = s.tabLook
         if look then
