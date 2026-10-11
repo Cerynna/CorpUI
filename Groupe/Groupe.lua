@@ -599,13 +599,25 @@ end
 
 -- style choisi (liseré / teinte / les deux) : par la transparence, que le
 -- client ne touche pas (il montre et cache lui-meme les textures)
+-- Le bouton du client (et nos textures posees dessus) peut etre interdit
+-- aux addons (11/10 : "Attempt to access forbidden object" sur raid9, au
+-- passage du pilote d etat) : on n y touche pas ; la transparence voulue
+-- est reprise au passage suivant.
+local function setAlphaSafe(t, a)
+    local okF, forbidden = pcall(t.IsForbidden, t)
+    if not okF or forbidden then return end
+    pcall(t.SetAlpha, t, a)
+end
+
 nativeStyle = function(b)
     if not (hs and b.nEdges) then return end
+    local okF, forbidden = pcall(b.nDispelBtn.IsForbidden, b.nDispelBtn)
+    if not okF or forbidden then return end
     -- repartition en raid (Dissipation) : rien sur les groupes des autres
     local mine = b.dispelMine ~= false
     local edge = (mine and hs.dispelStyle ~= "tint") and 1 or 0
-    for i = 1, 4 do b.nEdges[i]:SetAlpha(edge) end
-    b.nTint:SetAlpha((mine and hs.dispelStyle ~= "border") and ((hs.tintAlpha or 35) / 100) or 0)
+    for i = 1, 4 do setAlphaSafe(b.nEdges[i], edge) end
+    setAlphaSafe(b.nTint, (mine and hs.dispelStyle ~= "border") and ((hs.tintAlpha or 35) / 100) or 0)
 end
 
 -- mes groupes (repartition du module Dissipation), hors combat
