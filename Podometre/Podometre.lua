@@ -338,7 +338,8 @@ local function step(now)
         return
     end
     local prev = last
-    last = { y = y, x = x, w = where, t = now }
+    local moving = flag(IsPlayerMoving)
+    last = { y = y, x = x, w = where, t = now, mv = moving }
     if not prev then return end
     if prev.w ~= where then skip("map") return end
     local dt = now - prev.t
@@ -350,7 +351,8 @@ local function step(now)
     local mode, why = moveMode()
     if not mode then skip(why) return end
     -- porte par un bateau, un zeppelin, un ascenseur : on ne bouge pas soi-meme
-    if flag(IsPlayerMoving) == false and flag(IsFalling) ~= true then skip("carried") return end
+    -- (immobile aux deux releves : l arret en cours de pas reste compte)
+    if moving == false and prev.mv == false and flag(IsFalling) ~= true then skip("carried") return end
     add(mode, d)
 end
 P._step = step
