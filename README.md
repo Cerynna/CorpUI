@@ -87,6 +87,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | --- | --- | --- |
 | **Course du murloc** | Fais courir un murloc sur la plage et saute les obstacles. | `/corp murloc` |
 | **Fusion des minerais** | Un 2048 de mineur : du cuivre jusqu'aux objets légendaires. | `/corp minerais` |
+| **Podomètre** | Les kilomètres parcourus font gagner des boosters de cartes (zones, objets, montures, trophées) à ranger dans un classeur ; classement de la semaine avec la guilde. | `/corp podometre` |
 
 Les mini-jeux peuvent s'ouvrir tout seuls pendant les trajets en griffon.
 
@@ -139,7 +140,7 @@ Depuis le dossier `CorpUI`, dans Git Bash : `.github/scripts/release.sh 1.2.0`. 
 
 - **Polices** : [Saira](https://github.com/Omnibus-Type/Saira) et [Archivo Black](https://github.com/Omnibus-Type/ArchivoBlack) (Omnibus-Type), [Roboto](https://fonts.google.com/specimen/Roboto) (Google), toutes sous licence SIL Open Font License 1.1 (fichiers `OFL.txt` dans `Media`).
 - **Sons** : Kenney et Robin Lamb (CC0), Joe Lamb et dobroide (CC BY 3.0), AntumDeluge (CC0). Détail dans [`Media/Sons/CREDITS.txt`](Media/Sons/CREDITS.txt).
-- **Images** des mini-jeux et icônes : générées pour CorpUI avec Nano Banana Pro. Détail dans [`Media/Jeux/CREDITS.txt`](Media/Jeux/CREDITS.txt).
+- **Images** des mini-jeux et icônes : générées pour CorpUI avec Nano Banana Pro. Détail dans [`Media/Jeux/CREDITS.txt`](Media/Jeux/CREDITS.txt) et [`Media/Podometre/CREDITS.txt`](Media/Podometre/CREDITS.txt).
 - **Inspirations** : ElvUI, Details!, TradeSkillMaster, Method Raid Tools, Skillet et NaowhForever, pour les idées ; le code de CorpUI est écrit pour lui.
 
 ---

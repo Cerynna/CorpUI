@@ -228,6 +228,12 @@ Jeux\Jeux.lua
 Jeux\Murloc.lua
 Jeux\Minerais.lua
 
+# Module Podometre (km parcourus -> boosters de cartes, classeur ; images Media\Podometre)
+Podometre\Strings.lua
+Podometre\Cartes.lua
+Podometre\Podometre.lua
+Podometre\Classeur.lua
+
 # Module Raid (marqueurs, appel, roles, pull : boutons securises)
 Raid\Strings.lua
 Raid\Raid.lua

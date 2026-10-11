@@ -26,8 +26,8 @@ local _, ns = ...
 local L = ns.L
 local C = ns.COLORS
 
-local ITEMS = { "gold", "bags", "dur", "fps", "lat", "time", "coords", "friends", "guild" }
-local DEFAULT_ON = { gold = true, bags = true, dur = true, fps = true, lat = true, time = true }
+local ITEMS = { "gold", "bags", "dur", "fps", "lat", "time", "coords", "friends", "guild", "pas" }
+local DEFAULT_ON = { gold = true, bags = true, dur = true, fps = true, lat = true, time = true, pas = true }
 local ALIGNS = { "left", "center", "spread" }
 local PAD = 8
 
@@ -124,6 +124,12 @@ local VALUE = {
         return white((home or 0) .. " / " .. (world or 0)) .. " " .. grey("ms")
     end,
     time = function() return white(date("%H:%M")) end,
+    -- podometre (Podometre/Podometre.lua) : km du jour, boosters en attente
+    pas = function()
+        local P = ns.Pedo
+        local v = P and P.InfoText and P.InfoText()
+        return grey(L.INFO_PAS) .. " " .. (v or grey("-"))
+    end,
     coords = function()
         local map = C_Map and C_Map.GetBestMapForUnit("player")
         local pos = map and C_Map.GetPlayerMapPosition(map, "player")
@@ -313,6 +319,10 @@ local function netTip(t, refreshing)
     if type(bOut) == "number" then pair(t, L.INFO_TIP_OUT, string.format(L.INFO_TIP_KBS, bOut)) end
     memory(t, not refreshing)
 end
+TIP.pas = function(t)
+    local P = ns.Pedo
+    if P and P.db and P.InfoTip then P.InfoTip(t) else title(t, L.INFO_PAS_NAME) end
+end
 TIP.fps = netTip
 TIP.lat = netTip
 
@@ -470,6 +480,8 @@ local TARGETS = {
         return btn("QuickJoinToastButton") or btn("FriendsMicroButton") or btn("SocialsMicroButton"), nil, "INFO_CLICK_FRIENDS"
     end,
     guild = function() return btn("GuildMicroButton"), nil, "INFO_CLICK_GUILD" end,
+    -- bouton cache du podometre : ouvre / ferme le classeur
+    pas = function() return btn("CorpUIPedometerToggle"), nil, "INFO_CLICK_PEDO" end,
 }
 
 local tipOwner

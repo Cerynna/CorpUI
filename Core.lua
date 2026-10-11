@@ -2485,7 +2485,7 @@ local PAGES = {
     { key = "hv", cmds = { "hv", "compta" } },
     { key = "talents", cmds = { "talents" } },
     { key = "sorts", cmds = { "sorts" } },
-    { key = "jeux", label = "PAGE_GAMES", cmds = { "murloc", "minerais" } },
+    { key = "jeux", label = "PAGE_GAMES", cmds = { "murloc", "minerais", "podometre" } },
 }
 local MEDIA = ns.MEDIA
 local C = ns.COLORS

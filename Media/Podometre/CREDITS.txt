@@ -1,0 +1,11 @@
+Images du podometre de CorpUI
+
+cadre.tga (cadre de carte argente, teinte en jeu selon la rarete), dos.tga
+(dos de carte), booster.tga (booster)
+  Generees le 11/10/2026 avec Nano Banana Pro (Google, modele gemini-3-pro-image)
+  pour CorpUI, puis detourees (fond vert) et posees en haut d un canevas de
+  256 x 512 px.
+
+Les noms et images des cartes (zones, objets, montures) viennent du jeu
+lui-meme (World of Warcraft, Blizzard Entertainment) : CorpUI ne fait que les
+afficher.
