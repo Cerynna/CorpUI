@@ -150,11 +150,16 @@ local function newCard(parent, w)
     c.new:SetPoint("TOP", c.artBg, "TOP", 0, -3)
     c.new:SetText(L.PEDO_NEW)
     c.new:SetTextColor(1, 0.82, 0)
-    -- dos (boosters)
-    c.back = c:CreateTexture(nil, "OVERLAY", nil, 7)
+    -- dos (boosters) : un cadre au-dessus de la carte, pas une texture de
+    -- la carte (le jeu dessine les textes par-dessus les textures de leur
+    -- couche : le nom se voyait a travers le dos)
+    c.back = CreateFrame("Frame", nil, c)
     c.back:SetAllPoints()
-    c.back:SetTexture(MEDIA .. "dos")
-    c.back:SetTexCoord(0, 1, 0, TEX_BACK)
+    c.back:SetFrameLevel(c:GetFrameLevel() + 5)
+    local back = c.back:CreateTexture(nil, "ARTWORK")
+    back:SetAllPoints()
+    back:SetTexture(MEDIA .. "dos")
+    back:SetTexCoord(0, 1, 0, TEX_BACK)
     c.back:Hide()
     return c
 end
@@ -474,6 +479,8 @@ local function buildPacks(page)
                 if k >= 1 then
                     reveal.done[i] = true
                     card.back:Hide()
+                    card.name:SetAlpha(1)
+                    card.num:SetAlpha(1)
                     card:SetScale(1)
                     local res = reveal.results[i]
                     local c = P.byId[reveal.ids[i]]
@@ -556,6 +563,9 @@ function P.OpenNextPack()
         card.owned = true
         paintCard(card, c, true, false)
         card.new:Hide()
+        -- face cachee : rien de la carte ne doit se voir
+        card.name:SetAlpha(0)
+        card.num:SetAlpha(0)
         card.back:Show()
         card.back:SetAlpha(1)
         card:SetScale(1)
