@@ -9,6 +9,10 @@
 
     Comme pour la barre de buffs : afficher/masquer/changer un sort ne se
     fait que hors combat ; en combat, seuls les minuteurs bougent.
+    Choix des sorts (12/10, par personnage, /corp rappels) : chaque rappel
+    de la classe se coche ou se decoche, son sort se choisit dans une liste
+    (comme a la molette) ; d autres sorts du grimoire s ajoutent en les
+    glissant sur le bouton prevu (un buff sur soi : rappel s il manque).
 ----------------------------------------------------------------------------]]
 
 local _, ns = ...
@@ -33,6 +37,7 @@ local DEFS = {
                 { key = "poisonOH",  weapon = "off",  poison = true } },
 }
 local WARN = 60
+local MAX_CUSTOM = 8          -- sorts ajoutes par personnage
 local POISON_ICON = "Interface\\Icons\\Ability_Poisons"
 local HANDLE_H = 14
 local GAP = 3
@@ -44,9 +49,41 @@ local buttons = {}
 -- signature d une liste vide, sinon la barre resterait affichee)
 local shownKeys
 
-local function defs()
+-- reglages du personnage : rappels decoches, sorts ajoutes
+local function mine(field)
+    local k = ns.CharKey()
+    db[field] = db[field] or {}
+    if type(db[field][k]) ~= "table" then db[field][k] = {} end
+    return db[field][k]
+end
+
+local customDefs = {}
+local function customDef(id)
+    if not customDefs[id] then customDefs[id] = { key = "c" .. id, spells = { id }, custom = true } end
+    return customDefs[id]
+end
+
+-- tous les rappels du personnage : ceux de la classe, puis les sorts ajoutes
+local function allDefs()
     local _, c = UnitClass("player")
-    return DEFS[c] or {}
+    local list = {}
+    for _, d in ipairs(DEFS[c] or {}) do list[#list + 1] = d end
+    if db then
+        for _, id in ipairs(mine("custom")) do
+            if type(id) == "number" then list[#list + 1] = customDef(id) end
+        end
+    end
+    return list
+end
+
+-- rappels actifs (decoches : ignores)
+local function defs()
+    local list = {}
+    local off = db and mine("off") or {}
+    for _, d in ipairs(allDefs()) do
+        if not off[d.key] then list[#list + 1] = d end
+    end
+    return list
 end
 
 local function known(id)
@@ -360,6 +397,60 @@ end
 ---------------------------------------------------------------------------
 
 local win
+local ROW_H = 26
+
+-- sort pose sur le curseur (glisse depuis le grimoire) : son identifiant
+local function cursorSpell()
+    local ok, kind, a, b, c = pcall(GetCursorInfo)
+    if not ok or kind ~= "spell" then return nil end
+    local id = c
+    if not id and C_SpellBook and C_SpellBook.GetSpellBookItemInfo then
+        local okI, info = pcall(C_SpellBook.GetSpellBookItemInfo, a, b)
+        if okI and type(info) == "table" then id = info.spellID end
+    end
+    if type(id) ~= "number" or issecret(id) then return nil end
+    return id
+end
+
+-- ajoute un sort du grimoire ; rien si deja la (meme nom : autre rang)
+function ns.RemindAdd(id)
+    if not db or type(id) ~= "number" then return false end
+    local name = ns.SpellName(id)
+    local list = mine("custom")
+    for _, d in ipairs(allDefs()) do
+        for _, sid in ipairs(d.spells or {}) do
+            if sid == id or (name and ns.SpellName(sid) == name) then
+                ns.Say(string.format(L.REMIND_DUP, name or "?"))
+                return false
+            end
+        end
+    end
+    if #list >= MAX_CUSTOM then ns.Say(string.format(L.REMIND_FULL, MAX_CUSTOM)) return false end
+    table.insert(list, id)
+    shownKeys = nil
+    ns.Say(string.format(L.REMIND_ADDED, name or "?"))
+    return true
+end
+
+function ns.RemindRemove(id)
+    if not db then return end
+    local list = mine("custom")
+    for i = #list, 1, -1 do
+        if list[i] == id then table.remove(list, i) end
+    end
+    mine("off")["c" .. id] = nil
+    shownKeys = nil
+end
+
+-- libelle d un rappel dans la liste
+local function defLabel(d)
+    if d.poison then return d.weapon == "main" and L.REMIND_ROW_POISON_MH or L.REMIND_ROW_POISON_OH end
+    local id = chosenSpell(d) or (d.spells and d.spells[1])
+    local name = id and ns.SpellName(id) or "?"
+    if d.weapon then name = string.format(L.REMIND_WEAPON, name) end
+    if not d.poison and not chosenSpell(d) then name = string.format(L.REMIND_NOT_LEARNED, name) end
+    return name
+end
 
 local function buildWindow()
     ns.root.remindWin = ns.root.remindWin or { point = "CENTER", x = 0, y = 60 }
@@ -371,7 +462,99 @@ local function buildWindow()
     form:Columns(2)
     form:Number(L.REMIND_SIZE, function() return btnSize() end, function(v) db.size = v shownKeys = nil end, 20, 64)
     form:EndColumns()
-    win:HookScript("OnShow", function() form:Refresh() end)
+    form:Header(L.REMIND_H_SPELLS)
+
+    -- une ligne par rappel : case, icone, nom, choix du sort ou "Retirer"
+    local top = form.y - 4
+    local rows = {}
+    local refreshRows
+    local maxRows = 4 + MAX_CUSTOM
+    for i = 1, maxRows do
+        local row = CreateFrame("Frame", nil, win)
+        row:SetSize(424, ROW_H)
+        row:SetPoint("TOPLEFT", win, "TOPLEFT", 8, top - (i - 1) * ROW_H)
+        row.check = ns.UI.Check(row, "", function(v)
+            if not row.def then return end
+            mine("off")[row.def.key] = (not v) and true or nil
+            shownKeys = nil
+        end)
+        row.check:SetPoint("LEFT", 0, 0)
+        row.icon = row:CreateTexture(nil, "ARTWORK")
+        row.icon:SetSize(18, 18)
+        row.icon:SetPoint("LEFT", 28, 0)
+        row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        row.name:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
+        row.name:SetWidth(190)
+        row.name:SetJustifyH("LEFT")
+        row.name:SetWordWrap(false)
+        row.select = ns.UI.Select(row, 170, function()
+            local list = {}
+            for _, id in ipairs(row.def and knownSpells(row.def) or {}) do
+                list[#list + 1] = { value = id, text = ns.SpellName(id) or tostring(id) }
+            end
+            return list
+        end, function() return row.def and chosenSpell(row.def) end, function(v)
+            if not row.def then return end
+            db.choice[ns.CharKey()] = db.choice[ns.CharKey()] or {}
+            db.choice[ns.CharKey()][row.def.key] = v
+            shownKeys = nil
+        end, function() refreshRows() end)
+        row.select:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+        row.remove = ns.UI.Button(row, L.REMIND_REMOVE, 90, function()
+            if row.def and row.def.custom then
+                ns.RemindRemove(row.def.spells[1])
+                refreshRows()
+            end
+        end)
+        row.remove:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+        row:Hide()
+        rows[i] = row
+    end
+    -- depot : un sort glisse depuis le grimoire
+    local drop = ns.UI.Button(win, L.REMIND_DROP, 424)
+    local function take()
+        local id = cursorSpell()
+        if not id then ns.Say(L.REMIND_DROP_HINT) return end
+        ClearCursor()
+        ns.RemindAdd(id)
+        refreshRows()
+    end
+    drop:SetScript("OnReceiveDrag", take)
+    drop:SetScript("OnClick", take)
+
+    refreshRows = function()
+        local list = allDefs()
+        local off = mine("off")
+        local n = 0
+        for i, row in ipairs(rows) do
+            local d = list[i]
+            row.def = d
+            if d then
+                n = i
+                row.check:SetChecked(not off[d.key])
+                local id = not d.poison and (chosenSpell(d) or (d.spells and d.spells[1]))
+                row.icon:SetTexture(d.poison and POISON_ICON or (id and ns.SpellIcon(id)) or "Interface\\Icons\\INV_Misc_QuestionMark")
+                pcall(row.icon.SetDesaturated, row.icon, not d.poison and not chosenSpell(d))
+                row.name:SetText(defLabel(d))
+                local many = not d.poison and #knownSpells(d) > 1
+                row.select:SetShown(many and not d.custom)
+                if many and not d.custom then row.select:Refresh() end
+                row.remove:SetShown(d.custom and true or false)
+                row:Show()
+            else
+                row:Hide()
+            end
+        end
+        drop:ClearAllPoints()
+        drop:SetPoint("TOPLEFT", win, "TOPLEFT", 8, top - n * ROW_H - 6)
+        drop:SetEnabled(#mine("custom") < MAX_CUSTOM)
+    end
+    -- hauteur : toutes les lignes possibles (le panneau ne change pas de taille)
+    win:SetHeight(-(top - maxRows * ROW_H - 6 - 22) + 12)
+    win:HookScript("OnShow", function() form:Refresh() refreshRows() end)
+    -- banc d essai
+    ns._remindRows = { rows = rows, refresh = refreshRows, drop = drop }
 end
 
 local function toggle()
@@ -389,6 +572,8 @@ ev:SetScript("OnEvent", function(_, event, unit)
         root.reminders = root.reminders or {}
         db = root.reminders
         db.choice = db.choice or {}
+        db.off = db.off or {}
+        db.custom = db.custom or {}
         if db.enabled == nil then db.enabled = true end
         if db.hideResting == nil then db.hideResting = true end
         buildBar()
