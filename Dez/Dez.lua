@@ -15,6 +15,10 @@
     securise) ; en combat l icone reste telle quelle, a demi transparente.
     Infobulle : celle de l objet, la valeur de desenchantement estimee
     (module Encheres) et les deux clics.
+    Touche (11/10) : raccourci du jeu "CLICK CorpUIDez:LeftButton" (comme les
+    barres), choisi dans /corp dez ou en mode raccourcis rapides (/corp kb) ;
+    sans objet a desenchanter, le bouton n a pas d action (la touche ne
+    lance pas Desenchanter dans le vide). Affichee sur l icone.
 ----------------------------------------------------------------------------]]
 
 local _, ns = ...
@@ -24,6 +28,7 @@ local C = ns.COLORS
 local issecret = issecretvalue or function() return false end
 
 local DISENCHANT = 13262
+local BIND = "CLICK CorpUIDez:LeftButton"    -- commande du raccourci
 local ERR_WINDOW = 1.5        -- refus du jeu attribue au clic pendant 1,5 s
 
 local db                      -- CorpUIDB.dez
@@ -98,6 +103,19 @@ end
 -- Icone (bouton securise)
 ---------------------------------------------------------------------------
 
+-- touche(s) du raccourci, "" si aucune
+local function bindKey()
+    local ok, key = pcall(GetBindingKey, BIND)
+    if ok and type(key) == "string" and not issecret(key) then return key end
+    return ""
+end
+
+local function updateHotkey()
+    if not btn or not btn.hotkey then return end
+    local key = bindKey()
+    btn.hotkey:SetText(ns.ShortKey and ns.ShortKey(key) or key)
+end
+
 local function qualityColor(q)
     local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q]
     if c and num(c.r) then return c.r, c.g, c.b end
@@ -113,6 +131,8 @@ local function showTip(self)
         if v and v > 0 and ns.AHMoney then t:AddLine(string.format(L.DEZ_VALUE, ns.AHMoney(v)), 1, 0.82, 0.25) end
     end
     t:AddLine(L.DEZ_TIP_LEFT, 0.42, 0.88, 0.46)
+    local key = bindKey()
+    if key ~= "" then t:AddLine(string.format(L.DEZ_TIP_KEY, key), 0.42, 0.88, 0.46) end
     t:AddLine(L.DEZ_TIP_RIGHT, 1, 0.5, 0.3)
     if remaining > 1 then t:AddLine(string.format(L.DEZ_LEFT, remaining), 0.7, 0.7, 0.7) end
     t:Show()
@@ -150,7 +170,16 @@ local function build()
     btn.badge:SetPoint("TOPLEFT", -4, 4)
     btn.badge:SetTexture("Interface\\Icons\\INV_Enchant_Disenchant")
     btn.badge:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    btn:SetScript("OnEnter", showTip)
+    btn.hotkey = btn:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmallGray")
+    btn.hotkey:SetPoint("TOPRIGHT", -2, -2)
+    -- raccourcis rapides (/corp kb) : le survol donne la main a ce mode
+    btn.bindCommand = BIND
+    btn.bindLabel = L.MOD_DEZ
+    if ns.RegisterBindable then ns.RegisterBindable(btn, BIND) end
+    btn:SetScript("OnEnter", function(self)
+        if ns.QuickBindHover and ns.QuickBindHover(self) then return end
+        showTip(self)
+    end)
     btn:SetScript("OnLeave", function() ns.HideTooltip() end)
     -- clic gauche : action securisee ; on note l objet pour attribuer un refus
     btn:SetScript("PreClick", function(_, button, down)
@@ -181,6 +210,7 @@ local function refresh()
     end
     anchor:SetSize(db.size, db.size)
     if want and it then
+        btn:SetAttribute("type1", "spell")
         btn:SetAttribute("target-bag1", it.bag)
         btn:SetAttribute("target-slot1", it.slot)
         btn.icon:SetTexture(it.icon or (ns.ItemIcon and ns.ItemIcon(it.id)))
@@ -191,10 +221,13 @@ local function refresh()
         btn:SetAlpha(1)
         btn:Show()
     else
+        -- rien a desenchanter : pas d action (la touche ne fait rien)
+        btn:SetAttribute("type1", nil)
         btn:SetAttribute("target-bag1", nil)
         btn:SetAttribute("target-slot1", nil)
         btn:Hide()
     end
+    updateHotkey()
 end
 ns.DezRefresh = function() dirty = true end
 
@@ -253,8 +286,39 @@ for _, e in ipairs({ "PLAYER_LOGIN", "BAG_UPDATE_DELAYED", "ITEM_LOCK_CHANGED", 
 end
 
 ---------------------------------------------------------------------------
--- Reglages (/corp dez)
+-- Touche (raccourci du jeu, enregistre dans les raccourcis du personnage)
 ---------------------------------------------------------------------------
+
+local MODIFIERS = { LSHIFT = true, RSHIFT = true, LCTRL = true, RCTRL = true, LALT = true, RALT = true,
+                    UNKNOWN = true, LMETA = true, RMETA = true }
+
+local function withModifiers(key)
+    return (IsAltKeyDown() and "ALT-" or "") .. (IsControlKeyDown() and "CTRL-" or "")
+        .. (IsShiftKeyDown() and "SHIFT-" or "") .. key
+end
+
+local function saveBindings()
+    local ok, set = pcall(GetCurrentBindingSet)
+    if ok and set then pcall(SaveBindings, set) end
+end
+
+-- une seule touche : les anciennes sont retirees
+function ns.DezBind(key)
+    if InCombatLockdown() then ns.Say(L.COMBAT_BLOCKED) return false end
+    for _, k in ipairs({ GetBindingKey(BIND) }) do SetBinding(k) end
+    if key then
+        local old = GetBindingAction(key)
+        if type(old) == "string" and old ~= "" and old ~= BIND then
+            local name = _G["BINDING_NAME_" .. old]
+            ns.Say(string.format(L.DEZ_KEY_REPLACED, key, type(name) == "string" and name or old))
+        end
+        SetBinding(key, BIND)
+        ns.Say(string.format(L.DEZ_KEY_DONE, key))
+    end
+    saveBindings()
+    updateHotkey()
+    return true
+end
 
 local panel
 
@@ -272,6 +336,41 @@ local function buildPanel()
     form:Check(L.DEZ_OPT_COUNT, function() return db.count end, function(v) db.count = v end)
     form:EndColumns()
     form:Number(L.DEZ_OPT_SIZE, function() return db.size end, function(v) db.size = v end, 24, 80, 2)
+    -- touche : "Choisir" attend la prochaine touche (Echap : annuler)
+    local keyText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    keyText:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, form.y - 8)
+    local capture = CreateFrame("Frame", nil, panel)
+    capture:Hide()
+    local choose = ns.UI.Button(panel, L.DEZ_KEY_SET, 150)
+    choose:SetPoint("TOPLEFT", panel, "TOPLEFT", 200, form.y - 4)
+    local clearKey = ns.UI.Button(panel, L.DEZ_KEY_CLEAR, 80, function()
+        ns.DezBind(nil)
+        form:Refresh()
+    end)
+    clearKey:SetPoint("LEFT", choose, "RIGHT", 6, 0)
+    local function stopCapture()
+        capture:Hide()
+        pcall(capture.EnableKeyboard, capture, false)
+        choose:SetText(L.DEZ_KEY_SET)
+    end
+    capture:SetScript("OnKeyDown", function(_, key)
+        if key == "ESCAPE" then stopCapture() return end
+        if MODIFIERS[key] then return end
+        stopCapture()
+        ns.DezBind(withModifiers(key))
+        form:Refresh()
+    end)
+    capture:SetScript("OnHide", function() pcall(capture.EnableKeyboard, capture, false) end)
+    choose:SetScript("OnClick", function()
+        if InCombatLockdown() then ns.Say(L.COMBAT_BLOCKED) return end
+        if capture:IsShown() then stopCapture() return end
+        choose:SetText(L.DEZ_KEY_WAIT)
+        capture:Show()
+        pcall(capture.EnableKeyboard, capture, true)
+        pcall(capture.SetPropagateKeyboardInput, capture, false)
+    end)
+    panel:HookScript("OnHide", stopCapture)
+    form.y = form.y - 32
     local forget = ns.UI.Button(panel, "", 220, function(self)
         wipe(db.ignore)
         dirty = true
@@ -288,6 +387,9 @@ local function buildPanel()
     table.insert(form.refreshers, function()
         local n = 0
         for _ in pairs(db.ignore) do n = n + 1 end
+        local key = bindKey()
+        keyText:SetText(string.format(L.DEZ_OPT_KEY, key ~= "" and key or L.DEZ_KEY_NONE))
+        clearKey:SetEnabled(key ~= "")
         forget:SetText(string.format(L.DEZ_FORGET, n))
         forget:SetEnabled(n > 0)
         status:SetText(isEnchanter() and "" or L.DEZ_NOT_ENCH)
@@ -300,6 +402,10 @@ local function toggle()
     if not panel then buildPanel() end
     ns.ShowPanel(panel)
 end
+
+local kev = CreateFrame("Frame")
+kev:RegisterEvent("UPDATE_BINDINGS")
+kev:SetScript("OnEvent", function() updateHotkey() end)
 
 ns.RegisterModule({
     command = "dez",
