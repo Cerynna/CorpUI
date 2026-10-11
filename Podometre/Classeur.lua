@@ -344,6 +344,9 @@ local function refreshBinder(p)
     -- autre page (ou autre filtre) : les cartes nouvelles d avant sont vues
     local key = B.series .. ":" .. B.rarity .. ":" .. B.page .. ":" .. (view and view.name or "")
     if key ~= shownKey then forgetNew() shownKey = key end
+    -- listes deroulantes : le choix en cours s affiche a la demande
+    p.series:Refresh()
+    p.rarity:Refresh()
     local own = 0
     for _, c in ipairs(list) do if ownedHere(c.id) then own = own + 1 end end
     p.count:SetText(string.format(L.PEDO_COUNT, own, #list, #list > 0 and math.floor(own / #list * 100 + 0.5) or 0))
