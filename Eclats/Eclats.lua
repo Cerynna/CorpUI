@@ -53,7 +53,9 @@ local SOFT_ON = {
 }
 -- ouverts seulement sur un objet voulu (13/10 : toujours ouverts, les icones
 -- montraient aussi la sacoche des marchands et la bulle des PNJ) ; fermes,
--- la plaque est coupee et les icones reprennent les reglages d avant
+-- tout a 0 : les reglages d avant ne suffisent pas (icones a 1 par defaut,
+-- mais sans cible douce avant le module, SoftTargetInteract 1 = manette) ;
+-- ils ne reviennent qu avec le reste, quand plus rien n est coche
 local GATE = "SoftTargetNameplateInteract"   -- plaque de l objet vise
 local GATE_ON = { SoftTargetNameplateInteract = 1, SoftTargetIconInteract = 1, SoftTargetIconGameObject = 1,
                   SoftTargetLowPriorityIcons = 1 }
@@ -124,13 +126,7 @@ end
 local function setGate(open)
     if open == gate or InCombatLockdown() then return end
     gate = open
-    for name, v in pairs(GATE_ON) do
-        local off = 0
-        if name ~= GATE and db and type(db.saved) == "table" and db.saved[name] ~= nil and db.saved[name] ~= false then
-            off = db.saved[name]
-        end
-        setCVar(name, open and v or off)
-    end
+    for name, v in pairs(GATE_ON) do setCVar(name, open and v or 0) end
 end
 
 local function applySoft()
