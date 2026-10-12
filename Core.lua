@@ -2384,7 +2384,9 @@ function ns.LangCommand(code)
         end
         ns.root.lang = found
     end
-    local name = ns.ActiveLocale()
+    ns.ResetLocale()
+    -- langue choisie (retiree de la memoire : appliquee au /reload)
+    local name = ns.root.lang or ns.ActiveLocale()
     for _, lang in ipairs(ns.LANGUAGES) do
         if lang.code == name then name = lang.name break end
     end
@@ -3634,6 +3636,8 @@ local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event, arg)
     if event == "ADDON_LOADED" and arg == ADDON_NAME then
         ns.InitRoot()
+        -- langue choisie connue (sauvegarde chargee) : textes relus
+        ns.ResetLocale()
     elseif event == "PLAYER_LOGIN" then
         ns.InitRoot()
         -- Reprise de HystéTools (ancien nom), une seule fois : quand les deux
@@ -3657,6 +3661,13 @@ ev:SetScript("OnEvent", function(_, event, arg)
         for _, fn in ipairs(ns.inits) do
             ok, err = pcall(fn)
             if not ok then geterrorhandler()(err) end
+        end
+        ns.ResetLocale()
+        -- langues inutilisees retirees de la memoire, sauf si l assistant
+        -- d installation va s ouvrir (premiere fois, nouveau personnage)
+        local pending = type(ns.root.setupPending) == "table" and ns.root.setupPending[ns.CharKey()]
+        if ns.root.installed and not pending and not ns.NEW_CHAR and ns.DropUnusedLocales then
+            ns.DropUnusedLocales()
         end
         ns.Changed()
     end

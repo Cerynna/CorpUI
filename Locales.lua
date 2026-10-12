@@ -1532,14 +1532,42 @@ function ns.HasLocale(code)
     return locales[code] ~= nil
 end
 
+-- Lecture d un texte : la langue active est mise en cache, et chaque texte
+-- lu est memorise dans ns.L (les lectures suivantes ne passent plus par
+-- ici). ns.ResetLocale() oublie tout : sauvegarde chargee, langue changee,
+-- textes ajoutes.
+local activeTable
 ns.L = setmetatable({}, {
-    __index = function(_, key)
-        local v = locales[ns.ActiveLocale()][key]
+    __index = function(t, key)
+        if not activeTable then activeTable = locales[ns.ActiveLocale()] or base end
+        local v = activeTable[key]
         if v == nil then v = base[key] end
         if v == nil then v = key end
+        rawset(t, key, v)
         return v
     end,
 })
+
+function ns.ResetLocale()
+    activeTable = nil
+    for k in pairs(ns.L) do ns.L[k] = nil end
+end
+
+-- Apres la connexion, seules la langue active et l anglais (secours)
+-- restent en memoire (environ 1 Mo de textes en moins). Une autre langue
+-- choisie ensuite demande un /reload (deja dit par LANG_SET). Pas pendant
+-- un assistant d installation : il change la langue en direct.
+function ns.DropUnusedLocales()
+    local keep = ns.ActiveLocale()
+    for code in pairs(locales) do
+        if code ~= keep and code ~= "enUS" and not (keep == "esMX" and code == "esES")
+            and not (keep == "esES" and code == "esMX") then
+            locales[code] = nil
+        end
+    end
+    ns.localesDropped = true
+    ns.ResetLocale()
+end
 
 -- Mots des sous-commandes affiches dans l aide. Les alias anglais et
 -- francais sont toujours acceptes, quelle que soit la langue.
@@ -1571,4 +1599,6 @@ function ns.AddStrings(byLocale)
             for k, v in pairs(strings) do dst[k] = v end
         end
     end
+    -- un texte lu avant d etre ajoute ne doit pas rester sur sa cle
+    if next(ns.L) then ns.ResetLocale() end
 end
