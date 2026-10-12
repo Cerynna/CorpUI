@@ -9,6 +9,9 @@
       - bouton de copie : ouvre une fenetre ou le texte recent est
         selectionnable (Ctrl+C), liens et adresses compris ; les adresses
         web y sont reperees (clic droit sur le bouton : la derniere) ;
+      - historique (12/10) : les derniers messages de chaque fenetre sont
+        gardes au rechargement et a la deconnexion, et remis a la connexion
+        suivante, au-dessus des nouveaux, sous un filet date ;
       - heure devant les messages et noms aux couleurs de classe : simples
         reglages du jeu (CVar showTimestamps, chatClassColorOverride) que le
         code de Blizzard lit lui-meme, changes seulement depuis le panneau.
@@ -1502,6 +1505,12 @@ local function buildWindow()
     form:Check(L.CHAT_OPT_CORNER, function() return db.corner end, function(v) db.corner = v end)
     form:Check(L.CHAT_OPT_ARROWS, function() return db.arrows end, function(v) db.arrows = v applyArrows() end)
     form:Check(L.CHAT_OPT_HISTORY, function() return db.keepHistory end, function(v) db.keepHistory = v end)
+    form:Columns(2)
+    form:Check(L.CHAT_OPT_SCROLLBACK, function() return db.scrollback end, function(v) db.scrollback = v end)
+    form:Number(L.CHAT_OPT_SCROLLBACK_N, function() return db.scrollLines or 50 end, function(v)
+        db.scrollLines = math.max(10, math.min(200, math.floor(v + 0.5)))
+    end, 10, 200, 10)
+    form:EndColumns()
     -- reglage du jeu (CVar chatStyle) : saisie cachee hors frappe
     form:Check(L.CHAT_OPT_EDIT_TYPING, editOnTyping, function(v) ns.ChatEditOnTyping(v) end)
     -- reglage du jeu (CVar), change seulement au clic
@@ -1562,6 +1571,84 @@ end
 
 ---------------------------------------------------------------------------
 
+---------------------------------------------------------------------------
+-- Historique des messages (12/10) : a PLAYER_LOGOUT (rechargement compris),
+-- les dernieres lignes de chaque fenetre (sauf journal de combat et voix)
+-- sont relues (GetMessageInfo, lecture seule ; ligne secrete : sautee) et
+-- gardees par personnage ; a la connexion suivante, elles sont remises
+-- DERRIERE les messages deja la (BackFillMessage : jamais par-dessus le
+-- message du jour ni ceux de la connexion), sous un filet date. Les lignes
+-- gardent leur heure d origine (ecrite dans le texte par le jeu).
+---------------------------------------------------------------------------
+
+local SKIP_FRAMES = { [2] = true, [3] = true }     -- journal de combat, voix
+local marks = {}                -- filets poses cette session (jamais gardes)
+local restored = false
+
+local function chatFrames()
+    local n = NUM_CHAT_WINDOWS or 10
+    local list = {}
+    for i = 1, n do
+        local cf = _G["ChatFrame" .. i]
+        if not SKIP_FRAMES[i] and type(cf) == "table" and cf.GetNumMessages and cf.GetMessageInfo then
+            list[#list + 1] = { i = i, cf = cf }
+        end
+    end
+    return list
+end
+
+local function color(v)
+    if type(v) == "number" and not issecret(v) then return math.floor(v * 1000 + 0.5) / 1000 end
+end
+
+local function saveScrollback()
+    if not db then return end
+    db.scroll = db.scroll or {}
+    local key = ns.CharKey()
+    if not db.scrollback then db.scroll[key] = nil return end
+    local keep = math.max(10, math.min(200, tonumber(db.scrollLines) or 50))
+    local frames = {}
+    for _, e in ipairs(chatFrames()) do
+        local okN, n = pcall(e.cf.GetNumMessages, e.cf)
+        n = okN and type(n) == "number" and not issecret(n) and n or 0
+        local lines = {}
+        for i = math.max(1, n - keep + 1), n do
+            local ok, text, r, g, b = pcall(e.cf.GetMessageInfo, e.cf, i)
+            if ok and type(text) == "string" and not issecret(text) and text ~= "" and not marks[text] then
+                lines[#lines + 1] = { text, color(r), color(g), color(b) }
+            end
+        end
+        if #lines > 0 then frames[e.i] = lines end
+    end
+    db.scroll[key] = { at = time(), frames = frames }
+end
+
+local function restoreScrollback()
+    if restored or not db or not db.scrollback then return end
+    restored = true
+    local saved = db.scroll and db.scroll[ns.CharKey()]
+    if type(saved) ~= "table" or type(saved.frames) ~= "table" then return end
+    local when = date(L.CHAT_SCROLLBACK_DATE, tonumber(saved.at) or time())
+    local mark = "|cff8a8a8a—— " .. string.format(L.CHAT_SCROLLBACK_MARK, when) .. " ——|r"
+    marks[mark] = true
+    for _, e in ipairs(chatFrames()) do
+        local lines = saved.frames[e.i]
+        local back = e.cf.BackFillMessage
+        if type(lines) == "table" and #lines > 0 and type(back) == "function" then
+            -- derriere les messages deja la : le filet d abord, puis les
+            -- lignes de la plus recente a la plus ancienne
+            pcall(back, e.cf, mark, 0.54, 0.54, 0.54)
+            for k = #lines, 1, -1 do
+                local l = lines[k]
+                if type(l) == "table" and type(l[1]) == "string" then
+                    pcall(back, e.cf, l[1], l[2] or 1, l[3] or 1, l[4] or 1)
+                end
+            end
+        end
+    end
+end
+ns._chatScroll = { save = saveScrollback, restore = restoreScrollback, marks = marks }
+
 local newCharDone = false
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
@@ -1571,7 +1658,7 @@ ev:SetScript("OnEvent", function(_, event)
         root.chat = root.chat or {}
         db = root.chat
         for k, v in pairs({ enabled = true, copy = true, alpha = 0.6, corner = true, arrows = true, keepHistory = true, urls = true, lift = 0,
-                            combatIcon = true }) do
+                            combatIcon = true, scrollback = true, scrollLines = 50 }) do
             if db[k] == nil then db[k] = v end
         end
         db.errors = nil
@@ -1579,6 +1666,8 @@ ev:SetScript("OnEvent", function(_, event)
         -- meme pendant la session, pour les fleches)
         if not db.keepHistory and db.history then db.history[ns.CharKey()] = nil end
         C_Timer.After(4, combatName)
+        -- historique des fenetres : remis derriere les messages de la connexion
+        C_Timer.After(1, restoreScrollback)
         -- personnage jamais vu par CorpUI (Profils.lua) : onglets par defaut,
         -- une fois la configuration du jeu chargee ; visibles au prochain
         -- chargement de l interface
@@ -1595,6 +1684,13 @@ end)
 for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "UPDATE_CHAT_WINDOWS", "UPDATE_FLOATING_CHAT_WINDOWS" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
+-- rechargement ou deconnexion : les derniers messages de chaque fenetre
+local logoutEv = CreateFrame("Frame")
+logoutEv:RegisterEvent("PLAYER_LOGOUT")
+logoutEv:SetScript("OnEvent", function(_, event)
+    if event ~= "PLAYER_LOGOUT" or ns.ModuleOff("chat", logoutEv) then return end
+    pcall(saveScrollback)
+end)
 local unreadEv = CreateFrame("Frame")
 unreadEv:SetScript("OnEvent", function(_, event, _, sender)
     if ns.ModuleOff("chat", unreadEv) then return end

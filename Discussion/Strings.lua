@@ -2,6 +2,10 @@ local _, ns = ...
 
 ns.AddStrings({
     enUS = {
+        CHAT_OPT_SCROLLBACK = "Keep the last messages of each window",
+        CHAT_OPT_SCROLLBACK_N = "Messages kept: %d",
+        CHAT_SCROLLBACK_MARK = "history of %s",
+        CHAT_SCROLLBACK_DATE = "%m/%d %H:%M",
         CHAT_OPT_CORNER = "Keep the chat window in the bottom-left corner",
         CHAT_OPT_ARROWS = "Up / down arrows: my sent messages (no Alt needed)",
         CHAT_OPT_HISTORY = "Keep my sent messages between sessions",
@@ -22,6 +26,10 @@ ns.AddStrings({
         CHAT_HINT = "Position, size, font size and channels are still set by the game (right-click a chat tab, or Edit Mode). Messages the game keeps secret (combat, instances) cannot be copied. To get the original look back: uncheck, then reload.",
     },
     frFR = {
+        CHAT_OPT_SCROLLBACK = "Garder les derniers messages de chaque fenêtre",
+        CHAT_OPT_SCROLLBACK_N = "Messages gardés : %d",
+        CHAT_SCROLLBACK_MARK = "historique du %s",
+        CHAT_SCROLLBACK_DATE = "%d/%m à %H:%M",
         CHAT_OPT_CORNER = "Garder la fenêtre de chat dans le coin en bas à gauche",
         CHAT_OPT_ARROWS = "Flèches haut / bas : mes messages envoyés (sans Alt)",
         CHAT_OPT_HISTORY = "Garder mes messages envoyés d'une session à l'autre",
@@ -42,6 +50,10 @@ ns.AddStrings({
         CHAT_HINT = "Position, taille, taille de police et canaux se règlent toujours dans le jeu (clic droit sur un onglet, ou mode Édition). Les messages que le jeu garde secrets (combat, instances) ne sont pas copiables. Pour retrouver l'apparence d'origine : décocher puis recharger.",
     },
     deDE = {
+        CHAT_OPT_SCROLLBACK = "Letzte Nachrichten jedes Fensters behalten",
+        CHAT_OPT_SCROLLBACK_N = "Behaltene Nachrichten: %d",
+        CHAT_SCROLLBACK_MARK = "Verlauf vom %s",
+        CHAT_SCROLLBACK_DATE = "%d.%m. %H:%M",
         CHAT_OPT_CORNER = "Chatfenster in der unteren linken Ecke halten",
         CHAT_OPT_ARROWS = "Pfeil hoch / runter: gesendete Nachrichten (ohne Alt)",
         CHAT_OPT_HISTORY = "Gesendete Nachrichten zwischen Sitzungen behalten",
@@ -62,6 +74,10 @@ ns.AddStrings({
         CHAT_HINT = "Position, Größe, Schriftgröße und Kanäle stellst du weiter im Spiel ein (Rechtsklick auf einen Reiter oder Bearbeitungsmodus). Vom Spiel geheim gehaltene Nachrichten (Kampf, Instanzen) sind nicht kopierbar. Ursprüngliches Aussehen: abwählen und neu laden.",
     },
     esES = {
+        CHAT_OPT_SCROLLBACK = "Guardar los últimos mensajes de cada ventana",
+        CHAT_OPT_SCROLLBACK_N = "Mensajes guardados: %d",
+        CHAT_SCROLLBACK_MARK = "historial del %s",
+        CHAT_SCROLLBACK_DATE = "%d/%m %H:%M",
         CHAT_OPT_CORNER = "Mantener la ventana de chat en la esquina inferior izquierda",
         CHAT_OPT_ARROWS = "Flechas arriba / abajo: mis mensajes enviados (sin Alt)",
         CHAT_OPT_HISTORY = "Guardar mis mensajes enviados entre sesiones",
@@ -82,6 +98,10 @@ ns.AddStrings({
         CHAT_HINT = "Posición, tamaño, tamaño de fuente y canales se siguen ajustando en el juego (clic derecho en una pestaña o modo Edición). Los mensajes que el juego mantiene secretos (combate, instancias) no se pueden copiar. Para volver al original: desmarcar y recargar.",
     },
     ptBR = {
+        CHAT_OPT_SCROLLBACK = "Manter as últimas mensagens de cada janela",
+        CHAT_OPT_SCROLLBACK_N = "Mensagens mantidas: %d",
+        CHAT_SCROLLBACK_MARK = "histórico de %s",
+        CHAT_SCROLLBACK_DATE = "%d/%m %H:%M",
         CHAT_OPT_CORNER = "Manter a janela de bate-papo no canto inferior esquerdo",
         CHAT_OPT_ARROWS = "Setas para cima / baixo: minhas mensagens enviadas (sem Alt)",
         CHAT_OPT_HISTORY = "Guardar minhas mensagens enviadas entre sessões",
@@ -102,6 +122,10 @@ ns.AddStrings({
         CHAT_HINT = "Posição, tamanho, tamanho da fonte e canais continuam no jogo (clique direito numa aba ou modo de Edição). Mensagens que o jogo mantém secretas (combate, instâncias) não podem ser copiadas. Para voltar ao original: desmarque e recarregue.",
     },
     itIT = {
+        CHAT_OPT_SCROLLBACK = "Conserva gli ultimi messaggi di ogni finestra",
+        CHAT_OPT_SCROLLBACK_N = "Messaggi conservati: %d",
+        CHAT_SCROLLBACK_MARK = "cronologia del %s",
+        CHAT_SCROLLBACK_DATE = "%d/%m %H:%M",
         CHAT_OPT_CORNER = "Tenere la finestra di chat nell'angolo in basso a sinistra",
         CHAT_OPT_ARROWS = "Frecce su / giù: i miei messaggi inviati (senza Alt)",
         CHAT_OPT_HISTORY = "Conserva i messaggi inviati tra le sessioni",
@@ -122,6 +146,10 @@ ns.AddStrings({
         CHAT_HINT = "Posizione, dimensioni, dimensione del carattere e canali si regolano sempre nel gioco (clic destro su una scheda o modalità Modifica). I messaggi che il gioco tiene segreti (combattimento, istanze) non sono copiabili. Per tornare all'originale: deseleziona e ricarica.",
     },
     ruRU = {
+        CHAT_OPT_SCROLLBACK = "Сохранять последние сообщения каждого окна",
+        CHAT_OPT_SCROLLBACK_N = "Сохраняется сообщений: %d",
+        CHAT_SCROLLBACK_MARK = "история от %s",
+        CHAT_SCROLLBACK_DATE = "%d.%m %H:%M",
         CHAT_OPT_CORNER = "Держать окно чата в левом нижнем углу",
         CHAT_OPT_ARROWS = "Стрелки вверх / вниз: мои отправленные сообщения (без Alt)",
         CHAT_OPT_HISTORY = "Хранить отправленные сообщения между сеансами",
@@ -142,6 +170,10 @@ ns.AddStrings({
         CHAT_HINT = "Положение, размер, шрифт и каналы по-прежнему настраиваются в игре (правый клик по вкладке или режим редактирования). Сообщения, которые игра скрывает (бой, подземелья), скопировать нельзя. Вернуть исходный вид: снять флажок и перезагрузить.",
     },
     zhCN = {
+        CHAT_OPT_SCROLLBACK = "保留每个窗口的最近消息",
+        CHAT_OPT_SCROLLBACK_N = "保留消息：%d",
+        CHAT_SCROLLBACK_MARK = "%s 的历史记录",
+        CHAT_SCROLLBACK_DATE = "%m/%d %H:%M",
         CHAT_OPT_CORNER = "将聊天窗口固定在左下角",
         CHAT_OPT_ARROWS = "上 / 下方向键：我发送过的消息（无需 Alt）",
         CHAT_OPT_HISTORY = "在不同会话之间保留我发送的消息",
@@ -162,6 +194,10 @@ ns.AddStrings({
         CHAT_HINT = "位置、大小、字号和频道仍在游戏中设置（右键点击标签，或编辑模式）。游戏保密的消息（战斗、副本）无法复制。要恢复原样：取消勾选后重载。",
     },
     zhTW = {
+        CHAT_OPT_SCROLLBACK = "保留每個視窗的最近訊息",
+        CHAT_OPT_SCROLLBACK_N = "保留訊息：%d",
+        CHAT_SCROLLBACK_MARK = "%s 的歷史紀錄",
+        CHAT_SCROLLBACK_DATE = "%m/%d %H:%M",
         CHAT_OPT_CORNER = "將聊天視窗固定在左下角",
         CHAT_OPT_ARROWS = "上 / 下方向鍵：我發送過的訊息（不需 Alt）",
         CHAT_OPT_HISTORY = "在不同工作階段之間保留我發送的訊息",
@@ -182,6 +218,10 @@ ns.AddStrings({
         CHAT_HINT = "位置、大小、字型大小和頻道仍在遊戲中設定（右鍵點擊標籤，或編輯模式）。遊戲保密的訊息（戰鬥、副本）無法複製。要恢復原樣：取消勾選後重新載入。",
     },
     koKR = {
+        CHAT_OPT_SCROLLBACK = "각 창의 최근 메시지 유지",
+        CHAT_OPT_SCROLLBACK_N = "유지할 메시지: %d",
+        CHAT_SCROLLBACK_MARK = "%s 기록",
+        CHAT_SCROLLBACK_DATE = "%m/%d %H:%M",
         CHAT_OPT_CORNER = "대화창을 왼쪽 아래 구석에 고정",
         CHAT_OPT_ARROWS = "위 / 아래 화살표: 보낸 메시지 (Alt 없이)",
         CHAT_OPT_HISTORY = "세션 간에 보낸 메시지 유지",
