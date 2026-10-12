@@ -13,7 +13,9 @@
         (armures et armes, composants tous avec un prix) : profit estime.
     Chaque liste a son seuil, ses objets ignores et ses 150 places. Pour
     chaque objet : les exemplaires a acheter (echelle des prix du dernier
-    releve), le profit. Listes triees par profit. Clic : l objet est
+    releve), le profit et la rentabilite (profit net / depense, 12/10 :
+    43 po pour en gagner 8 valent moins que 3 po pour en gagner 2).
+    Listes triees par rentabilite ou par profit (bouton). Clic : l objet est
     cherche dans l HV (achat chez Blizzard, interdit aux addons) ; clic
     droit : l objet est ignore dans cette liste.
     Recherche par tranches (quelques centaines d objets par image) a
@@ -49,6 +51,7 @@ local function opts()
     if type(o.ignore) ~= "table" then o.ignore = {} end
     if type(o.ignoreDE) ~= "table" then o.ignoreDE = {} end
     if o.cat ~= "resale" and o.cat ~= "de" then o.cat = "resale" end
+    if o.sort ~= "profit" and o.sort ~= "roi" then o.sort = "roi" end
     o.de = nil   -- ancienne case "Desenchantement" (remplacee par la liste dez)
     return o
 end
@@ -73,7 +76,8 @@ local function evaluate(id, o)
             q, cost, profit = q + lv[2], cost + lv[1] * lv[2], profit + (value - lv[1]) * lv[2]
         end
         if q > 0 and profit > 0 and profit >= o.minProfit and (not best or profit > best.profit) then
-            return { id = id, kind = kind, q = q, cost = cost, profit = profit, ref = value, min = v.min, market = v.market }
+            return { id = id, kind = kind, q = q, cost = cost, profit = profit, ref = value, min = v.min, market = v.market,
+                     roi = cost > 0 and profit / cost * 100 or 0 }
         end
         return best
     end
@@ -120,11 +124,28 @@ local function startSearch(announce)
 end
 AH.DealSearch = startSearch
 
+-- ordre d une liste : rentabilite (defaut) ou profit
+local function sortDeals(list, o)
+    if o and o.sort == "profit" then
+        table.sort(list, function(a, b)
+            if a.profit ~= b.profit then return a.profit > b.profit end
+            return (a.roi or 0) > (b.roi or 0)
+        end)
+    else
+        table.sort(list, function(a, b)
+            if (a.roi or 0) ~= (b.roi or 0) then return (a.roi or 0) > (b.roi or 0) end
+            return a.profit > b.profit
+        end)
+    end
+end
+
 local function finish()
     for _, cat in ipairs(CATS) do
         local found = job.found[cat]
+        -- les 150 meilleures au profit, puis l ordre choisi
         table.sort(found, function(a, b) return a.profit > b.profit end)
         while #found > MAX_DEALS do table.remove(found) end
+        sortDeals(found, opts())
         deals[cat] = found
     end
     job = nil
@@ -175,8 +196,19 @@ local function kindText(d)
     return "|cffffd100" .. string.format(L.DEAL_K_MARKET, pct, M(d.market or 0)) .. "|r"
 end
 
+-- rentabilite : vert vif au-dela de 50 %, jaune de 25 a 50, orange en dessous
+local function roiText(d)
+    local p = math.floor((d.roi or 0) + 0.5)
+    local col = p >= 100 and "40ff80" or p >= 50 and "6be070" or p >= 25 and "ffd100" or "ff9a40"
+    return "|cff" .. col .. string.format(L.DEAL_ROI, p) .. "|r"
+end
+
 local function makeRow(list, i)
     local row = AH.ItemRow(list, ROW_H)
+    -- rentabilite en bas a droite ; la ligne du detail s arrete avant
+    row.roi = AH.Text(row, "GameFontNormal", "RIGHT")
+    row.roi:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -2, 2)
+    row.sub:SetPoint("RIGHT", row.roi, "LEFT", -6, 0)
     row:SetScript("OnClick", function(self, button)
         local d = self.d
         if not d then return end
@@ -196,7 +228,9 @@ local function makeRow(list, i)
     row:SetScript("OnEnter", function(self)
         local d = self.d
         if not d then return end
-        AH.ItemTip(self, d.id, { { kindText(d) }, { L.DEAL_TIP_CLICK, 0.7, 0.7, 0.7 } })
+        AH.ItemTip(self, d.id, { { kindText(d) },
+            { string.format(L.DEAL_TIP_ROI, math.floor((d.roi or 0) + 0.5), AH.Money(d.profit), AH.Money(d.cost)), 0.42, 0.88, 0.46 },
+            { L.DEAL_TIP_CLICK, 0.7, 0.7, 0.7 } })
     end)
     return row
 end
@@ -208,6 +242,7 @@ local function fillRow(row, d, i)
     row.name:SetText(AH.QualityHex(d.id) .. AH.ItemLabel(d.id) .. "|r")
     row.right:SetText("|cff6be070+" .. AH.Money(d.profit) .. "|r")
     row.sub:SetText(kindText(d) .. "|cff9d9d9d  ·  " .. string.format(L.DEAL_BUY, d.q, AH.Money(d.cost)) .. "|r")
+    row.roi:SetText(roiText(d))
 end
 
 -- petit champ numerique avec libelle
@@ -292,6 +327,17 @@ local function build(page)
     y = y - 36
     ui.vendor = ns.UI.Check(page, L.DEAL_VENDOR, function(v) local o = opts() if o then o.vendor = v end end)
     ui.vendor:SetPoint("TOPLEFT", page, "TOPLEFT", PAD - 4, y)
+    ui.sort = ns.UI.Button(page, "", 120, function()
+        local o = opts()
+        if not o then return end
+        o.sort = o.sort == "roi" and "profit" or "roi"
+        for _, key in ipairs(CATS) do sortDeals(deals[key], o) end
+        ui.list.offset = 0
+        lastPaint = 0
+        AH.Refresh("deals")
+    end)
+    ui.sort:SetHeight(20)
+    ui.sort:SetPoint("TOPRIGHT", page, "TOPRIGHT", -PAD, y - 2)
     y = y - 26
     ui.list = AH.List(page, ROW_H, makeRow, fillRow)
     ui.list:SetPoint("TOPLEFT", page, "TOPLEFT", PAD - 2, y)
@@ -311,9 +357,12 @@ local function build(page)
 end
 
 local function sumOf(list)
-    local sum = 0
-    for _, d in ipairs(list) do sum = sum + d.profit end
-    return sum
+    local sum, cost = 0, 0
+    for _, d in ipairs(list) do
+        sum = sum + d.profit
+        cost = cost + (d.cost or 0)
+    end
+    return sum, cost
 end
 
 local function refresh(page)
@@ -338,12 +387,16 @@ local function refresh(page)
         if not e:HasFocus() then e:SetText(e.get()) end
     end
     ui.vendor:SetChecked(o.vendor)
+    ui.sort:SetText(o.sort == "profit" and L.DEAL_SORT_PROFIT or L.DEAL_SORT_ROI)
     ui.vendor:SetShown(c == "resale")
     if job then
         ui.summary:SetText(string.format(L.DEAL_SCANNING, total > 0 and math.floor(job.seen * 100 / total) or 0))
         ui.refresh:SetEnabled(false)
     else
-        ui.summary:SetText(string.format(L.DEAL_SUMMARY, #list, AH.Money(sumOf(list))))
+        local sum, cost = sumOf(list)
+        local text = string.format(L.DEAL_SUMMARY, #list, AH.Money(sum))
+        if cost > 0 then text = text .. string.format(L.DEAL_SUM_ROI, math.floor(sum / cost * 100 + 0.5)) end
+        ui.summary:SetText(text)
         ui.refresh:SetEnabled(true)
     end
     ui.list:SetData(list)
