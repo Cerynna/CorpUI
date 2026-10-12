@@ -801,7 +801,9 @@ function M.Render()
     layout()
 end
 
+local renderStale = false   -- fenetre cachee : recomposee a l affichage
 local function queueRender()
+    if frame and not frame:IsShown() then renderStale = true return end
     if renderQueued then return end
     renderQueued = true
     C_Timer.After(0.15, function()
@@ -994,6 +996,10 @@ buildFrame = function()
     f:SetScript("OnShow", function(self)
         -- position tenue par le coin haut-gauche : le haut reste fixe
         ns.PinTop(self, db.pos)
+        if renderStale then
+            renderStale = false
+            M.Render()
+        end
         layout()
     end)
     f:SetScript("OnHide", function() if not db.shown then previewing = nil end end)

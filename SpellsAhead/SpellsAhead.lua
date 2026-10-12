@@ -427,6 +427,7 @@ end
 local onDataChanged
 
 local savedFilters
+local ownFilterUntil = 0     -- TRAINER_UPDATE venus de nos filtres : ignores
 
 local function widenFilters()
     if type(_G.GetTrainerServiceTypeFilter) ~= "function"
@@ -435,8 +436,8 @@ local function widenFilters()
     end
     savedFilters = {}
     for _, filter in ipairs({ "available", "unavailable", "used" }) do
-        savedFilters[filter] = call(_G.GetTrainerServiceTypeFilter, filter)
-        pcall(_G.SetTrainerServiceTypeFilter, filter, 1)
+        savedFilters[filter] = call(_G.GetTrainerServiceTypeFilter, filter) and true or false
+        pcall(_G.SetTrainerServiceTypeFilter, filter, true)
     end
     return true
 end
@@ -444,9 +445,12 @@ end
 local function restoreFilters()
     if not savedFilters then return end
     for filter, value in pairs(savedFilters) do
-        pcall(_G.SetTrainerServiceTypeFilter, filter, value and 1 or 0)
+        pcall(_G.SetTrainerServiceTypeFilter, filter, value and true or false)
     end
     savedFilters = nil
+    -- nos changements de filtres renvoient TRAINER_UPDATE : pas une raison
+    -- de tout relire (avant : relecture en boucle, entraineur ouvert)
+    ownFilterUntil = GetTime() + 0.75
 end
 
 local function spellRank(spellID)
@@ -2101,7 +2105,11 @@ ev:SetScript("OnEvent", function(self, event, arg1)
 
     if not SpellsAheadDB then return end
 
-    if event == "TRAINER_SHOW" or event == "TRAINER_UPDATE" then
+    if event == "TRAINER_SHOW" then
+        scrapeTrainer()
+    elseif event == "TRAINER_UPDATE" then
+        -- nos filtres (pendant la lecture et juste apres) : rien a relire
+        if scraping or GetTime() < ownFilterUntil then return end
         scrapeTrainer()
     end
 

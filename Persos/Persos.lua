@@ -1002,15 +1002,27 @@ events.ZONE_CHANGED_NEW_AREA = basics
 -- a la deconnexion (et a chaque rechargement), le jeu rend 0 pour l or et
 -- l experience (vu dans les sauvegardes le 09/10 : tous les persos a 0) :
 -- seule l heure est notee, les valeurs relevees en jeu restent
+local bagsQueued = false
+local bagsNow      -- plus bas : releve des sacs regroupe
 events.PLAYER_LOGOUT = function()
     if db then current().lastSeen = time() end
+    -- releve des sacs encore en attente : fait maintenant
+    if bagsQueued and bagsNow then bagsNow() end
 end
 
-function events.BAG_UPDATE_DELAYED()
+-- releve regroupe : une rafale de BAG_UPDATE_DELAYED (butin, tri, achat
+-- en serie), une seule lecture des sacs, une seconde apres
+bagsNow = function()
+    bagsQueued = false
     if not db then return end
     snapBags()
     snapBank()
     if win and win:IsShown() then refresh() end
+end
+function events.BAG_UPDATE_DELAYED()
+    if not db or bagsQueued then return end
+    bagsQueued = true
+    C_Timer.After(1, function() if bagsQueued then bagsNow() end end)
 end
 
 function events.BANKFRAME_OPENED()

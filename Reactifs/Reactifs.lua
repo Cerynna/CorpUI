@@ -117,6 +117,8 @@ local empty                 -- "ta classe n utilise pas de composants"
 local ROW_H = 26
 local rowTop = -104     -- la liste vient sous les options et l aide (recalcule a la construction)
 
+local bagsQueued = false
+
 local function refresh()
     if not win or not win:IsShown() then return end
     local t = targets()
@@ -212,8 +214,14 @@ ev:SetScript("OnEvent", function(_, event)
     elseif not db then
         return
     elseif event == "BAG_UPDATE_DELAYED" then
-        checkLow()
-        refresh()
+        -- rafale : une seule lecture, une demi-seconde apres
+        if bagsQueued then return end
+        bagsQueued = true
+        C_Timer.After(0.5, function()
+            bagsQueued = false
+            checkLow()
+            refresh()
+        end)
     elseif event == "MERCHANT_SHOW" then
         -- la liste du marchand peut arriver juste apres l ouverture
         C_Timer.After(0.3, function()

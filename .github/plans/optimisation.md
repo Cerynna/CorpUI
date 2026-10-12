@@ -88,27 +88,27 @@ Chaque point coché est fait, testé hors jeu (bancs d'essai : tous les bancs do
 
 ## Lot 4 — Sacs, économie, outils
 
-- [ ] **SpellsAhead (bogue).**
-  - La relecture de l'entraîneur relançait sa propre relecture (TRAINER_UPDATE après nos filtres).
-  - Les filtres étaient remis avec 0/1 au lieu de vrai/faux.
-- [ ] **Sacs et banque.**
+- [x] **SpellsAhead (bogue).**
+  - La relecture de l'entraîneur relançait sa propre relecture (TRAINER_UPDATE après nos filtres) : relecture toutes les 0,25 s tant que l'entraîneur restait ouvert.
+  - Les filtres étaient remis avec 0/1 au lieu de vrai/faux (source Blizzard, branche forever : booléens). 0 valant vrai en Lua, un filtre décoché restait coché.
+- [x] **Sacs et banque.**
   - Verrou, recharge et argent : seulement ce qui change.
-  - Disposition différée sac fermé.
+  - Disposition sac fermé regroupée (une fois toutes les 2 s au plus, hors combat) : elle crée les boutons sécurisés des nouvelles cases, qu'un sac ouvert en combat doit déjà avoir.
   - Niveau d'objet mis en cache.
   - Pulsation limitée aux nouveaux objets.
-- [ ] **Affaires de l'HV.** Recherche avec un budget de temps par image, au lieu de 300 objets par image.
-- [ ] **Dez, Persos, Réactifs.**
-  - Moins de relevés complets des sacs.
+- [x] **Affaires de l'HV.** Recherche avec un budget de temps par image, au lieu de 300 objets par image.
+- [x] **Dez, Persos, Réactifs.**
+  - Moins de relevés complets des sacs (rafales regroupées ; Persos relève aussi à la déconnexion s'il en reste un).
   - Dez sans objet à désenchanter : événements de sacs coupés hors enchanteur.
-- [ ] **Chat.**
-  - Plus de fermeture créée à chaque image.
-  - Couleurs posées seulement au changement.
+- [x] **Chat.**
+  - Couleurs des fenêtres posées seulement au changement (opacité, thème).
   - Curseur de défilement sans recoloration à chaque image.
-- [ ] **Suivi de quêtes.** UNIT_QUEST_LOG_CHANGED pour le joueur seulement, et mise en page sautée si rien n'a changé.
-- [ ] **Notes.** Note recomposée seulement si la fenêtre est affichée.
-- [ ] **Podomètre.**
+  - Fermetures : aucune n'est plus créée à chaque image dans le pilote actuel.
+- [x] **Suivi de quêtes.** UNIT_QUEST_LOG_CHANGED pour le joueur seulement. La mise en page reste regroupée à 0,2 s (pas de comparaison du contenu : gain faible, risque d'oubli).
+- [x] **Notes.** Note recomposée seulement si la fenêtre est affichée.
+- [x] **Podomètre.**
   - Clés de date gardées jusqu'à minuit.
-  - Trophées testés seulement au franchissement d'un seuil.
+  - Trophées testés tous les 100 m parcourus au lieu de chaque relevé (deux par seconde).
 
 ## Lot 5 — Sauvegarde (temps de connexion et de déconnexion, mémoire)
 

@@ -95,6 +95,19 @@ local function keysAt(t)
 end
 P.KeysAt = keysAt
 
+-- cles du moment, gardees jusqu a minuit
+local keysCache, keysFrom, keysUntil = nil, 0, 0
+local function keysNow()
+    local now = time()
+    if keysCache and now >= keysFrom and now < keysUntil then return keysCache end
+    keysCache = keysAt(now)
+    local d = date("*t", now)
+    keysFrom = time({ year = d.year, month = d.month, day = d.day, hour = 0 })
+    keysUntil = time({ year = d.year, month = d.month, day = d.day + 1, hour = 0 })
+    if type(keysFrom) ~= "number" or type(keysUntil) ~= "number" then keysFrom, keysUntil = 0, 0 end
+    return keysCache
+end
+
 local function dayYards(dk)
     local e = db and db.days[dk]
     if type(e) ~= "table" then return 0 end
@@ -226,6 +239,7 @@ local function givePack(kind, period, kmv)
 end
 P._givePack = function(...) if db then givePack(...) end end
 
+local lastTrophyStep      -- trophees : testes tous les 100 m parcourus
 local function checkMilestones(K)
     refreshCache(K)
     for _, kind in ipairs(P.PERIODS) do
@@ -249,7 +263,11 @@ local function checkMilestones(K)
             givePack(ms[2], "total", ms[1])
         end
     end
-    if P.CheckTrophies then P.CheckTrophies() end
+    local step = math.floor(tot / (KM / 10))
+    if step ~= lastTrophyStep then
+        lastTrophyStep = step
+        if P.CheckTrophies then P.CheckTrophies() end
+    end
 end
 
 -- prochain palier d une periode : km, booster, ou nil
@@ -268,7 +286,7 @@ end
 local function round2(v) return math.floor(v * 100 + 0.5) / 100 end
 
 local function add(mode, yd)
-    local K = keysAt(time())
+    local K = keysNow()
     refreshCache(K)
     local e = db.days[K.day]
     if type(e) ~= "table" then e = {} db.days[K.day] = e end

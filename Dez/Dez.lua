@@ -197,10 +197,16 @@ local function build()
 end
 
 -- objet affiche, attributs, visibilite : hors combat seulement
+local bagEventsOn = true
+local setBagEvents      -- plus bas : evenements de sacs selon le metier
+
 local function refresh()
     if not db or InCombatLockdown() then return end
     dirty = false
-    local want = db.enabled and isEnchanter()
+    local enchanter = isEnchanter()
+    -- pas enchanteur : les sacs ne nous concernent pas
+    if setBagEvents then setBagEvents(db.enabled and enchanter) end
+    local want = db.enabled and enchanter
     local it, n
     if want then it, n = pick() end
     current, remaining = it, n or 0
@@ -248,14 +254,18 @@ local function isRefusal(msg)
 end
 
 local ev = CreateFrame("Frame")
-local acc = 0
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.25 then return end
-    acc = 0
+ns.Every(0.25, function()
     if dirty and db then refresh() end
     if btn and btn:IsShown() then btn:SetAlpha(InCombatLockdown() and 0.4 or 1) end
-end)
+end, "Dez", "dez")
+local BAG_EVENTS = { "BAG_UPDATE_DELAYED", "ITEM_LOCK_CHANGED", "GET_ITEM_INFO_RECEIVED" }
+setBagEvents = function(on)
+    if on == bagEventsOn then return end
+    bagEventsOn = on
+    for _, e in ipairs(BAG_EVENTS) do
+        if on then pcall(ev.RegisterEvent, ev, e) else pcall(ev.UnregisterEvent, ev, e) end
+    end
+end
 ev:SetScript("OnEvent", function(_, event, a, b)
     if ns.ModuleOff("dez", ev) then return end
     if event == "PLAYER_LOGIN" then

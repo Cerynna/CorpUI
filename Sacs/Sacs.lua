@@ -114,14 +114,22 @@ end
 -- niveau d objet de l equipement (armes, armures), sinon nil
 local NO_ILVL = { [""] = true, INVTYPE_BAG = true, INVTYPE_QUIVER = true, INVTYPE_BODY = true,
                   INVTYPE_TABARD = true, INVTYPE_AMMO = true, INVTYPE_NON_EQUIP_IGNORE = true }
+-- (memorise par lien : le niveau d un objet ne change pas)
+local ilvlCache = {}
 local function itemLevel(link, classID, equipLoc)
     if not link or issecret(link) or (classID ~= 2 and classID ~= 4) then return nil end
     if not equipLoc or NO_ILVL[equipLoc] then return nil end
+    local c = ilvlCache[link]
+    if c ~= nil then return c or nil end
     local fn = (C_Item and C_Item.GetDetailedItemLevelInfo) or GetDetailedItemLevelInfo
     if not fn then return nil end
     local ok, lvl = pcall(fn, link)
     lvl = ok and num(lvl)
-    if lvl and lvl > 1 then return math.floor(lvl + 0.5) end
+    -- objet pas encore charge (nil) : pas memorise, relu la prochaine fois
+    if ok and lvl == nil then return nil end
+    local v = (lvl and lvl > 1) and math.floor(lvl + 0.5) or false
+    ilvlCache[link] = v
+    return v or nil
 end
 
 -- categorie d affichage (regroupement par type)
@@ -216,20 +224,37 @@ local function updateButton(b, query, noNew)
     return b.isNew
 end
 
+local newList = {}       -- boutons des nouveaux objets (pulsation)
+
 local function updateAll()
     if not frame or not frame:IsShown() then return end
     local free, total = 0, 0
     newCount = 0
+    for i = #newList, 1, -1 do newList[i] = nil end
     local query = currentQuery()
     for _, b in pairs(buttons) do
         if b:IsShown() then
-            if updateButton(b, query) then newCount = newCount + 1 end
+            if updateButton(b, query) then
+                newCount = newCount + 1
+                newList[newCount] = b
+            end
             total = total + 1
             if not b.link then free = free + 1 end
         end
     end
     freeText:SetText(string.format(L.BAGS_FREE, free, total))
     moneyText:SetText(ns.FormatMoney(GetMoney()))
+end
+
+-- recharges seulement (BAG_UPDATE_COOLDOWN)
+local function updateCooldowns()
+    if not frame or not frame:IsShown() or not C_Container.GetContainerItemCooldown then return end
+    for _, b in pairs(buttons) do
+        if b.link and b:IsShown() then
+            local ok, start, duration = pcall(C_Container.GetContainerItemCooldown, b.bag, b.slot)
+            if ok and start then pcall(b.cd.SetCooldown, b.cd, start, duration) end
+        end
+    end
 end
 
 ---------------------------------------------------------------------------
@@ -805,7 +830,7 @@ local function build()
         if newCount == 0 then return end
         t = (t + dt) % 6.2832
         local a = 0.6 + 0.4 * math.sin(t * 2)
-        for _, b in pairs(buttons) do
+        for _, b in ipairs(newList) do
             if b.isNew then b.glow:SetAlpha(a) end
         end
     end)
@@ -929,7 +954,8 @@ end
 ---------------------------------------------------------------------------
 
 local ev = CreateFrame("Frame")
-ev:SetScript("OnEvent", function(_, event)
+local closedQueued = false
+ev:SetScript("OnEvent", function(_, event, a1, a2)
     if ns.ModuleOff("sacs", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
@@ -950,9 +976,32 @@ ev:SetScript("OnEvent", function(_, event)
         apply()
     elseif not db then
         return
-    elseif event == "BAG_UPDATE_DELAYED" or event == "ITEM_LOCK_CHANGED" or event == "BAG_UPDATE_COOLDOWN"
-        or event == "PLAYER_MONEY" then
-        if event == "BAG_UPDATE_DELAYED" then layout() else updateAll() end
+    elseif event == "BAG_UPDATE_DELAYED" then
+        if frame and frame:IsShown() then
+            layout()
+        elseif not closedQueued then
+            -- sac ferme : une disposition par rafale (butin, achats), toutes
+            -- les 2 s au plus, hors combat. Elle cree les boutons securises
+            -- des nouvelles cases : un sac ouvert en combat doit les avoir.
+            closedQueued = true
+            C_Timer.After(2, function()
+                closedQueued = false
+                if frame and not frame:IsShown() and not InCombatLockdown() then layout() end
+            end)
+        end
+    elseif event == "ITEM_LOCK_CHANGED" then
+        -- une case : seulement elle (sans case : tout le sac)
+        if not (frame and frame:IsShown()) then return end
+        local b = (type(a1) == "number" and type(a2) == "number") and buttons[a1 .. ":" .. a2]
+        if b then
+            if b:IsShown() then updateButton(b, currentQuery()) end
+        elseif a2 == nil then
+            updateAll()
+        end
+    elseif event == "BAG_UPDATE_COOLDOWN" then
+        updateCooldowns()
+    elseif event == "PLAYER_MONEY" then
+        if frame and frame:IsShown() then moneyText:SetText(ns.FormatMoney(GetMoney())) end
     elseif event == "UPDATE_BINDINGS" then
         if not InCombatLockdown() then applyBindings() end
     elseif event == "PLAYER_REGEN_ENABLED" then

@@ -820,9 +820,12 @@ local function buildScroll(cf, panel)
     bar.thumb:SetScript("OnMouseDown", function(self) self.drag = true end)
     bar.thumb:SetScript("OnMouseUp", function(self) self.drag = false end)
     bar.thumb:SetScript("OnUpdate", function(self)
-        local over = self:IsMouseOver() or self.drag
-        if over then self.tex:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
-        else self.tex:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.9) end
+        local over = (self:IsMouseOver() or self.drag) and true or false
+        if over ~= self.hot then
+            self.hot = over
+            if over then self.tex:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
+            else self.tex:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.9) end
+        end
         if not self.drag then return end
         if not IsMouseButtonDown("LeftButton") then self.drag = false return end
         local maxRange = cf:GetMaxScrollRange() or 0
@@ -1048,9 +1051,17 @@ local function refresh()
         if s.scroll and cf:IsVisible() then pcall(updateScroll, cf, s.scroll) end
         if s.panel then
             pcall(place, s, cf)
-            s.panel:SetBackdropColor(C.bg[1], C.bg[2], C.bg[3], db.alpha)
-            -- bord du haut : suit la couleur d accent du theme
-            s.panel.accent:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.9)
+            -- fond et bord du haut (accent du theme) : seulement s ils changent
+            local p = s.painted
+            if not p or p[1] ~= C.bg[1] or p[2] ~= C.bg[2] or p[3] ~= C.bg[3] or p[4] ~= db.alpha
+                or p[5] ~= C.violet[1] or p[6] ~= C.violet[2] or p[7] ~= C.violet[3] then
+                p = p or {}
+                s.painted = p
+                p[1], p[2], p[3], p[4] = C.bg[1], C.bg[2], C.bg[3], db.alpha
+                p[5], p[6], p[7] = C.violet[1], C.violet[2], C.violet[3]
+                s.panel:SetBackdropColor(C.bg[1], C.bg[2], C.bg[3], db.alpha)
+                s.panel.accent:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.9)
+            end
         end
         local look = s.tabLook
         if look then
@@ -1712,6 +1723,9 @@ unreadEv:SetScript("OnEvent", function(_, event, _, sender)
     onChatMessage(event, sender)
 end)
 for _, e in ipairs(UNREAD_EVENTS) do pcall(unreadEv.RegisterEvent, unreadEv, e) end
+
+-- reglages ou theme changes : couleurs des fenetres reposees
+ns.Listen(function() for _, sk in pairs(skinned) do sk.painted = nil end end)
 
 local since, tick = 0, 0
 local lastSelected

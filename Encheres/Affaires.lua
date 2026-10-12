@@ -161,11 +161,16 @@ local function finish()
     AH.Refresh("deals")
 end
 
+-- au plus SLICE objets par image, et au plus BUDGET_MS millisecondes
+local BUDGET_MS = 4
 local function stepSearch()
     if not job then return end
     local o = opts()
     if not o then job = nil return end
+    local clock = debugprofilestop
+    local t0 = clock and clock()
     for _ = 1, SLICE do
+        if t0 and clock() - t0 > BUDGET_MS then return end
         local id = ns.AHNextItem(job.prev)
         if id == nil then finish() return end
         job.prev = id

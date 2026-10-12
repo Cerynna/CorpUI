@@ -1066,9 +1066,13 @@ ev:SetScript("OnEvent", function(_, event)
     end
 end)
 for _, e in ipairs({ "PLAYER_LOGIN", "QUEST_LOG_UPDATE", "QUEST_WATCH_LIST_CHANGED", "QUEST_WATCH_UPDATE",
-                     "UNIT_QUEST_LOG_CHANGED", "QUEST_ACCEPTED", "QUEST_REMOVED", "QUEST_TURNED_IN",
+                     "QUEST_ACCEPTED", "QUEST_REMOVED", "QUEST_TURNED_IN",
                      "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED" }) do
     pcall(ev.RegisterEvent, ev, e)
+end
+-- journal des membres du groupe : pas le notre
+if not pcall(ev.RegisterUnitEvent, ev, "UNIT_QUEST_LOG_CHANGED", "player") then
+    pcall(ev.RegisterEvent, ev, "UNIT_QUEST_LOG_CHANGED")
 end
 
 ns.RegisterModule({
