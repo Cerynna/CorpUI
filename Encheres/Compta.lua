@@ -374,13 +374,20 @@ function AH.LedgerTop(since, n)
 end
 
 -- derniere vente d un objet (par son nom) : prix unitaire brut, horodatage
+-- index nom -> derniere vente, refait quand le registre change (infobulles :
+-- avant, tout le registre parcouru dix fois par seconde)
+local saleIdx, saleIdxOf, saleIdxN = {}, nil, -1
 function AH.LastSale(name)
     local r = ledger()
     if not (r and name) then return nil end
-    for i = #r.tx, 1, -1 do
-        local tx = r.tx[i]
-        if tx.k == "sale" and tx.item == name then return (tx.p or 0) / math.max(1, tx.q or 1), tx.t end
+    if saleIdxOf ~= r.tx or saleIdxN ~= #r.tx then
+        saleIdx, saleIdxOf, saleIdxN = {}, r.tx, #r.tx
+        for _, tx in ipairs(r.tx) do
+            if tx.k == "sale" and tx.item then saleIdx[tx.item] = tx end
+        end
     end
+    local tx = saleIdx[name]
+    if tx then return (tx.p or 0) / math.max(1, tx.q or 1), tx.t end
 end
 
 ---------------------------------------------------------------------------

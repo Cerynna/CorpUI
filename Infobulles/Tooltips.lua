@@ -53,14 +53,31 @@ local function safe(fn, ...)
     return a, (not issecret(b)) and b or nil, (not issecret(c)) and c or nil
 end
 
+-- NineSlice et barre de vie : cherches une fois par infobulle
+local nsOf, sbOf = {}, {}
+local function getNineSlice(t) return t.NineSlice end
+local function getStatusBar(t) return t.StatusBar end
+
 local function nineSlice(tip)
-    local ok, n = pcall(function() return tip.NineSlice end)
-    if ok and type(n) == "table" and n.SetAlpha then return n end
+    local n = nsOf[tip]
+    if n then return n end
+    local ok
+    ok, n = pcall(getNineSlice, tip)
+    if ok and type(n) == "table" and n.SetAlpha then
+        nsOf[tip] = n
+        return n
+    end
 end
 
 local function statusBar(tip)
-    local ok, sb = pcall(function() return tip.StatusBar end)
-    if ok and type(sb) == "table" and sb.SetStatusBarTexture then return sb end
+    local sb = sbOf[tip]
+    if sb then return sb end
+    local ok
+    ok, sb = pcall(getStatusBar, tip)
+    if ok and type(sb) == "table" and sb.SetStatusBarTexture then
+        sbOf[tip] = sb
+        return sb
+    end
 end
 
 -- hauteur de la barre de vie et taille de son texte
@@ -123,10 +140,8 @@ local function borderColor(tip)
         if ok and type(link) == "string" then
             local info = (C_Item and C_Item.GetItemInfo) or GetItemInfo
             local color = (C_Item and C_Item.GetItemQualityColor) or GetItemQualityColor
-            local okQ, q = pcall(function()
-                local _, _, quality = info(link)
-                return quality
-            end)
+            local okQ, _, _, q = pcall(info, link)
+            if issecret(q) then q = nil end
             if okQ and q and q >= 2 and color then
                 local okC, r, g, b = pcall(color, q)
                 if okC and r then return r, g, b end
@@ -366,6 +381,8 @@ local function idLine(tip, out)
     end
 end
 
+local EMPTY = {}
+
 local function extraLines(tip)
     local out = {}
     local unit = tipUnit(tip)
@@ -380,6 +397,8 @@ local function extraLines(tip)
         if ok and type(l) == "string" and not issecret(l) then link = l end
     end
     if link then
+        -- (les fournisseurs de prix gardent leurs propres reponses : pile,
+        -- sacs et minute compris)
         itemLines(tip, link, out)
         for _, fn in ipairs(ns.tipItemProviders) do pcall(fn, tip, link, out) end
     elseif db.showIds then
@@ -401,40 +420,46 @@ local function getStrip(tip)
     return s
 end
 
-local function updateStrip(tip)
-    local lines = (tip:IsShown() and extraLines(tip)) or {}
+local function updateStrip(tip, r, g, b)
+    local lines = (tip:IsShown() and extraLines(tip)) or EMPTY
     local s = strips[tip]
     if #lines == 0 then
-        if s then s:Hide() end
+        if s then s:Hide() s.lastText = nil end
         return
     end
     s = getStrip(tip)
     -- tailles lues avec prudence : elles peuvent etre secretes sur ce client
     local w = safe(tip.GetWidth, tip)
     if type(w) ~= "number" then w = 160 end
-    s.text:SetWidth(math.max(60, w - 12))
-    s.text:SetText(table.concat(lines, "\n"))
-    local th = s.text:GetStringHeight()
-    local h = ((type(th) == "number" and th > 0) and th or (#lines * 14)) + 8
-    s:SetHeight(h)
+    local text = table.concat(lines, "\n")
     -- sous la barre de vie si elle est la, au-dessus si on sortirait de l ecran
     local gap = 2
     local sb = statusBar(tip)
     if sb and sb:IsShown() then gap = gap + (db.barHeight or 6) + 2 end
-    s:ClearAllPoints()
     local bottom = safe(tip.GetBottom, tip)
-    if type(bottom) == "number" and bottom - gap - h < 0 then
-        s:SetPoint("BOTTOMLEFT", tip, "TOPLEFT", 0, 2)
-        s:SetPoint("BOTTOMRIGHT", tip, "TOPRIGHT", 0, 2)
-    else
-        s:SetPoint("TOPLEFT", tip, "BOTTOMLEFT", 0, -gap)
-        s:SetPoint("TOPRIGHT", tip, "BOTTOMRIGHT", 0, -gap)
+    if text ~= s.lastText or w ~= s.lastW then
+        s.lastText, s.lastW = text, w
+        s.text:SetWidth(math.max(60, w - 12))
+        s.text:SetText(text)
+        local th = s.text:GetStringHeight()
+        s.h = ((type(th) == "number" and th > 0) and th or (#lines * 14)) + 8
+        s:SetHeight(s.h)
+        s.place = nil
     end
-    local bg = skinned[tip]
-    if bg then
-        local r, g, b = borderColor(tip)
-        s:SetBackdropBorderColor(r, g, b, 1)
+    local up = type(bottom) == "number" and bottom - gap - s.h < 0
+    local place = (up and "up" or "down") .. gap
+    if s.place ~= place then
+        s.place = place
+        s:ClearAllPoints()
+        if up then
+            s:SetPoint("BOTTOMLEFT", tip, "TOPLEFT", 0, 2)
+            s:SetPoint("BOTTOMRIGHT", tip, "TOPRIGHT", 0, 2)
+        else
+            s:SetPoint("TOPLEFT", tip, "BOTTOMLEFT", 0, -gap)
+            s:SetPoint("TOPRIGHT", tip, "BOTTOMRIGHT", 0, -gap)
+        end
     end
+    if r then s:SetBackdropBorderColor(r, g, b, 1) end
     s:Show()
 end
 
@@ -491,6 +516,17 @@ end
 
 local ev = CreateFrame("Frame")
 local since, sinceExtra = 0, 0
+local COMPARE_TIPS = { "ShoppingTooltip1", "ShoppingTooltip2", "CorpUICompareTooltip1", "CorpUICompareTooltip2" }
+local lit = {}           -- infobulle -> couleur du bord posee depuis son affichage
+local tipColor = {}      -- infobulle -> { r, g, b } (repris par le bandeau)
+local function paintBorder(tip, bg)
+    local r, g, b = borderColor(tip)
+    local c = tipColor[tip]
+    if not c then c = {} tipColor[tip] = c end
+    c[1], c[2], c[3] = r, g, b
+    bg:SetBackdropBorderColor(r, g, b, 1)
+    lit[tip] = true
+end
 ev:SetScript("OnUpdate", function(_, dt)
     if not db then return end
     since = since + dt
@@ -499,13 +535,17 @@ ev:SetScript("OnUpdate", function(_, dt)
         since = 0
         if db.enabled then scan() end
     end
+    local tenth = sinceExtra >= 0.1
     if db.enabled then
+        -- fond de Blizzard cache a chaque image ; bord a l affichage, puis
+        -- dix fois par seconde (le contenu change sans que l infobulle se cache)
         for tip, bg in pairs(skinned) do
             if tip:IsShown() then
                 local n = nineSlice(tip)
                 if n and n:GetAlpha() > 0 then n:SetAlpha(0) end
-                local r, g, b = borderColor(tip)
-                bg:SetBackdropBorderColor(r, g, b, 1)
+                if tenth or not lit[tip] then paintBorder(tip, bg) end
+            elseif lit[tip] then
+                lit[tip] = nil
             end
         end
     end
@@ -514,18 +554,19 @@ ev:SetScript("OnUpdate", function(_, dt)
     if type(gt) == "table" and gt.IsShown then
         if gt:IsShown() then place(gt) else ours[gt] = nil end
         combatHide(gt, true)
-        for _, name in ipairs({ "ShoppingTooltip1", "ShoppingTooltip2", "CorpUICompareTooltip1", "CorpUICompareTooltip2" }) do
+        for _, name in ipairs(COMPARE_TIPS) do
             local t = _G[name]
             if type(t) == "table" and t.SetAlpha then combatHide(t, false) end
         end
     end
     -- bandeau et texte de la barre : dix fois par seconde
-    if sinceExtra >= 0.1 then
+    if tenth then
         sinceExtra = 0
         for _, name in ipairs(EXTRA_TIPS) do
             local tip = _G[name]
             if type(tip) == "table" and tip.IsShown then
-                local ok = pcall(updateStrip, tip)
+                local c = skinned[tip] and tipColor[tip]
+                local ok = pcall(updateStrip, tip, c and c[1], c and c[2], c and c[3])
                 if not ok and strips[tip] then strips[tip]:Hide() end
                 pcall(updateBarText, tip)
             end

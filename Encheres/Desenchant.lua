@@ -111,7 +111,18 @@ end
 
 -- valeur moyenne (cuivre) d apres la valeur marche des composants ;
 -- second resultat : nombre de composants sans prix (valeur alors partielle)
+local deCache, deCacheVer = {}, nil
 function AH.DEValue(item)
+    local ver = ns.AHDataVersion and ns.AHDataVersion()
+    if ver ~= deCacheVer then deCache, deCacheVer = {}, ver end
+    local c = deCache[item]
+    if c then return c[1], c[2] end
+    local total, missing = AH.DEValueRaw(item)
+    deCache[item] = { total, missing }
+    return total, missing
+end
+
+function AH.DEValueRaw(item)
     local parts = AH.DEParts(item)
     if not parts then return nil end
     local total, missing = 0, 0

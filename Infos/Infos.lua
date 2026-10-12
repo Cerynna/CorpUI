@@ -152,6 +152,25 @@ local VALUE = {
     end,
 }
 
+-- valeurs lentes : relues sur leurs evenements (et toutes les 10 s par
+-- securite) ; les autres a chaque passage
+local SLOW = { gold = true, bags = true, dur = true, friends = true, guild = true }
+local SLOW_EVENTS = {
+    PLAYER_MONEY = "gold", BAG_UPDATE_DELAYED = "bags", UPDATE_INVENTORY_DURABILITY = "dur",
+    PLAYER_EQUIPMENT_CHANGED = "dur", FRIENDLIST_UPDATE = "friends", BN_FRIEND_INFO_CHANGED = "friends",
+    GUILD_ROSTER_UPDATE = "guild", PLAYER_GUILD_UPDATE = "guild",
+}
+local slowVal, slowAt = {}, {}
+local function valueOf(key)
+    if not SLOW[key] then return pcall(VALUE[key]) end
+    local now = GetTime()
+    local v = slowVal[key]
+    if v ~= nil and now - slowAt[key] < 10 and now >= slowAt[key] then return true, v end
+    local ok, txt = pcall(VALUE[key])
+    if ok then slowVal[key], slowAt[key] = txt, now end
+    return ok, txt
+end
+
 ---------------------------------------------------------------------------
 -- Or de la session
 ---------------------------------------------------------------------------
@@ -609,13 +628,31 @@ end
 local function refresh(B)
     local c, bar = B.conf, B.frame
     if not c or not bar:IsShown() then syncHot(B) return end
-    -- textes visibles, dans l ordre choisi
+    -- textes visibles, dans l ordre choisi ; rien a replacer s ils n ont pas
+    -- change (B.sig oublie par apply et followChat : reglages, place)
+    local vals, nv = B.vals or {}, 0
+    B.vals = vals
+    for _, key in ipairs(c.order) do
+        if c.items[key] then
+            local ok, txt = valueOf(key)
+            nv = nv + 1
+            vals[nv] = key .. "=" .. tostring(ok and txt or "?")
+        end
+    end
+    for i = nv + 1, #vals do vals[i] = nil end
+    local sig = table.concat(vals, "\1")
+    if sig == B.sig then
+        syncHot(B)
+        if tipOwner and tipOwner.cuiBar == B and tipOwner:IsShown() and tipOwner:IsMouseOver() then showTip(tipOwner, true) end
+        return
+    end
+    B.sig = sig
     local shown, keys, total = {}, {}, 0
     for k in pairs(B.spots) do B.spots[k] = nil end
     for _, key in ipairs(c.order) do
         local fs = B.texts[key]
         if c.items[key] then
-            local ok, txt = pcall(VALUE[key])
+            local ok, txt = valueOf(key)
             fs:SetText(ok and txt or "?")
             fs:Show()
             table.insert(shown, fs)
@@ -683,6 +720,7 @@ local function followChat(B)
     p.point, p.x, p.y = "BOTTOMLEFT", x, y
     c.width = w
     ns.ApplyPos(B.frame, p)
+    B.sig = nil
     refresh(B)
 end
 
@@ -716,6 +754,7 @@ local function apply(B)
         end
     end
     if not c.mouseover then bar:SetAlpha(1) end
+    B.sig = nil
     refresh(B)
 end
 
@@ -981,6 +1020,8 @@ end
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event)
     if ns.ModuleOff("infos", ev) then return end
+    local slow = SLOW_EVENTS[event]
+    if slow then slowVal[slow] = nil end
     if event == "PLAYER_MONEY" then trackMoney() return end
     if event == "PLAYER_REGEN_ENABLED" then
         if hotPending and db then syncAllHot() end
@@ -1001,24 +1042,32 @@ ev:SetScript("OnEvent", function(_, event)
     for i = 2, count() do normalize(db.extra[i - 1], i) end
     trackMoney()
     for i = 1, count() do bind(i) end
+    C_Timer.After(3, function() if ns._infoAskRoster then ns._infoAskRoster() end end)
 end)
 pcall(ev.RegisterEvent, ev, "PLAYER_LOGIN")
-pcall(ev.RegisterEvent, ev, "PLAYER_MONEY")
+for e in pairs(SLOW_EVENTS) do pcall(ev.RegisterEvent, ev, e) end
 
 -- liste de guilde : le serveur ne l envoie que sur demande (a la connexion,
 -- puis toutes les 60 s ; le client limite lui-meme la frequence)
+-- (seulement si une barre affiche la guilde ; son infobulle la demande
+-- elle-meme au survol)
 do
-    local roster = CreateFrame("Frame")
-    local wait = 3
-    roster:SetScript("OnUpdate", function(_, dt)
-        wait = wait - dt
-        if wait > 0 then return end
-        wait = 60
-        if IsInGuild and IsInGuild() then
+    local function guildShown()
+        if not db then return false end
+        for i = 1, count() do
+            local c = confOf(i)
+            if c and c.enabled and type(c.items) == "table" and c.items.guild then return true end
+        end
+        return false
+    end
+    local function askRoster()
+        if guildShown() and IsInGuild and IsInGuild() then
             local fn = (C_GuildInfo and C_GuildInfo.GuildRoster) or GuildRoster
             if fn then pcall(fn) end
         end
-    end)
+    end
+    ns.Every(60, askRoster, "Infos : liste de guilde")
+    ns._infoAskRoster = askRoster
 end
 pcall(ev.RegisterEvent, ev, "PLAYER_REGEN_ENABLED")
 

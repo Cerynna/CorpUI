@@ -1317,14 +1317,37 @@ local OOC_ALPHA = 0.3
 
 -- fondu des barres "visibles au survol" (et pendant qu on tient un sort) ;
 -- "estompees hors combat" : pleines en combat ou au survol, sinon pales
+-- (seules les barres en fondu sont suivies : liste refaite chaque seconde
+-- et a chaque changement general ; rien a faire sans barre en fondu)
 local fader = CreateFrame("Frame")
-fader:SetScript("OnUpdate", function(_, dt)
-    local fighting
+local fading, fadeCheck = {}, 0
+local function rebuildFading()
+    for i = #fading, 1, -1 do fading[i] = nil end
     for _, e in ipairs(ns.ButtonBars) do
+        local c = e.conf()
+        if c and (c.mouseover or c.oocFade) then fading[#fading + 1] = e end
+    end
+end
+ns.FaderRebuild = function() fadeCheck = 0 end
+fader:SetScript("OnUpdate", function(_, dt)
+    fadeCheck = fadeCheck - dt
+    if fadeCheck <= 0 then
+        fadeCheck = 1
+        rebuildFading()
+    end
+    if #fading == 0 then return end
+    local fighting, cursor
+    for _, e in ipairs(fading) do
         local h = e.frame
         local c = e.conf()
         if c and (c.mouseover or c.oocFade) and h:IsShown() then
-            local active = h:IsMouseOver() or GetCursorInfo() or ns.moversShown or ns.quickBinding
+            local active = h:IsMouseOver()
+            if not active then
+                -- objet tenu (sort, objet...) : lu une fois par image
+                if cursor == nil then cursor = GetCursorInfo() and true or false end
+                active = cursor
+            end
+            active = active or ns.moversShown or ns.quickBinding
             local want
             if c.mouseover then
                 want = active and c.alpha or 0
@@ -2319,6 +2342,9 @@ function ns.Changed(topic)
     changePending = true
     C_Timer.After(0, fireChanged)
 end
+
+-- reglages changes : liste des barres en fondu refaite (Core, plus haut)
+ns.Listen(function() if ns.FaderRebuild then ns.FaderRebuild() end end)
 
 ---------------------------------------------------------------------------
 -- Apercu des cadres pendant leur reglage : tant qu un panneau inscrit

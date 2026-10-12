@@ -62,17 +62,17 @@ Chaque point coché est fait, testé hors jeu (bancs d'essai : tous les bancs do
 
 ## Lot 2 — Infobulles et barre d'infos (actives en permanence)
 
-- [ ] **Infobulles.**
-  - Plus de table créée à chaque image.
+- [x] **Infobulles.**
+  - Plus de table ni de fermeture créées à chaque image.
   - NineSlice et barre de vie mises en cache.
-  - Couleur du bord et bandeau recalculés seulement quand le contenu change.
-  - Prix de l'HV et de désenchantement mémorisés par objet.
-- [ ] **Barre d'infos.**
-  - Or, sacs, durabilité, amis et guilde sur leurs événements.
+  - Couleur du bord : à l'affichage, puis 10 fois par seconde au lieu de chaque image ; le bandeau reprend cette couleur et n'est remis en page que si son texte ou sa place change.
+  - Valeur de désenchantement mémorisée par objet (jusqu'au prochain relevé de l'HV) ; dernière vente lue dans un index au lieu de parcourir tout le registre.
+- [x] **Barre d'infos.**
+  - Or, sacs, durabilité, amis et guilde sur leurs événements (et toutes les 10 s par sécurité).
   - Relevé périodique seulement pour fps, latence, heure et coordonnées.
   - Mise en page seulement si un texte change.
   - Relevé de la guilde seulement si elle est affichée.
-- [ ] **Fondu des barres** (Core). Seules les barres en fondu sont suivies, avec `GetCursorInfo` une fois par image, et le pilote est arrêté quand aucune ne l'est.
+- [x] **Fondu des barres** (Core). Seules les barres en fondu sont suivies, avec `GetCursorInfo` une fois par image, et le pilote est arrêté quand aucune ne l'est.
 
 ## Lot 3 — Pilotes permanents (fenêtres fermées, modules coupés)
 

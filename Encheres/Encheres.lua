@@ -68,6 +68,7 @@ local opts        -- db.opts
 local realmKey    -- "Royaume-Faction"
 local cache = {}  -- itemID -> enregistrement decode (false : inconnu)
 local version = 0 -- change a chaque mise a jour (caches des infobulles)
+function ns.AHDataVersion() return version end
 local listeners = {}
 local scan = { state = "idle" }   -- idle, wait, settle, read
 local bar
