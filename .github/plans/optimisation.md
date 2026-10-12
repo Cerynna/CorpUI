@@ -140,10 +140,23 @@ Chaque point coché est fait, testé hors jeu (bancs d'essai : tous les bancs do
 
 ## Ce qui reste à faire en jeu
 
-Pour chaque lot : `/reload`, `/corp perf` après quelques minutes de jeu (en ville, en combat, en groupe), et vérifier que rien n'a changé à l'écran.
+Tout le plan est fait et vérifié hors jeu (bancs d'essai : mêmes résultats qu'avant, sauf les changements voulus ci-dessous). Rien n'a encore été vu en jeu. La branche n'est pas fusionnée dans main.
 
-Points à regarder en particulier :
-- le conteneur d'auras de la cible suit bien seul ses changements ;
-- la couleur « tapé » des plaques ;
-- le fondu des barres ;
-- les fenêtres habillées à l'ouverture.
+**Mesurer :** `/reload`, quelques minutes en ville, en combat et en groupe, puis `/corp perf`. Comparer avec main si besoin (`/corp perf reset` remet les compteurs à zéro).
+
+**À regarder en particulier :**
+- auras de la cible : elles suivent seules leurs changements (le conteneur du jeu n'est plus rafraîchi à chaque aura) ;
+- plaques : couleur « tapé », barres de sort, interruption prête, disposition après un changement de réglage ;
+- barres d'action : recharges, couleur utilisable / mana, portée, après un changement de page, de forme ou de familier, et une barre cachée qui réapparaît (combat, véhicule) ;
+- fondu des barres « au survol » et « estompées hors combat » ;
+- cadres de groupe et de raid : vie, mana, morts, aggro, dissipation, portée, et le déplacement d'un joueur d'un sous-groupe à l'autre ;
+- fenêtres habillées à l'ouverture (fiche, grimoire, talents, HV, courrier, marchand, métiers...) ;
+- sacs : verrou d'un objet, recharges, or, première ouverture en combat ;
+- barre d'infos : or, sacs, durabilité à jour ; liste de guilde ;
+- infobulles : bord coloré, bandeau d'infos, prix de l'HV ;
+- entraîneur : les filtres de la fenêtre restent comme avant après l'ouverture.
+
+**Changements voulus (pas des régressions) :**
+- historique des prix de l'HV : 14 jours gardés (ou la durée de la moyenne si elle est plus longue) au lieu de 30 ;
+- erreurs en avalanche : la même erreur dans la seconde est seulement comptée (le journal du jeu ne la réécrit pas) ;
+- comptabilité : les ventes en double sont fusionnées à la première connexion (le bénéfice affiché baisse d'autant).

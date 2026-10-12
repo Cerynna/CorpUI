@@ -1173,22 +1173,22 @@ ev:SetScript("OnEvent", function(_, event, unit)
         end
         local b = buttons[unit]
         if b and b:IsVisible() then
-                if event == "UNIT_AURA" then
-                    updateAuras(b, unit)
-                elseif event == "UNIT_HEAL_PREDICTION" then
-                    updateHeal(b, unit)
-                elseif event == "UNIT_THREAT_SITUATION_UPDATE" then
-                    updateAggro(b, unit)
-                elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_MAXPOWER" or event == "UNIT_DISPLAYPOWER" then
-                    updatePower(b, unit)
-                elseif event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" or event == "UNIT_FLAGS" then
-                    -- mort / resurrection : surbrillance et aggro suivent
-                    local was = b.down
-                    updateHealth(b, unit)
-                    if was ~= b.down then updateHealer(b, unit) elseif event ~= "UNIT_FLAGS" then updateHeal(b, unit) end
-                else
-                    update(b)
-                end
+            if event == "UNIT_AURA" then
+                updateAuras(b, unit)
+            elseif event == "UNIT_HEAL_PREDICTION" then
+                updateHeal(b, unit)
+            elseif event == "UNIT_THREAT_SITUATION_UPDATE" then
+                updateAggro(b, unit)
+            elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_MAXPOWER" or event == "UNIT_DISPLAYPOWER" then
+                updatePower(b, unit)
+            elseif event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" or event == "UNIT_FLAGS" then
+                -- mort / resurrection : surbrillance et aggro suivent
+                local was = b.down
+                updateHealth(b, unit)
+                if was ~= b.down then updateHealer(b, unit) elseif event ~= "UNIT_FLAGS" then updateHeal(b, unit) end
+            else
+                update(b)
+            end
         end
     end
 end)
