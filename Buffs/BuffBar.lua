@@ -1060,7 +1060,7 @@ ns.Listen(function()
     if not bar then return end
     layout(true)
     render()
-end)
+end, "buffs")
 
 function ns.Tick()
     if not bar then return end

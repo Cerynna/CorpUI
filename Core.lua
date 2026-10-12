@@ -2277,20 +2277,47 @@ function ns.PerfReport(reset)
 end
 
 ns.inits = {}      -- lances a PLAYER_LOGIN (creation des cadres)
+-- ns.Changed() reveille tous les modules (reglages, apercu, deverrouillage) ;
+-- ns.Changed(sujet) seulement ceux inscrits sur ce sujet (ns.Listen(fn,
+-- sujet) : ils recoivent aussi les changements generaux). Une passe par
+-- image dans les deux cas.
 local listeners = {}
-function ns.Listen(fn) table.insert(listeners, fn) end
+local topicListeners = {}
+function ns.Listen(fn, topic)
+    table.insert(listeners, fn)
+    if topic then
+        topicListeners[topic] = topicListeners[topic] or {}
+        table.insert(topicListeners[topic], fn)
+    end
+end
 
-local changePending = false
-function ns.Changed()
+local changePending, pendingAll, pendingTopics = false, false, {}
+local function call(fn)
+    local ok, err = pcall(fn)
+    if not ok then geterrorhandler()(err) end
+end
+local function fireChanged()
+    changePending = false
+    local all, topics = pendingAll, {}
+    pendingAll = false
+    for t in pairs(pendingTopics) do topics[#topics + 1] = t end
+    for _, t in ipairs(topics) do pendingTopics[t] = nil end
+    if all then
+        for _, fn in ipairs(listeners) do call(fn) end
+        return
+    end
+    local done = {}
+    for _, t in ipairs(topics) do
+        for _, fn in ipairs(topicListeners[t] or {}) do
+            if not done[fn] then done[fn] = true call(fn) end
+        end
+    end
+end
+function ns.Changed(topic)
+    if topic then pendingTopics[topic] = true else pendingAll = true end
     if changePending then return end
     changePending = true
-    C_Timer.After(0, function()
-        changePending = false
-        for _, fn in ipairs(listeners) do
-            local ok, err = pcall(fn)
-            if not ok then geterrorhandler()(err) end
-        end
-    end)
+    C_Timer.After(0, fireChanged)
 end
 
 ---------------------------------------------------------------------------

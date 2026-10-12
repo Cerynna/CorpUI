@@ -291,6 +291,7 @@ end
 ns.roster = {}         -- { unit, name, class, group, key }
 ns.byClass = {}        -- classe -> membres
 ns.byGroup = {}        -- groupe (1..8) -> membres
+ns.byUnit = {}         -- unite -> membre (UNIT_AURA)
 ns.groupCasters = {}   -- classe fournisseur -> { nom = unite }
 ns.casters = {}        -- nom -> infos annoncees (voir scanSelf)
 
@@ -305,6 +306,7 @@ local function addMember(unit, group)
     if not class or not ns.CLASS_INDEX[class] then return end
     local m = { unit = unit, name = name, class = class, group = group or 1, key = name }
     table.insert(ns.roster, m)
+    ns.byUnit[unit] = m
     ns.byClass[class] = ns.byClass[class] or {}
     table.insert(ns.byClass[class], m)
     ns.byGroup[m.group] = ns.byGroup[m.group] or {}
@@ -317,6 +319,7 @@ end
 
 function ns.BuildRoster()
     wipe(ns.roster)
+    wipe(ns.byUnit)
     wipe(ns.byClass)
     wipe(ns.byGroup)
     wipe(ns.groupCasters)
@@ -656,7 +659,7 @@ function handlers.SELF(sender, ver, class, free, rf, rez, bl, au)
         if ns.AURA_BY_KEY[key] then p.auras[key] = tonumber(rank) or 1 end
     end
     ns.casters[sender] = p
-    ns.Changed()
+    ns.Changed("buffs")
 end
 
 function handlers.ALL(sender, caster, aura, cls, grp)
@@ -674,34 +677,34 @@ function handlers.ALL(sender, caster, aura, cls, grp)
     ns.db.assign[caster] = a
     ns.db.groups[caster] = g
     ns.db.aura[caster] = ns.AURA_BY_KEY[aura] and aura or nil
-    ns.Changed()
+    ns.Changed("buffs")
 end
 
 function handlers.ASG(sender, caster, class, key)
     if not caster or not ns.CLASS_INDEX[class] or not ns.CanEdit(sender, caster) then return end
     ns.db.assign[caster] = ns.db.assign[caster] or {}
     ns.db.assign[caster][class] = ns.BUFF_BY_KEY[key] and key or nil
-    ns.Changed()
+    ns.Changed("buffs")
 end
 
 function handlers.GRP(sender, caster, key, digits)
     if not caster or not ns.BUFF_BY_KEY[key] or not ns.CanEdit(sender, caster) then return end
     ns.db.groups[caster] = ns.db.groups[caster] or {}
     ns.db.groups[caster][key] = parseDigits(digits)
-    ns.Changed()
+    ns.Changed("buffs")
 end
 
 function handlers.AUR(sender, caster, akey)
     if not caster or not ns.CanEdit(sender, caster) then return end
     ns.db.aura[caster] = ns.AURA_BY_KEY[akey] and akey or nil
-    ns.Changed()
+    ns.Changed("buffs")
 end
 
 function handlers.IND(sender, caster, player, key)
     if not caster or not player or not ns.CanEdit(sender, caster) then return end
     ns.db.indiv[caster] = ns.db.indiv[caster] or {}
     ns.db.indiv[caster][player] = ns.BUFF_BY_KEY[key] and key or nil
-    ns.Changed()
+    ns.Changed("buffs")
 end
 
 function handlers.INDS(sender, caster, reset, list)
@@ -711,7 +714,7 @@ function handlers.INDS(sender, caster, reset, list)
         local player, key = strsplit("=", item)
         if player and ns.BUFF_BY_KEY[key] then ns.db.indiv[caster][player] = key end
     end
-    ns.Changed()
+    ns.Changed("buffs")
 end
 
 -- Resurrections en cours : cible -> { by = lanceur, t = debut }
@@ -720,7 +723,7 @@ ns.rezzing = {}
 function handlers.REZ(sender, target)
     if not target or target == "" then return end
     ns.rezzing[target] = { by = sender, t = GetTime() }
-    ns.Changed()
+    ns.Changed("buffs")
 end
 
 -- Rez en cours sur ce joueur ? Renvoie le nom de celui qui le releve.
@@ -740,7 +743,7 @@ function handlers.CLR(sender)
     wipe(ns.db.groups)
     wipe(ns.db.aura)
     wipe(ns.db.indiv)
-    ns.Changed()
+    ns.Changed("buffs")
 end
 
 local function onAddonMessage(prefix, text, _, sender)
@@ -1105,6 +1108,7 @@ local function scanMember(m)
         end
     end)
     if ok then ns.buffs[m.key] = found end
+    return ok
 end
 
 function ns.ScanBuffs()
@@ -1112,11 +1116,16 @@ function ns.ScanBuffs()
     for _, m in ipairs(ns.roster) do scanMember(m) end
 end
 
+-- unites dont les auras sont illisibles (secretes) pendant ce combat :
+-- plus relues jusqu a la fin du combat (un releve complet y est prevu)
+local secretInCombat = {}
 function ns.ScanUnit(unit)
-    for _, m in ipairs(ns.roster) do
-        if m.unit == unit then scanMember(m) return end
-    end
+    if issecret(unit) or secretInCombat[unit] then return end
+    local m = ns.byUnit[unit]
+    if not m then return end
+    if not scanMember(m) and InCombatLockdown() then secretInCombat[unit] = true end
 end
+function ns.ResetSecretAuras() wipe(secretInCombat) end
 
 -- Ce que MOI je dois donner a ce membre : liste de
 -- { key, indiv = bool, via = "class"|"group"|nil }
@@ -1241,7 +1250,7 @@ events.CHARACTER_POINTS_CHANGED = skillsChanged
 events.PLAYER_TALENT_UPDATE = skillsChanged
 
 function events.BAG_UPDATE_DELAYED()
-    if updateReagents() then ns.Changed() end
+    if updateReagents() then ns.Changed("buffs") end
 end
 
 function events.UNIT_AURA(unit)
@@ -1277,12 +1286,13 @@ function events.UNIT_SPELLCAST_SENT(unit, target, _, spellID)
         local msg = string.format(L.REZ_MSG, rezName, target)
         if chan then pcall(SendChatMessage, msg, chan) else ns.Say(msg) end
     end
-    ns.Changed()
+    ns.Changed("buffs")
 end
 
 function events.PLAYER_REGEN_ENABLED()
     buffsDirty = true
-    ns.Changed()
+    ns.ResetSecretAuras()
+    ns.Changed("buffs")
 end
 
 ev:SetScript("OnEvent", function(_, event, ...)
@@ -1319,7 +1329,7 @@ ev:SetScript("OnUpdate", function(_, dt)
         ns.ScanBuffs()
         changed = true
     end
-    if changed then ns.Changed() end
+    if changed then ns.Changed("buffs") end
     if ns.Tick then ns.Tick() end
 end)
 

@@ -1035,7 +1035,9 @@ ev:SetScript("OnEvent", function(_, event, unit)
     elseif not db then
         return
     elseif event == "UNIT_AURA" then
-        if unit == "player" then updatePlayer() elseif unit == "target" then updateTarget() end
+        -- conteneur natif de la cible : le client le tient a jour seul (comme
+        -- ceux du joueur) ; il est relu au changement de cible
+        if unit == "player" then updatePlayer() elseif unit == "target" and not native then updateTarget() end
     elseif event == "UNIT_INVENTORY_CHANGED" or event == "PLAYER_EQUIPMENT_CHANGED" then
         updateEnchants()
     elseif event == "PLAYER_REGEN_ENABLED" then
@@ -1046,9 +1048,17 @@ ev:SetScript("OnEvent", function(_, event, unit)
         apply()
     end
 end)
-for _, e in ipairs({ "PLAYER_LOGIN", "UNIT_AURA", "PLAYER_TARGET_CHANGED", "PLAYER_ENTERING_WORLD",
-                     "UNIT_INVENTORY_CHANGED", "PLAYER_EQUIPMENT_CHANGED", "PLAYER_REGEN_ENABLED" }) do
+for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_TARGET_CHANGED", "PLAYER_ENTERING_WORLD",
+                     "PLAYER_EQUIPMENT_CHANGED", "PLAYER_REGEN_ENABLED" }) do
     pcall(ev.RegisterEvent, ev, e)
+end
+-- auras : le joueur et la cible seulement (pas les plaques ni le raid) ;
+-- enchantements d arme : le joueur
+if not pcall(ev.RegisterUnitEvent, ev, "UNIT_AURA", "player", "target") then
+    pcall(ev.RegisterEvent, ev, "UNIT_AURA")
+end
+if not pcall(ev.RegisterUnitEvent, ev, "UNIT_INVENTORY_CHANGED", "player") then
+    pcall(ev.RegisterEvent, ev, "UNIT_INVENTORY_CHANGED")
 end
 
 -- /corp auras diag : ce que le client rend pour les debuffs de la cible
@@ -1102,13 +1112,9 @@ function ns.AurasRefresh()
     if ns.GroupRefreshAuras then ns.GroupRefreshAuras() end
 end
 
-local elapsed = 0
-ev:SetScript("OnUpdate", function(_, dt)
-    elapsed = elapsed + dt
-    if elapsed < 1 or not db then return end
-    elapsed = 0
-    tickTimes()
-end)
+ns.Every(1, function()
+    if db then tickTimes() end
+end, "Auras : minuteurs")
 
 -- reglages : editeur des cadres (Cadres/Editeur.lua), cadres Joueur et Cible
 ns.RegisterModule({

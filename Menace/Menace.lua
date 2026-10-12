@@ -27,7 +27,6 @@ local TANK_ICON = "Interface\\GroupFrame\\UI-Group-MainTankIcon"
 
 local db
 local warnFrame
-local elapsed = 0
 local warned = false
 
 local function readable(v) return not issecret(v) and v ~= nil end
@@ -158,11 +157,13 @@ local function checkWarn()
         warned = false
         return
     end
-    local me
-    for _, e in ipairs((collect())) do if e.me then me = e end end
+    -- ma ligne seule (avant : tout le groupe releve 5 fois par seconde)
     local pct, tanking
-    if me and readable(me.scaled) then pct = me.scaled end
-    if me and readable(me.tanking) then tanking = me.tanking end
+    local okT, t, st, sc = pcall(UnitDetailedThreatSituation, "player", "target")
+    if okT and (issecret(st) or st ~= nil) then
+        if readable(sc) then pct = sc end
+        if readable(t) then tanking = t end
+    end
     -- etat lisible meme contre un boss
     local okS, status = pcall(UnitThreatSituation, "player", "target")
     status = okS and readable(status) and status or nil
@@ -239,15 +240,12 @@ ev:SetScript("OnEvent", function()
 end)
 pcall(ev.RegisterEvent, ev, "PLAYER_LOGIN")
 
--- alerte : 5 fois par seconde
-ev:SetScript("OnUpdate", function(_, dt)
+-- alerte : 5 fois par seconde (planificateur commun)
+ns.Every(0.2, function()
     if not db or not warnFrame then return end
-    elapsed = elapsed + dt
-    if elapsed < 0.2 then return end
-    elapsed = 0
     local ok, err = pcall(checkWarn)
     if not ok then
         hideWarn()
         geterrorhandler()(err)
     end
-end)
+end, "Menace : alerte")

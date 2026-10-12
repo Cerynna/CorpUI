@@ -1605,8 +1605,11 @@ ev:SetScript("OnEvent", function(_, event, a1, a2, a3)
             askBlocked = true
         end
     elseif event == "UNIT_CONNECTION" or event == "UNIT_FLAGS" then
-        -- tres frequent en raid : traite par la mise a jour suivante
-        raidDirty = true
+        -- tres frequent en raid (plaques comprises) : membres du groupe
+        -- seulement, suivi affiche seulement, traite par la mise a jour suivante
+        if raidDirty or not (raidFrame and raidFrame:IsVisible()) then return end
+        if issecret(a1) or type(a1) ~= "string" then return end
+        if a1 == "player" or a1:find("^raid%d") or a1:find("^party%d") then raidDirty = true end
     end
 end)
 for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "GROUP_ROSTER_UPDATE", "SPELL_UPDATE_COOLDOWN",

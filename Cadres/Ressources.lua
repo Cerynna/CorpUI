@@ -434,11 +434,13 @@ end
 -- etincelles, a chaque image
 local function updateSparks()
     local now = GetTime()
+    local shown = false
     -- energie
     if energySpark then
         local full = st.energyLast and st.energyMax and st.energyLast >= st.energyMax
         if db.energyTick and st.pt == ENERGY and st.energyTickAt and not full then
             setSpark(energySpark, ((now - st.energyTickAt) % TICK) / TICK)
+            shown = true
         else
             energySpark:Hide()
         end
@@ -452,19 +454,20 @@ local function updateSparks()
     end
     if manaSpark and manaSpark ~= target then manaSpark:Hide() end
     if druidSpark and druidSpark ~= target then druidSpark:Hide() end
-    if not target then return end
+    if not target then return shown end
     if db.fiveSec and st.fiveStart and now - st.fiveStart < FIVE then
         target.spark:SetVertexColor(1, 1, 1)
         setSpark(target, (now - st.fiveStart) / FIVE, 1)
-        return
+        return true
     end
     local full = st.manaLast and st.manaMax and st.manaLast >= st.manaMax
     if db.manaTicks and st.manaTickAt and not full then
         target.spark:SetVertexColor(0.6, 0.85, 1)
         setSpark(target, ((now - st.manaTickAt) % TICK) / TICK, 0.7)
-    else
-        target:Hide()
+        return true
     end
+    target:Hide()
+    return shown
 end
 
 local function updateAll()
@@ -539,7 +542,10 @@ end
 ---------------------------------------------------------------------------
 
 local ev = CreateFrame("Frame")
+local sparksIdle = false     -- rien a montrer : pilote au repos
+local frequentSeen = false   -- UNIT_POWER_FREQUENT recu : UPDATE ignore
 ev:SetScript("OnEvent", function(_, event, unit, arg2, arg3)
+    sparksIdle = false
     if ns.ModuleOff("cadres", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
@@ -571,13 +577,16 @@ ev:SetScript("OnEvent", function(_, event, unit, arg2, arg3)
     if not db or not combo then return end
     if event == "UNIT_POWER_FREQUENT" or event == "UNIT_POWER_UPDATE" then
         if unit ~= "player" then return end
+        -- les deux arrivent pour chaque variation : une seule suffit
+        if event == "UNIT_POWER_FREQUENT" then frequentSeen = true elseif frequentSeen then return end
         if arg2 == "ENERGY" then
             onEnergy()
         elseif arg2 == "MANA" then
             onMana()
             updateDruid()
         end
-        updateCombo()
+        -- points de combo : voleur et druide (felin) seulement
+        if arg2 == "COMBO_POINTS" or class == "ROGUE" or class == "DRUID" then updateCombo() end
     elseif event == "UNIT_MAXPOWER" then
         if unit ~= "player" then return end
         updateAll()
@@ -604,11 +613,13 @@ for _, e in ipairs({ "UNIT_POWER_FREQUENT", "UNIT_POWER_UPDATE", "UNIT_MAXPOWER"
 end
 
 ev:SetScript("OnUpdate", function()
-    if db and combo then updateSparks() end
+    if sparksIdle or not (db and combo) then return end
+    if not updateSparks() then sparksIdle = true end
 end)
 
 -- deverrouillage de l interface, profils, reglages des cadres
 ns.Listen(function()
     if not db then return end
+    sparksIdle = false
     apply()
 end)

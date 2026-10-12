@@ -178,6 +178,8 @@ local function setCooldown(b, action)
     end
 end
 
+local setRangeColor   -- plus bas : couleur du raccourci selon la portee
+
 -- Bouton du familier : icone, etat actif, auto-incantation, recharge
 local function updatePet(b)
     local i = b.petIndex
@@ -220,15 +222,29 @@ end
 
 local function updatePetRange(b)
     local ok, _, texture, _, _, _, _, _, checksRange, inRange = pcall(GetPetActionInfo, b.petIndex)
-    if ok and not issecret(texture) and texture and not issecret(checksRange) and not issecret(inRange)
-        and checksRange and inRange == false then
-        b.hotkey:SetTextColor(1, 0.2, 0.2)
-    else
-        b.hotkey:SetTextColor(0.9, 0.9, 0.9)
+    setRangeColor(b, (ok and not issecret(texture) and texture and not issecret(checksRange) and not issecret(inRange)
+        and checksRange and inRange == false) and true or false)
+end
+
+-- utilisable : couleur de l icone (manque de mana en bleu)
+local function updateUsable(b, action)
+    local okU, usable, noMana = pcall(IsUsableAction, action)
+    if okU and not issecret(usable) and not issecret(noMana) then
+        if usable then b.icon:SetVertexColor(1, 1, 1)
+        elseif noMana then b.icon:SetVertexColor(0.4, 0.4, 1)
+        else b.icon:SetVertexColor(0.4, 0.4, 0.4) end
     end
 end
 
+-- etat : action en cours ou tir automatique
+local function updateState(b, action)
+    local okA, active = pcall(IsCurrentAction, action)
+    local okR, auto = pcall(IsAutoRepeatAction, action)
+    b.active:SetShown((okA and not issecret(active) and active) or (okR and not issecret(auto) and auto) or false)
+end
+
 local function update(b)
+    b.stale = nil
     if b.isPet then return updatePet(b) end
     -- boutons de sort des barres ajoutees (appel des totems...)
     if b.customUpdate then return b.customUpdate(b) end
@@ -237,6 +253,7 @@ local function update(b)
     local tex = GetActionTexture(action)
     b.icon:SetTexture(tex)
     b.icon:SetShown(tex ~= nil)
+    b.hasTex = tex ~= nil
     if not tex then
         b.count:SetText("")
         b.cd:Clear()
@@ -254,20 +271,32 @@ local function update(b)
         b.count:SetText("")
     end
     setCooldown(b, action)
-    local okU, usable, noMana = pcall(IsUsableAction, action)
-    if okU and not issecret(usable) and not issecret(noMana) then
-        if usable then b.icon:SetVertexColor(1, 1, 1)
-        elseif noMana then b.icon:SetVertexColor(0.4, 0.4, 1)
-        else b.icon:SetVertexColor(0.4, 0.4, 0.4) end
-    end
+    updateUsable(b, action)
     -- nom de macro (si la barre l affiche)
     if b.macro:IsShown() then
         local okT, text = pcall(GetActionText, action)
         if not okT or not pcall(b.macro.SetText, b.macro, text or "") then b.macro:SetText("") end
     end
-    local okA, active = pcall(IsCurrentAction, action)
-    local okR, auto = pcall(IsAutoRepeatAction, action)
-    b.active:SetShown((okA and not issecret(active) and active) or (okR and not issecret(auto) and auto) or false)
+    updateState(b, action)
+end
+
+-- mise a jour partielle (recharge, utilisable, etat) ; familier et boutons
+-- de sort des barres ajoutees : en entier (peu nombreux)
+local function updatePart(b, cd, use, st)
+    if b.isPet or b.customUpdate then return update(b) end
+    if not b.hasTex then return end
+    local action = b:GetAttribute("action")
+    if not action then return end
+    if cd then setCooldown(b, action) end
+    if use then updateUsable(b, action) end
+    if st then updateState(b, action) end
+end
+
+-- couleur du raccourci selon la portee : posee seulement si elle change
+function setRangeColor(b, out)
+    if b.outOfRange == out then return end
+    b.outOfRange = out
+    if out then b.hotkey:SetTextColor(1, 0.2, 0.2) else b.hotkey:SetTextColor(0.9, 0.9, 0.9) end
 end
 
 local function updateRange(b)
@@ -275,11 +304,7 @@ local function updateRange(b)
     local action = b:GetAttribute("action")
     if not action or not HasAction(action) then return end
     local ok, inRange = pcall(IsActionInRange, action)
-    if ok and inRange == false then
-        b.hotkey:SetTextColor(1, 0.2, 0.2)
-    else
-        b.hotkey:SetTextColor(0.9, 0.9, 0.9)
-    end
+    setRangeColor(b, (ok and not issecret(inRange) and inRange == false) and true or false)
 end
 
 local function updateHotkeys()
@@ -464,7 +489,18 @@ end
 local kit
 
 -- Disposition d une barre selon ses reglages (hors combat : boutons securises)
+-- (barres ajoutees comprises : tous les boutons, seuls les sautes visibles)
+local function catchUp()
+    for _, b in ipairs(allButtons) do
+        if b.stale and b:IsVisible() then update(b) end
+    end
+end
+
 local function layout(h)
+    if not h.catchUpHooked then
+        h.catchUpHooked = true
+        h:HookScript("OnShow", catchUp)
+    end
     local c = conf(h.bar.key)
     if h.bar.plugin then return h.bar.plugin.layout(h, c, kit) end
     ns.LayoutButtonBar(h, h.buttons, c.buttons, c, db.pos[h.bar.key])
@@ -1023,6 +1059,38 @@ local PET_EVENTS = {
     UPDATE_VEHICLE_ACTIONBAR = true, PLAYER_MOUNT_DISPLAY_CHANGED = true,
 }
 
+-- Rafales : recharge, utilisable et etat arrivent par paquets (sort lance :
+-- SPELL_UPDATE_COOLDOWN, ACTIONBAR_UPDATE_COOLDOWN, ..._STATE, ..._USABLE
+-- dans la meme image). Une seule passe a l image suivante, et seulement la
+-- partie demandee ; boutons caches sautes (rattrapes a l affichage).
+local PART_OF = {
+    ACTIONBAR_UPDATE_COOLDOWN = "cd", SPELL_UPDATE_COOLDOWN = "cd",
+    ACTIONBAR_UPDATE_USABLE = "use", SPELL_UPDATE_USABLE = "use",
+    ACTIONBAR_UPDATE_STATE = "st",
+}
+local want = {}
+local flusher = CreateFrame("Frame")
+flusher:Hide()
+flusher:SetScript("OnUpdate", function(self)
+    self:Hide()
+    local full, cd, use, st = want.full, want.cd, want.use, want.st
+    want.full, want.cd, want.use, want.st = nil, nil, nil, nil
+    if not db or not db.enabled then return end
+    for _, b in ipairs(allButtons) do
+        if not b:IsVisible() then
+            b.stale = true
+        elseif full or b.stale then
+            update(b)
+        else
+            updatePart(b, cd, use, st)
+        end
+    end
+end)
+local function queue(kind)
+    want[kind] = true
+    flusher:Show()
+end
+
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event, arg)
     if ns.ModuleOff("barres", ev) then return end
@@ -1095,6 +1163,9 @@ ev:SetScript("OnEvent", function(_, event, arg)
         apply()
     elseif not db then
         return
+    elseif not db.enabled and event ~= "PLAYER_REGEN_ENABLED" and event ~= "UPDATE_BINDINGS" then
+        -- barres CorpUI coupees : leurs boutons ne sont pas affiches
+        return
     elseif event == "PLAYER_REGEN_ENABLED" then
         if pending then apply() end
     elseif event == "UPDATE_BINDINGS" then
@@ -1106,7 +1177,9 @@ ev:SetScript("OnEvent", function(_, event, arg)
         else holding = cursorHolds() end
         if holding ~= was then
             for _, b in ipairs(allButtons) do
-                if not b.isPet then update(b) end
+                if not b.isPet then
+                    if b:IsVisible() then update(b) else b.stale = true end
+                end
             end
         end
     elseif event == "ACTIONBAR_SLOT_CHANGED" then
@@ -1116,10 +1189,12 @@ ev:SetScript("OnEvent", function(_, event, arg)
     elseif PET_EVENTS[event] then
         if event == "UNIT_PET" and arg ~= "player" then return end
         for _, b in ipairs(allButtons) do
-            if b.isPet then update(b) end
+            if b.isPet then
+                if b:IsVisible() then update(b) else b.stale = true end
+            end
         end
     else
-        for _, b in ipairs(allButtons) do update(b) end
+        queue(PART_OF[event] or "full")
     end
 end)
 for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_REGEN_ENABLED", "UPDATE_BINDINGS", "ACTIONBAR_SLOT_CHANGED",
@@ -1137,17 +1212,13 @@ for e in pairs(PET_EVENTS) do
     end
 end
 
--- portee : cinq fois par seconde ; fondu des barres "au survol" a chaque image
-local elapsed = 0
-ev:SetScript("OnUpdate", function(_, dt)
+-- portee : cinq fois par seconde
+ns.Every(0.2, function()
     if not db or not db.enabled then return end
-    elapsed = elapsed + dt
-    if elapsed < 0.2 then return end
-    elapsed = 0
     for _, b in ipairs(allButtons) do
         if b:IsVisible() then updateRange(b) end
     end
-end)
+end, "Barres : portee")
 
 ns.RegisterModule({
     command = "barres",

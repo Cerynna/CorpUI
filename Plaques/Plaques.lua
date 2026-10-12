@@ -299,8 +299,12 @@ local function makePlate()
     return f
 end
 
--- tailles et elements visibles selon les reglages (a chaque accroche)
+-- tailles et elements visibles selon les reglages : refaits seulement si
+-- un reglage a change depuis (layoutVer : scanAll, changements generaux)
+local layoutVer = 1
 local function layout(f)
+    if f.layoutVer == layoutVer then return end
+    f.layoutVer = layoutVer
     if f.native then
         local sig = table.concat({ db.debuffSize, db.debuffMax, tostring(db.debuffMine), tostring(db.debuffTimer),
             tostring(db.showName), tostring(db.showLevel), db.nameSize }, ":")
@@ -573,7 +577,11 @@ local function castNote(path)
     if db then db.castDiag = { path = path, at = date and date("%H:%M:%S") or "" } end
 end
 
+-- plaques dont la barre de sort avance par OnUpdate (debut et fin lisibles)
+local fallback = {}
+
 local function updateCast(f)
+    fallback[f] = nil
     if not db.cast or (db.castTargetOnly and not f.isTarget) then f.cast:Hide() return end
     local u = f.unit
     local channel = false
@@ -598,6 +606,7 @@ local function updateCast(f)
     elseif type(startMS) == "number" and type(endMS) == "number" and not issecret(startMS) and not issecret(endMS) then
         -- 2) repli : debut et fin lisibles, barre avancee par OnUpdate
         f.castStart, f.castEnd = startMS / 1000, endMS / 1000
+        fallback[f] = true
         f.cast:SetMinMaxValues(0, 1)
         castNote("startend")
     else
@@ -663,6 +672,8 @@ local function detach(unit)
     f:SetParent(UIParent)
     f.unit, f.plate, f.isTarget = nil, nil, nil
     f.isTarget = false
+    f.castStart = nil
+    fallback[f] = nil
     updateCombo(f)
     if f.native then f.native:SetUnit("none") end
     table.insert(pool, f)
@@ -678,6 +689,7 @@ local function restoreAll()
 end
 
 local function scanAll()
+    layoutVer = layoutVer + 1
     restoreAll()
     if not db.enabled or not C_NamePlate then return end
     for _, plate in ipairs(C_NamePlate.GetNamePlates() or {}) do
@@ -693,7 +705,9 @@ end
 local ev = CreateFrame("Frame")
 local UNIT_EVENTS = {
     UNIT_HEALTH = updateHealth, UNIT_MAXHEALTH = updateHealth, UNIT_FACTION = updateHealth,
-    UNIT_NAME_UPDATE = updateName, UNIT_LEVEL = updateName, UNIT_AURA = updateDebuffs,
+    UNIT_NAME_UPDATE = updateName, UNIT_LEVEL = updateName,
+    -- conteneur natif : le client le tient a jour (affiche ou cache a l accroche)
+    UNIT_AURA = function(f) if not f.native then updateDebuffs(f) end end,
     UNIT_SPELLCAST_START = updateCast, UNIT_SPELLCAST_STOP = updateCast, UNIT_SPELLCAST_FAILED = updateCast,
     UNIT_SPELLCAST_INTERRUPTED = updateCast, UNIT_SPELLCAST_DELAYED = updateCast,
     UNIT_SPELLCAST_CHANNEL_START = updateCast, UNIT_SPELLCAST_CHANNEL_STOP = updateCast,
@@ -768,43 +782,46 @@ for e in pairs(THREAT_EVENTS) do pcall(ev.RegisterEvent, ev, e) end
 -- le cadre de Blizzard peut reprendre son opacite : on le recoupe
 -- et la recharge de l interruption est relue 10 fois par seconde (une
 -- lecture pour toutes les plaques qui montrent un sort)
-local since, sinceReady = 0, 0
-ev:SetScript("OnUpdate", function(_, dt)
-    if not db or not db.enabled then return end
+ev:SetScript("OnUpdate", function()
+    if not next(fallback) or not db or not db.enabled then return end
     -- barres de sort en repli (debut / fin lisibles) : avancees a chaque image
-    local now
-    for _, f in pairs(active) do
-        if f.castStart and f.cast:IsShown() then
-            now = now or GetTime()
+    local now = GetTime()
+    for f in pairs(fallback) do
+        if not f.castStart then
+            fallback[f] = nil
+        elseif f.cast:IsShown() then
             local total = f.castEnd - f.castStart
             local p = total > 0 and (now - f.castStart) / total or 1
             if f.castChannel then p = 1 - p end
             f.cast:SetValue(math.max(0, math.min(1, p)))
             if now > f.castEnd + 0.3 then
                 f.castStart = nil
+                fallback[f] = nil
                 f.cast:Hide()
             end
         end
     end
-    sinceReady = sinceReady + dt
-    if sinceReady >= 0.1 then
-        sinceReady = 0
-        local states
-        for _, f in pairs(active) do
-            if f.cast:IsShown() then
-                if db.castReady then states = states or readyStates() end
-                applyReady(f.castReady, f.castNotInt, states)
-            end
+end)
+ns.Every(0.1, function()
+    if not db or not db.enabled or not next(active) then return end
+    local states
+    for _, f in pairs(active) do
+        if f.cast:IsShown() then
+            if db.castReady then states = states or readyStates() end
+            applyReady(f.castReady, f.castNotInt, states)
         end
     end
-    since = since + dt
-    if since < 0.2 then return end
-    since = 0
+end, "Plaques : interruption prete")
+ns.Every(0.2, function()
+    if not db or not db.enabled then return end
     for _, f in pairs(active) do
         local uf = f.plate and blizzUnitFrame(f.plate)
         if uf and uf:GetAlpha() > 0 then uf:SetAlpha(0) end
     end
-end)
+end, "Plaques : opacite du jeu")
+
+-- police ou theme changes : prochaines accroches refaites
+ns.Listen(function() layoutVer = layoutVer + 1 end)
 
 ---------------------------------------------------------------------------
 -- Options

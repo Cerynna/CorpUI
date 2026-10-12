@@ -656,4 +656,4 @@ end)
 
 ns.Listen(function()
     refresh()
-end)
+end, "buffs")
