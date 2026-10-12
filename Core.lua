@@ -2175,6 +2175,103 @@ end
 -- Notifications internes : les interfaces s abonnent ici
 ---------------------------------------------------------------------------
 
+---------------------------------------------------------------------------
+-- Planificateur commun (optimisation 13/10)
+-- Un seul cadre fait tourner les taches periodiques de CorpUI. Tant
+-- qu aucune n est due, il ne fait qu une comparaison par image (avant :
+-- un OnUpdate par module, chacun appele a chaque image pour cumuler son
+-- temps, meme fenetres fermees).
+--   ns.Every(interval, fn [, nom]) -> tache ; fn(dt) recoit le temps reel
+--   ecoule depuis son dernier passage ; interval 0 : a chaque image.
+--   tache:Stop() / tache:Start() / tache:SetInterval(s).
+-- Une erreur dans une tache passe au gestionnaire d erreurs (sans arreter
+-- les autres). Temps passe par tache mesure (debugprofilestop) : /corp perf.
+---------------------------------------------------------------------------
+
+local jobs = {}
+local nextDue = 0
+local profile = debugprofilestop
+local onError = function(e) local h = geterrorhandler() if h then h(e) end end
+
+local function recompute()
+    local m = math.huge
+    for i = 1, #jobs do
+        local j = jobs[i]
+        if j.on and j.due < m then m = j.due end
+    end
+    nextDue = m
+end
+
+local Job = {}
+Job.__index = Job
+function Job:Stop() if self.on then self.on = false recompute() end end
+function Job:Start()
+    if self.on then return end
+    local now = GetTime()
+    self.on, self.last, self.due = true, now, now + self.interval
+    if self.due < nextDue then nextDue = self.due end
+end
+function Job:SetInterval(s)
+    self.interval = s
+    self.due = math.min(self.due, GetTime() + s)
+    recompute()
+end
+
+local runner = CreateFrame("Frame")
+runner:SetScript("OnUpdate", function()
+    local now = GetTime()
+    if now < nextDue then return end
+    for i = 1, #jobs do
+        local j = jobs[i]
+        if j.on and now >= j.due then
+            local dt = now - j.last
+            j.last, j.due = now, now + j.interval
+            local t0 = profile and profile()
+            xpcall(j.fn, onError, dt)
+            if t0 then j.ms = j.ms + (profile() - t0) end
+            j.calls = j.calls + 1
+        end
+    end
+    recompute()
+end)
+
+function ns.Every(interval, fn, name)
+    local now = GetTime()
+    local j = setmetatable({ interval = interval or 0, fn = fn, name = name or "?", on = true,
+                             last = now, due = now + (interval or 0), ms = 0, calls = 0 }, Job)
+    jobs[#jobs + 1] = j
+    if j.due < nextDue then nextDue = j.due end
+    return j
+end
+
+-- /corp perf : memoire de CorpUI et taches les plus couteuses
+local perfSince = GetTime()
+function ns.PerfReport(reset)
+    if reset then
+        for _, j in ipairs(jobs) do j.ms, j.calls = 0, 0 end
+        perfSince = GetTime()
+        ns.Say("perf : compteurs remis a zero.")
+        return
+    end
+    local upd = (C_AddOns and C_AddOns.UpdateAddOnMemoryUsage) or UpdateAddOnMemoryUsage
+    local mem = (C_AddOns and C_AddOns.GetAddOnMemoryUsage) or GetAddOnMemoryUsage
+    if upd then pcall(upd) end
+    local okM, kb = pcall(mem, ADDON_NAME)
+    local span = math.max(1, GetTime() - perfSince)
+    local active = 0
+    for _, j in ipairs(jobs) do if j.on then active = active + 1 end end
+    ns.Say(string.format("perf : memoire %s Ko, %d taches (%d actives), mesure sur %d s",
+        okM and type(kb) == "number" and string.format("%.0f", kb) or "?", #jobs, active, span))
+    local list = {}
+    for _, j in ipairs(jobs) do list[#list + 1] = j end
+    table.sort(list, function(a, b) return a.ms > b.ms end)
+    for i = 1, math.min(12, #list) do
+        local j = list[i]
+        ns.Chat(string.format("  %-26s %7.2f ms/s  %5d appels  (%s, toutes les %.2f s)", j.name, j.ms / span, j.calls,
+            j.on and "active" or "arretee", j.interval))
+    end
+end
+
 ns.inits = {}      -- lances a PLAYER_LOGIN (creation des cadres)
 local listeners = {}
 function ns.Listen(fn) table.insert(listeners, fn) end
@@ -2434,6 +2531,8 @@ SlashCmdList["CORPUI"] = function(input)
         ns.LangCommand(rest)
     elseif cmd == "minimap" then
         ns.ToggleMinimap()
+    elseif cmd == "perf" then
+        ns.PerfReport(rest and strlower(strtrim(rest)) == "reset")
     else
         help()
     end
