@@ -2,6 +2,7 @@ local _, ns = ...
 
 ns.AddStrings({
     enUS = {
+        AURAS_OPT_ENCHANTS = "Weapon enchants (sharpening stones, poisons, shaman weapons)",
         MOD_AURAS = "Auras",
         AURAS_DESC = "your buffs and debuffs, and those of your target",
         AURAS_BUFFS = "Buffs",
@@ -47,6 +48,7 @@ ns.AddStrings({
         AURAS_FILTER_SECRET = "the game hides this aura's name right now: try again out of combat",
     },
     frFR = {
+        AURAS_OPT_ENCHANTS = "Enchantements d'arme (pierres, poisons, armes du chaman)",
         MOD_AURAS = "Auras",
         AURAS_DESC = "tes buffs et débuffs, et ceux de ta cible",
         AURAS_BUFFS = "Buffs",
@@ -92,6 +94,7 @@ ns.AddStrings({
         AURAS_FILTER_SECRET = "le jeu cache le nom de cette aura pour l'instant : réessaie hors combat",
     },
     deDE = {
+        AURAS_OPT_ENCHANTS = "Waffenverzauberungen (Wetzsteine, Gifte, Schamanenwaffen)",
         MOD_AURAS = "Auren",
         AURAS_DESC = "deine Buffs und Debuffs und die deines Ziels",
         AURAS_BUFFS = "Buffs",
@@ -137,6 +140,7 @@ ns.AddStrings({
         AURAS_FILTER_SECRET = "das Spiel verbirgt gerade den Namen dieser Aura: außerhalb des Kampfes erneut versuchen",
     },
     esES = {
+        AURAS_OPT_ENCHANTS = "Encantamientos de arma (piedras, venenos, armas del chamán)",
         MOD_AURAS = "Auras",
         AURAS_DESC = "tus beneficios y perjuicios, y los de tu objetivo",
         AURAS_BUFFS = "Beneficios",
@@ -182,6 +186,7 @@ ns.AddStrings({
         AURAS_FILTER_SECRET = "el juego oculta ahora el nombre de esta aura: inténtalo fuera de combate",
     },
     ptBR = {
+        AURAS_OPT_ENCHANTS = "Encantamentos de arma (pedras, venenos, armas do xamã)",
         MOD_AURAS = "Auras",
         AURAS_DESC = "seus bônus e penalidades, e os do seu alvo",
         AURAS_BUFFS = "Bônus",
@@ -227,6 +232,7 @@ ns.AddStrings({
         AURAS_FILTER_SECRET = "o jogo esconde o nome desta aura agora: tente fora de combate",
     },
     itIT = {
+        AURAS_OPT_ENCHANTS = "Incantamenti dell'arma (pietre, veleni, armi dello sciamano)",
         MOD_AURAS = "Aure",
         AURAS_DESC = "i tuoi potenziamenti e penalità, e quelli del bersaglio",
         AURAS_BUFFS = "Potenziamenti",
@@ -272,6 +278,7 @@ ns.AddStrings({
         AURAS_FILTER_SECRET = "il gioco nasconde ora il nome di quest'aura: riprova fuori combattimento",
     },
     ruRU = {
+        AURAS_OPT_ENCHANTS = "Чары оружия (точильные камни, яды, оружие шамана)",
         MOD_AURAS = "Ауры",
         AURAS_DESC = "ваши баффы и дебаффы, и баффы цели",
         AURAS_BUFFS = "Баффы",
@@ -317,6 +324,7 @@ ns.AddStrings({
         AURAS_FILTER_SECRET = "игра сейчас скрывает имя этой ауры: попробуйте вне боя",
     },
     zhCN = {
+        AURAS_OPT_ENCHANTS = "武器附魔（磨刀石、毒药、萨满武器）",
         MOD_AURAS = "光环",
         AURAS_DESC = "你和目标的增益与减益",
         AURAS_BUFFS = "增益",
@@ -362,6 +370,7 @@ ns.AddStrings({
         AURAS_FILTER_SECRET = "游戏目前隐藏了此光环的名称：请在脱战后重试",
     },
     zhTW = {
+        AURAS_OPT_ENCHANTS = "武器附魔（磨刀石、毒藥、薩滿武器）",
         MOD_AURAS = "光環",
         AURAS_DESC = "你和目標的增益與減益",
         AURAS_BUFFS = "增益",
@@ -407,6 +416,7 @@ ns.AddStrings({
         AURAS_FILTER_SECRET = "遊戲目前隱藏了此光環的名稱：請在脫戰後重試",
     },
     koKR = {
+        AURAS_OPT_ENCHANTS = "무기 마법부여 (숫돌, 독, 주술사 무기)",
         MOD_AURAS = "효과",
         AURAS_DESC = "나와 대상의 강화/약화 효과",
         AURAS_BUFFS = "강화",

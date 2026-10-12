@@ -9,6 +9,12 @@
     - Auras de la cible, au-dessus (ou au-dessous) de notre cadre cible :
       debuffs puis buffs.
     Les cadres BuffFrame / DebuffFrame de Blizzard vont au parent cache.
+    - Enchantements d arme temporaires (13/10 : pierre a aiguiser, poison,
+      armes du chaman ; la fenetre des buffs de Blizzard les montrait) :
+      deux emplacements a droite des buffs (main droite, main gauche),
+      icone de l arme, temps restant, charges ; clic droit : annuler
+      (action securisee "cancelaura" sur l emplacement). Boutons securises
+      toujours affiches : sans enchantement, transparents.
 
     Disposition par groupe (db.layout.buffs / debuffs / target) : taille,
     nombre par ligne, nombre maximum, espacement, sens (haut / bas), temps
@@ -70,6 +76,41 @@ local function decorate(b, size)
     b.count:SetPoint("BOTTOMRIGHT", 2, -2)
     b.time = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     b.time:SetPoint("TOP", b, "BOTTOM", 0, -1)
+end
+
+-- enchantement d arme : present, secondes restantes, charges ; nil si
+-- illisible (valeur secrete : on garde l affichage d avant)
+local function enchantInfo(off)
+    local function n(v) return type(v) == "number" and not issecret(v) and v or nil end
+    if C_Item and C_Item.GetWeaponEnchantInfo then
+        local slots = Enum and Enum.WeaponSlot
+        local slot
+        if off then slot = slots and slots.OffHand or 1 else slot = slots and slots.MainHand or 0 end
+        local ok, list = pcall(C_Item.GetWeaponEnchantInfo, slot)
+        if ok and type(list) == "table" then
+            local secret = false
+            for _, e in pairs(list) do
+                if type(e) == "table" then
+                    if issecret(e.hasEnchant) then
+                        secret = true
+                    elseif e.hasEnchant then
+                        local ms = n(e.timeLeft)
+                        return true, ms and ms > 0 and ms / 1000 or nil, n(e.charges) or 0
+                    end
+                end
+            end
+            if secret then return nil end
+            return false
+        end
+    end
+    if GetWeaponEnchantInfo then
+        local ok, hasMH, mhExp, mhCh, _, hasOH, ohExp, ohCh = pcall(GetWeaponEnchantInfo)
+        if not ok or issecret(hasMH) or issecret(hasOH) then return nil end
+        local has, ms, ch = hasMH, n(mhExp), n(mhCh)
+        if off then has, ms, ch = hasOH, n(ohExp), n(ohCh) end
+        return has and true or false, ms and ms > 0 and ms / 1000 or nil, ch or 0
+    end
+    return nil
 end
 
 local function formatLeft(sec)
@@ -203,6 +244,73 @@ local function header(name, store, w, h, label)
     return f
 end
 
+local ENCHANT_SLOTS = { 16, 17 }     -- main droite, main gauche
+local enchants = {}
+
+local function buildEnchants()
+    for k, slot in ipairs(ENCHANT_SLOTS) do
+        local b = CreateFrame("Button", "CorpUIWeaponEnchant" .. k, buffHeader, "SecureActionButtonTemplate")
+        decorate(b, DEFAULTS.buffs.size)
+        b:RegisterForClicks("RightButtonUp", "RightButtonDown")
+        b:SetAttribute("type2", "cancelaura")
+        b:SetAttribute("target-slot", slot)
+        b.slot, b.off = slot, k == 2
+        b.border:SetColorTexture(0.64, 0.21, 0.93, 1)
+        b:SetScript("OnEnter", function(self)
+            if not self.has then return end
+            local t = ns.Tooltip(self, "ANCHOR_BOTTOMLEFT")
+            if not pcall(t.SetInventoryItem, t, "player", self.slot) then t:Hide() return end
+            t:AddLine(L.AURAS_CANCEL, 0.5, 0.8, 1)
+            t:Show()
+        end)
+        b:SetScript("OnLeave", ns.HideTooltip)
+        b:SetAlpha(0)
+        enchants[k] = b
+    end
+end
+
+-- a droite des buffs (ils partent du bord droit vers la gauche) ; hors combat
+local function layoutEnchants()
+    local c = db.layout.buffs
+    local timeH = c.time == "below" and TIME_H or 0
+    for k, b in ipairs(enchants) do
+        local x = c.spacing + (k - 1) * (c.size + c.spacing)
+        b:SetSize(c.size, c.size)
+        b:ClearAllPoints()
+        if c.grow == "up" then
+            b:SetPoint("BOTTOMLEFT", buffHeader, "BOTTOMRIGHT", x, timeH)
+        else
+            b:SetPoint("TOPLEFT", buffHeader, "TOPRIGHT", x, 0)
+        end
+        b.time:SetShown(c.time ~= "none")
+        b:Show()
+    end
+end
+
+-- etat des enchantements : transparence, icone, temps (permis en combat)
+local function updateEnchants()
+    for _, b in ipairs(enchants) do
+        local has, left, charges = enchantInfo(b.off)
+        if has ~= nil then
+            if not db.weaponEnchants then has = false end
+            b.has = has
+            if has then
+                local ok, tex = pcall(GetInventoryItemTexture, "player", b.slot)
+                b.icon:SetTexture(ok and not issecret(tex) and tex or "Interface\\Icons\\INV_Misc_QuestionMark")
+                b.time:SetText(left and formatLeft(left) or "")
+                b.count:SetText((charges or 0) > 1 and charges or "")
+                b:SetAlpha(1)
+            else
+                b.icon:SetTexture(nil)
+                b.time:SetText("")
+                b.count:SetText("")
+                b:SetAlpha(0)
+            end
+        end
+    end
+end
+ns._enchants = { list = enchants, update = function() updateEnchants() end }
+
 local function buildPlayer()
     db.buffPos = db.buffPos or { point = "TOPRIGHT", x = -230, y = -14 }
     db.debuffPos = db.debuffPos or { point = "TOPRIGHT", x = -230, y = -120 }
@@ -229,6 +337,7 @@ local function buildPlayer()
         b:SetScript("OnLeave", ns.HideTooltip)
         buffs[i] = b
     end
+    buildEnchants()
     for i = 1, MAX_DEBUFFS do
         local b = CreateFrame("Frame", nil, debuffHeader)
         decorate(b, DEFAULTS.debuffs.size)
@@ -357,6 +466,7 @@ local GROUP_ICONS = { buffs = function() return buffs, buffHeader, true end,
 
 local function layoutGroup(key)
     local c = db.layout[key]
+    if key == "buffs" and #enchants > 0 then layoutEnchants() end
     local list, h, fromRight = GROUP_ICONS[key]()
     local n = math.max(1, math.min(c.max, #list))
     local timeH = c.time == "below" and TIME_H or 0
@@ -597,6 +707,7 @@ local function tickIcon(b)
 end
 
 local function tickTimes()
+    updateEnchants()
     if db.layout.buffs.time == "below" then
         for _, b in ipairs(buffs) do tickIcon(b) end
     end
@@ -697,6 +808,7 @@ function ns.FramesOpt.PlayerAuras(parent, y)
     form:Header(L.AURAS_BUFFS)
     check(form, "player", L.AURAS_OPT_PLAYER)
     check(form, "hideBlizzard", L.AURAS_OPT_BLIZZ)
+    check(form, "weaponEnchants", L.AURAS_OPT_ENCHANTS)
     layoutControls(form, "buffs")
     form:Header(L.AURAS_DEBUFFS)
     layoutControls(form, "debuffs")
@@ -847,7 +959,7 @@ ev:SetScript("OnEvent", function(_, event, unit)
         root.auras = root.auras or {}
         db = root.auras
         for k, v in pairs({ player = true, hideBlizzard = true, target = true, desaturateOthers = true,
-                            targetFilter = "all" }) do
+                            targetFilter = "all", weaponEnchants = true }) do
             if db[k] == nil then db[k] = v end
         end
         db.layout = db.layout or {}
@@ -877,13 +989,16 @@ ev:SetScript("OnEvent", function(_, event, unit)
         return
     elseif event == "UNIT_AURA" then
         if unit == "player" then updatePlayer() elseif unit == "target" then updateTarget() end
+    elseif event == "UNIT_INVENTORY_CHANGED" or event == "PLAYER_EQUIPMENT_CHANGED" then
+        updateEnchants()
     elseif event == "PLAYER_TARGET_CHANGED" then
         updateTarget()
     elseif event == "PLAYER_ENTERING_WORLD" then
         apply()
     end
 end)
-for _, e in ipairs({ "PLAYER_LOGIN", "UNIT_AURA", "PLAYER_TARGET_CHANGED", "PLAYER_ENTERING_WORLD" }) do
+for _, e in ipairs({ "PLAYER_LOGIN", "UNIT_AURA", "PLAYER_TARGET_CHANGED", "PLAYER_ENTERING_WORLD",
+                     "UNIT_INVENTORY_CHANGED", "PLAYER_EQUIPMENT_CHANGED" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
 
