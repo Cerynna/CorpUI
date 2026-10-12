@@ -1647,7 +1647,21 @@ local function restoreScrollback()
         end
     end
 end
-ns._chatScroll = { save = saveScrollback, restore = restoreScrollback, marks = marks }
+-- /corp chat histo : ce qui est garde et remis, fenetre par fenetre
+local function scrollDiag()
+    local saved = db and db.scroll and db.scroll[ns.CharKey()]
+    ns.Say(string.format("historique : option %s, %d lignes, remis cette session %s, garde le %s",
+        tostring(db and db.scrollback), tonumber(db and db.scrollLines) or 0, tostring(restored),
+        saved and saved.at and date("%d/%m %H:%M:%S", saved.at) or "jamais"))
+    for _, e in ipairs(chatFrames()) do
+        local okN, n = pcall(e.cf.GetNumMessages, e.cf)
+        local kept = saved and saved.frames and saved.frames[e.i]
+        ns.Chat(string.format("  ChatFrame%d : %s lignes affichees, %d gardees, BackFillMessage %s", e.i,
+            tostring(okN and not issecret(n) and n or "?"), kept and #kept or 0, tostring(type(e.cf.BackFillMessage) == "function")))
+    end
+end
+
+ns._chatScroll = { save = saveScrollback, restore = restoreScrollback, marks = marks, diag = scrollDiag }
 
 local newCharDone = false
 local ev = CreateFrame("Frame")
@@ -1811,6 +1825,8 @@ ns.RegisterModule({
             if cf then openCopy(cf, true) end
         elseif cmd == "alerte" or cmd == "alert" then
             armAlertProbe()
+        elseif cmd == "histo" or cmd == "history" then
+            scrollDiag()
         elseif cmd == "diag" then
             -- historique et fleches : etat utile pour comprendre un souci
             local eb = _G.ChatFrame1EditBox
