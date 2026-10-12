@@ -243,6 +243,8 @@ local function changed()
     if refreshWindow then refreshWindow() end
 end
 
+local changeQueued = false
+
 local shareTimer = false
 local function share()
     if not (Comm and Comm.Send) or not flag(IsInGroup) or not canEdit() then return end
@@ -653,8 +655,15 @@ ev:SetScript("OnEvent", function(_, event)
             C_Timer.After(3, function() Comm.Send("DSQ", "", "GROUP") end)
         end
         wasRaid = raid
-        changed()
-        if win and win:IsShown() and win.placeBottom then win.placeBottom() end
+        -- rafale (invitations, connexions, deplacements) : un passage
+        if not changeQueued then
+            changeQueued = true
+            C_Timer.After(0.2, function()
+                changeQueued = false
+                changed()
+                if win and win:IsShown() and win.placeBottom then win.placeBottom() end
+            end)
+        end
     end
 end)
 for _, e in ipairs({ "PLAYER_LOGIN", "GROUP_ROSTER_UPDATE", "PARTY_LEADER_CHANGED" }) do

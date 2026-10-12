@@ -195,10 +195,15 @@ local function updateNative(b, unit)
     -- aux conteneurs du client que si quelque chose change, et jamais en
     -- combat (ils peuvent y etre proteges)
     local on = not b.down
-    local want = table.concat({ tostring(hs and hs.icons and on), tostring(hs and hs.dispel and on),
-        dispelFilter(), tostring(hs and hs.dispelStyle), tostring(hs and hs.tintAlpha), tostring(b.dispelMine) }, ":")
-    if b.nState == want or InCombatLockdown() then return end
-    b.nState = want
+    local icons, disp = (hs and hs.icons and on) and true or false, (hs and hs.dispel and on) and true or false
+    local filter, style, alpha = dispelFilter(), hs and hs.dispelStyle, hs and hs.tintAlpha
+    local st = b.nSt
+    if st and st.icons == icons and st.disp == disp and st.filter == filter and st.style == style
+        and st.alpha == alpha and st.mine == b.dispelMine then return end
+    if InCombatLockdown() then return end
+    if not st then st = {} b.nSt = st end
+    st.icons, st.disp, st.filter, st.style, st.alpha, st.mine = icons, disp, filter, style, alpha, b.dispelMine
+    b.nState = true
     if b.nIcons then pcall(b.nIcons.frame.SetShown, b.nIcons.frame, (hs and hs.icons and on) and true or false) end
     if b.nDispel then
         pcall(b.nDispel.frame.SetShown, b.nDispel.frame, (hs and hs.dispel and on) and true or false)
@@ -209,9 +214,13 @@ end
 
 local function updateAuras(b, unit)
     if b.nIcons or b.nDispel then
-        b.dispel.Show(false)
-        b.tint:Hide()
-        for i = 1, ICON_MAX do b.icons[i]:Hide() end
+        -- elements de l ancien chemin : caches une fois (l apercu les remontre)
+        if not b.legacyHidden then
+            b.dispel.Show(false)
+            b.tint:Hide()
+            for i = 1, ICON_MAX do b.icons[i]:Hide() end
+            b.legacyHidden = true
+        end
         updateNative(b, unit)
         return
     end
@@ -357,13 +366,9 @@ local function offline(unit)
     return not v
 end
 
--- vie, mana, textes : le coeur du cadre
-local function updateCore(b, unit)
+-- vie : etat (mort, fantome, deconnecte), couleur, barre, texte
+local function updateHealth(b, unit)
     local s = styleOf(b)
-    local okN, name = pcall(UnitName, unit)
-    if okN then
-        if issecret(name) then pcall(b.name.SetText, b.name, name) else b.name:SetText(name or "") end
-    end
     local ghost = UF.Flag(UnitIsGhost, unit)
     local dead = not ghost and UF.Flag(UnitIsDead, unit)
     local off = not ghost and not dead and offline(unit)
@@ -390,6 +395,10 @@ local function updateCore(b, unit)
     elseif okC and okM then
         UF.SetText(b.hpText, unit, "health", cur, max, s.hpText)
     end
+end
+
+-- puissance : barre, texte, couleur
+local function updatePower(b, unit)
     local okP, p = pcall(UnitPower, unit)
     local okX, px = pcall(UnitPowerMax, unit)
     if okP and okX then
@@ -397,6 +406,16 @@ local function updateCore(b, unit)
         if b.pwText:IsShown() then UF.SetText(b.pwText, unit, "power", p, px, "value") end
     end
     b.pw:SetStatusBarColor(UF.PowerColor(unit))
+end
+
+-- vie, mana, textes : le coeur du cadre (nom et niveau compris)
+local function updateCore(b, unit)
+    local okN, name = pcall(UnitName, unit)
+    if okN then
+        if issecret(name) then pcall(b.name.SetText, b.name, name) else b.name:SetText(name or "") end
+    end
+    updateHealth(b, unit)
+    updatePower(b, unit)
     local okL, lv = pcall(UnitLevel, unit)
     b.level:SetText(okL and not issecret(lv) and type(lv) == "number" and lv > 0 and lv or "")
 end
@@ -460,7 +479,7 @@ local function fakeAuras(b, d)
     if not InCombatLockdown() then
         if b.nIcons then pcall(b.nIcons.frame.SetShown, b.nIcons.frame, false) end
         if b.nDispel then pcall(b.nDispel.frame.SetShown, b.nDispel.frame, false) end
-        b.nState = nil
+        b.nState, b.nSt = nil, nil
     end
     local edgeOn, tintOn = false, false
     if hs and hs.dispel and not b.down and d.dispel then
@@ -493,6 +512,7 @@ local function fakeAuras(b, d)
 end
 
 local function fakeButton(b)
+    b.legacyHidden = nil
     local d = fakeOf(b.fakeIndex)
     local s = styleOf(b)
     b.down = d.dead or d.offline
@@ -658,7 +678,7 @@ function ns.GroupDispelRefresh()
     else
         dispelPending = false
         refreshMine()
-        for _, b in pairs(buttons) do b.nState = nil end
+        for _, b in pairs(buttons) do b.nState, b.nSt = nil, nil end
     end
     for _, b in pairs(buttons) do
         if b:IsVisible() then update(b) end
@@ -839,8 +859,13 @@ local function layoutParty()
     end
 end
 
-local function layoutRaid()
+-- rosterOnly (changement de groupe) : tailles et polices ne dependent pas
+-- du groupe, seules les places suivent les sous-groupes, et seulement s ils
+-- ont change
+local lastGroup = {}
+local function layoutRaid(rosterOnly)
     if InCombatLockdown() then layoutPending = true return end
+    if rosterOnly and layoutPending then rosterOnly = false end
     layoutPending = false
     local s = db.raidStyle
     -- groupes en colonnes (un groupe = une colonne) ou en lignes
@@ -852,19 +877,27 @@ local function layoutRaid()
         raid:SetSize(8 * stepX - s.spacing, 5 * stepY - s.spacing)
     end
     local count = {}
+    local same = rosterOnly
+    local groups = {}
     for i = 1, 40 do
-        local b = buttons["raid" .. i]
         local g = 1
-        -- hors raid (apercu, deverrouillage), le client renvoie quand meme
-        -- un groupe pour chaque emplacement : on range par paquets de 5
         if IsInRaid() and not ns.PreviewOn("raid") and not ns.moversShown then
             local _, _, subgroup = GetRaidRosterInfo(i)
             g = (subgroup and not issecret(subgroup)) and subgroup or math.ceil(i / 5)
         else
             g = math.ceil(i / 5)
         end
+        groups[i] = g
+        if lastGroup[i] ~= g then same = false end
+    end
+    if same then refreshMine() return end
+    for i = 1, 40 do
+        local b = buttons["raid" .. i]
+        local g = groups[i]
+        lastGroup[i] = g
+        -- (hors raid : apercu, deverrouillage, rangement par paquets de 5)
         count[g] = (count[g] or 0) + 1
-        sizeButton(b, s)
+        if not rosterOnly then sizeButton(b, s) end
         b:ClearAllPoints()
         if rows then
             b:SetPoint("TOPLEFT", raid, "TOPLEFT", (count[g] - 1) * stepX, -(g - 1) * stepY)
@@ -880,6 +913,8 @@ local function watch(b, on)
 end
 
 -- Pilote de visibilite ou apercu
+local previewing = false     -- apercu : tous les cadres montrent "player"
+
 local function applyVisibility()
     if InCombatLockdown() then layoutPending = true return end
     local partyOn, raidOn = db.showParty, db.showRaid
@@ -888,6 +923,7 @@ local function applyVisibility()
     -- deverrouiller l interface montre les deux, pour pouvoir les placer
     local showParty = ns.PreviewOn("party") or ns.moversShown
     local showRaid = ns.PreviewOn("raid") or ns.moversShown
+    previewing = (showParty or showRaid) and true or false
     if showParty or showRaid then
         party:SetShown(partyOn and showParty)
         raid:SetShown(raidOn and showRaid)
@@ -1057,6 +1093,14 @@ end
 
 ---------------------------------------------------------------------------
 
+local rosterQueued = false
+local function rosterFlush()
+    rosterQueued = false
+    if not db then return end
+    layoutRaid(true)
+    for _, b in pairs(buttons) do if b:IsVisible() then update(b) end end
+end
+
 local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event, unit)
     if ns.ModuleOff("groupe", ev) then return end
@@ -1101,8 +1145,11 @@ ev:SetScript("OnEvent", function(_, event, unit)
     elseif not db then
         return
     elseif event == "GROUP_ROSTER_UPDATE" then
-        layoutRaid()
-        for _, b in pairs(buttons) do if b:IsVisible() then update(b) end end
+        -- rafale (invitations, connexions, deplacements) : un passage
+        if not rosterQueued then
+            rosterQueued = true
+            C_Timer.After(0.2, rosterFlush)
+        end
     elseif event == "PLAYER_REGEN_ENABLED" then
         if layoutPending then applyVisibility() end
         if dispelPending then ns.GroupDispelRefresh() end
@@ -1113,12 +1160,19 @@ ev:SetScript("OnEvent", function(_, event, unit)
             if b:IsVisible() and u and UnitExists(u) and not b.fakeIndex then updateIcons(b, u) end
         end
     elseif unit then
-        -- un evenement d unite : mettre a jour le ou les cadres de cette unite
-        -- (seulement la partie concernee pour les evenements frequents)
-        for _, b in pairs(buttons) do
-            if b:IsVisible() and b:GetAttribute("unit") == unit and b.fakeIndex then
-                fakeButton(b)
-            elseif b:IsVisible() and b:GetAttribute("unit") == unit then
+        -- un evenement d unite : le cadre de cette unite (les cadres sont
+        -- ranges par unite), seulement la partie concernee pour les
+        -- evenements frequents. Apercu : tous montrent "player".
+        if issecret(unit) or type(unit) ~= "string" then return end
+        if previewing then
+            if unit ~= "player" then return end
+            for _, b in pairs(buttons) do
+                if b.fakeIndex and b:IsVisible() then fakeButton(b) end
+            end
+            return
+        end
+        local b = buttons[unit]
+        if b and b:IsVisible() then
                 if event == "UNIT_AURA" then
                     updateAuras(b, unit)
                 elseif event == "UNIT_HEAL_PREDICTION" then
@@ -1126,16 +1180,15 @@ ev:SetScript("OnEvent", function(_, event, unit)
                 elseif event == "UNIT_THREAT_SITUATION_UPDATE" then
                     updateAggro(b, unit)
                 elseif event == "UNIT_POWER_UPDATE" or event == "UNIT_MAXPOWER" or event == "UNIT_DISPLAYPOWER" then
-                    updateCore(b, unit)
-                elseif event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" then
+                    updatePower(b, unit)
+                elseif event == "UNIT_HEALTH" or event == "UNIT_MAXHEALTH" or event == "UNIT_FLAGS" then
                     -- mort / resurrection : surbrillance et aggro suivent
                     local was = b.down
-                    updateCore(b, unit)
-                    if was ~= b.down then updateHealer(b, unit) else updateHeal(b, unit) end
+                    updateHealth(b, unit)
+                    if was ~= b.down then updateHealer(b, unit) elseif event ~= "UNIT_FLAGS" then updateHeal(b, unit) end
                 else
                     update(b)
                 end
-            end
         end
     end
 end)
@@ -1147,22 +1200,31 @@ for _, e in ipairs({ "PLAYER_LOGIN", "GROUP_ROSTER_UPDATE", "PLAYER_REGEN_ENABLE
     pcall(ev.RegisterEvent, ev, e)
 end
 
--- portee : deux fois par seconde
-local elapsed, alertAcc = 0, 0
-ev:SetScript("OnUpdate", function(_, dt)
+-- alertes (5 fois par seconde) et portee (2 fois) : planificateur commun,
+-- rien hors groupe (sauf apercu)
+local function grouped()
+    return previewing or IsInGroup() or IsInRaid()
+end
+local alertsIdle = false
+ns.Every(0.2, function()
     if not db then return end
-    alertAcc = alertAcc + dt
-    if alertAcc >= 0.2 then
-        alertAcc = 0
-        checkAlerts()
+    if not grouped() then
+        -- hors groupe : alertes oubliees une fois (pas de rappel au retour)
+        if not alertsIdle then
+            alertsIdle = true
+            for _, b in pairs(buttons) do b.alerted = false end
+        end
+        return
     end
-    elapsed = elapsed + dt
-    if elapsed < 0.5 then return end
-    elapsed = 0
+    alertsIdle = false
+    checkAlerts()
+end, "Groupe : alertes")
+ns.Every(0.5, function()
+    if not db or not grouped() then return end
     for _, b in pairs(buttons) do
         if b:IsVisible() then UF.Range(b, b:GetAttribute("unit"), (hs and hs.rangeAlpha or 45) / 100) end
     end
-end)
+end, "Groupe : portee")
 
 -- reglages : editeur des cadres (Cadres/Editeur.lua), cadre "Groupe"
 ns.RegisterModule({

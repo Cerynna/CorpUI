@@ -2190,6 +2190,9 @@ end
 
 local jobs = {}
 local nextDue = 0
+-- horloge propre : somme des durees d image (pas GetTime) ; meme rythme en
+-- jeu, et les bancs d essai la font avancer en appelant OnUpdate
+local clock = 0
 local profile = debugprofilestop
 local onError = function(e) local h = geterrorhandler() if h then h(e) end end
 
@@ -2207,19 +2210,20 @@ Job.__index = Job
 function Job:Stop() if self.on then self.on = false recompute() end end
 function Job:Start()
     if self.on then return end
-    local now = GetTime()
+    local now = clock
     self.on, self.last, self.due = true, now, now + self.interval
     if self.due < nextDue then nextDue = self.due end
 end
 function Job:SetInterval(s)
     self.interval = s
-    self.due = math.min(self.due, GetTime() + s)
+    self.due = math.min(self.due, clock + s)
     recompute()
 end
 
 local runner = CreateFrame("Frame")
-runner:SetScript("OnUpdate", function()
-    local now = GetTime()
+runner:SetScript("OnUpdate", function(_, elapsed)
+    clock = clock + (elapsed or 0)
+    local now = clock
     if now < nextDue then return end
     for i = 1, #jobs do
         local j = jobs[i]
@@ -2236,7 +2240,7 @@ runner:SetScript("OnUpdate", function()
 end)
 
 function ns.Every(interval, fn, name)
-    local now = GetTime()
+    local now = clock
     local j = setmetatable({ interval = interval or 0, fn = fn, name = name or "?", on = true,
                              last = now, due = now + (interval or 0), ms = 0, calls = 0 }, Job)
     jobs[#jobs + 1] = j
