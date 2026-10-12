@@ -51,6 +51,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Compteur** | Fenêtres façon Details : dégâts, soins, absorptions, interruptions, dissipations, morts, et la menace du groupe sur ta cible avec alerte avant l'aggro. | `/corp compteur` |
 | **Sacs** | Tous les sacs en un seul, recherche et tri ; banque. | `/corp sacs` |
 | **Butin** | Fenêtre de butin et jets de groupe (Besoin, Cupidité, Passer). | `/corp butin` |
+| **Éclats du butin** | Les objets de quête scintillent toujours ; herbes et filons scintillent à l'approche (plus vifs à portée, gris si la récolte est impossible). | `/corp eclats` |
 | **Marchand** | Réparation et vente des objets gris automatiques, rachat des réactifs. | `/corp marchand` |
 | **Habillage** | Les fenêtres de Blizzard au style CorpUI (fiche du personnage, grimoire, talents, journal, métiers, hôtel des ventes, courrier…), déplaçables. | `/corp habillage` |
 
@@ -141,7 +142,7 @@ Depuis le dossier `CorpUI`, dans Git Bash : `.github/scripts/release.sh 1.2.0`. 
 - **Polices** : [Saira](https://github.com/Omnibus-Type/Saira) et [Archivo Black](https://github.com/Omnibus-Type/ArchivoBlack) (Omnibus-Type), [Roboto](https://fonts.google.com/specimen/Roboto) (Google), toutes sous licence SIL Open Font License 1.1 (fichiers `OFL.txt` dans `Media`).
 - **Sons** : Kenney et Robin Lamb (CC0), Joe Lamb et dobroide (CC BY 3.0), AntumDeluge (CC0). Détail dans [`Media/Sons/CREDITS.txt`](Media/Sons/CREDITS.txt).
 - **Images** des mini-jeux et icônes : générées pour CorpUI avec Nano Banana Pro. Détail dans [`Media/Jeux/CREDITS.txt`](Media/Jeux/CREDITS.txt) et [`Media/Podometre/CREDITS.txt`](Media/Podometre/CREDITS.txt).
-- **Inspirations** : ElvUI, Details!, TradeSkillMaster, Method Raid Tools, Skillet et NaowhForever, pour les idées ; le code de CorpUI est écrit pour lui.
+- **Inspirations** : ElvUI, Details!, TradeSkillMaster, Method Raid Tools, Skillet, NaowhForever et ForeverLootSparkles, pour les idées ; le code de CorpUI est écrit pour lui.
 
 ---
 

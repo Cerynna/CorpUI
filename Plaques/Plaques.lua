@@ -633,6 +633,12 @@ end
 local function attach(unit)
     local plate = C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
     if not plate or (plate.IsForbidden and plate:IsForbidden()) then return end
+    -- objet du monde (herbe, filon : plaque du ciblage doux, module Eclats) :
+    -- la plaque du jeu garde son nom et son icone, pas de barre de vie
+    if UnitIsGameObject then
+        local okG, isObj = pcall(UnitIsGameObject, unit)
+        if okG and isObj == true then return end
+    end
     local f = table.remove(pool) or makePlate()
     f.unit, f.plate = unit, plate
     if f.native then f.native:SetUnit(unit) end

@@ -198,6 +198,10 @@ Butin\Butin.lua
 Butin\StringsFil.lua
 Butin\Fil.lua
 
+# Module Eclats (objets de quete, herbes et filons qui scintillent ; idee de ForeverLootSparkles)
+Eclats\Strings.lua
+Eclats\Eclats.lua
+
 # Module Hotel des ventes (scan, prix dans les infobulles ; fonctions facon
 # TSM : valeur marche, volet CorpUI a cote de l HV, vente, mes encheres,
 # listes d achats, comptabilite)

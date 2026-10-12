@@ -2468,7 +2468,7 @@ local PAGES = {
     { key = "map", label = "PAGE_MAP", cmds = { "minicarte", "infos", "quetes" } },
     { key = "plates", label = "PAGE_PLATES", cmds = { "plaques", "infobulles" } },
     { key = "chat", label = "PAGE_CHAT", cmds = { "chat", "compteur" } },
-    { key = "bags", label = "PAGE_BAGS", cmds = { "sacs", "butin", "fil", "marchand" } },
+    { key = "bags", label = "PAGE_BAGS", cmds = { "sacs", "butin", "fil", "eclats", "marchand" } },
     { key = "skins", cmds = { "habillage" } },
     -- groupe et raid (06/10) : intendance (buffs, dissipation, rappels), outils de raid
     { cat = "CAT_RAID" },

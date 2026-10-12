@@ -23,7 +23,7 @@ local LIST = {
     { key = "groupe" }, { key = "incantations" }, { key = "auras" }, { key = "chasseur" }, { key = "barres" },
     { key = "xp" },
     { key = "minicarte" }, { key = "infos" }, { key = "quetes" }, { key = "plaques" }, { key = "infobulles" },
-    { key = "chat" }, { key = "compteur" }, { key = "sacs" }, { key = "butin" }, { key = "fil" },
+    { key = "chat" }, { key = "compteur" }, { key = "sacs" }, { key = "butin" }, { key = "fil" }, { key = "eclats" },
     { key = "marchand" }, { key = "habillage" },
     { cat = "CAT_RAID" },
     { key = "buffs" }, { key = "dissipation" }, { key = "rappels" }, { key = "cd" }, { key = "note" },
