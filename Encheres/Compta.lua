@@ -98,10 +98,21 @@ local function mailKey(parts, expiry)
     return table.concat(parts, "|") .. "|" .. math.floor(expiry / 1800)
 end
 
--- deja compte (a une demi-heure pres sur l heure d expiration)
-local function seenMail(r, parts, expiry)
+-- deja compte (a une demi-heure pres sur l heure d expiration). La cle ne
+-- contient plus l acheteur (13/10) : le jeu le donne parfois vide a la
+-- premiere lecture, puis rempli, et la vente etait comptee deux fois. Les
+-- cles d avant (avec l acheteur, vide ou non) sont encore reconnues.
+local function seenMail(r, parts, expiry, who)
+    local legacy
     for d = -1, 1 do
         if r.seen[mailKey(parts, expiry + d * 1800)] then return true end
+    end
+    legacy = { parts[1], parts[2], who or "", parts[3], parts[4], parts[5] }
+    for _, w in ipairs({ who or "", "" }) do
+        legacy[3] = w
+        for d = -1, 1 do
+            if r.seen[mailKey(legacy, expiry + d * 1800)] then return true end
+        end
     end
     return false
 end
@@ -151,8 +162,8 @@ local function scanInbox()
                         if tx.k ~= "buy" and num(q) then tx.q = q end
                     end
                 end
-                local parts = { tx.k, tx.item, tx.who or "", tx.p or 0, tx.q or 1, num(money) or 0 }
-                if not seenMail(r, parts, expiry) then
+                local parts = { tx.k, tx.item, tx.p or 0, tx.q or 1, num(money) or 0 }
+                if not seenMail(r, parts, expiry, tx.who) then
                     markMail(r, parts, expiry)
                     tx.t = now
                     addTx(tx)
@@ -167,6 +178,52 @@ AH.LedgerScanMail = scanInbox
 
 -- menage des courriers deja comptes : un courrier expire n est plus dans
 -- la boite, sa cle ne sert plus (un jour de marge)
+-- doublons deja enregistres (bogue de la cle, voir seenMail) : une vente
+-- sans acheteur suivie de la meme vente avec acheteur (meme personnage,
+-- objet, prix, quantite, commission et depot, a moins de 31 jours) : une
+-- seule gardee (la premiere, avec le nom de l acheteur). Et operations de plus de 90 jours : retirees.
+local TX_DAYS = 90
+local function cleanLedger()
+    local r = ledger()
+    if not r or type(r.tx) ~= "table" then return 0, 0 end
+    local function same(a, b)
+        return a.k == "sale" and b.k == "sale" and a.item == b.item and a.p == b.p and (a.q or 1) == (b.q or 1)
+            and (a.fee or 0) == (b.fee or 0) and (a.dep or 0) == (b.dep or 0) and a.char == b.char
+    end
+    local drop, used = {}, {}
+    for i, a in ipairs(r.tx) do
+        if a.k == "sale" and (a.who == nil or a.who == "") then
+            for j = i + 1, #r.tx do
+                local b = r.tx[j]
+                if (b.t or 0) - (a.t or 0) > 31 * 86400 then break end
+                if not used[j] and not drop[j] and b.who and b.who ~= "" and same(a, b) then
+                    -- la premiere garde sa date et prend le nom de l acheteur
+                    a.who = b.who
+                    drop[j], used[j] = true, true
+                    break
+                end
+            end
+        end
+    end
+    local old = time() - TX_DAYS * 86400
+    local kept, dups, aged = {}, 0, 0
+    for i, tx in ipairs(r.tx) do
+        if drop[i] then
+            dups = dups + 1
+        elseif (tx.t or 0) < old then
+            aged = aged + 1
+        else
+            kept[#kept + 1] = tx
+        end
+    end
+    if dups + aged > 0 then
+        r.tx = kept
+        changed()
+    end
+    return dups, aged
+end
+AH.LedgerClean = cleanLedger
+
 local function purgeSeen()
     local r = ledger()
     if not r then return end
@@ -650,6 +707,8 @@ ev:SetScript("OnEvent", function(_, event)
             compactGold()
             recordGold()
             purgeSeen()
+            cleanLedger()
+            if ns.AHPurgeOld then ns.AHPurgeOld() end
         end)
     elseif event == "PLAYER_MONEY" then
         onMoney()

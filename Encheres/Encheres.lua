@@ -473,8 +473,11 @@ local function store(r, id, price, qty, byPrice, mv, day, minute)
     local old = decode(r.items[id])
     local hist = {}
     if old then
+        -- jours gardes : ceux que les calculs utilisent (valeur marche,
+        -- moyenne choisie), pas plus
+        local keep = math.max(MARKET_DAYS, math.min(MAX_HIST, (opts and opts.days) or 7))
         for _, e in ipairs(old.hist) do
-            if day - e.day >= 0 and day - e.day < MAX_HIST then hist[#hist + 1] = { day = e.day, min = e.min, mv = e.mv } end
+            if day - e.day >= 0 and day - e.day < keep then hist[#hist + 1] = { day = e.day, min = e.min, mv = e.mv } end
         end
     end
     if hist[1] and hist[1].day == day then
@@ -836,6 +839,25 @@ local function purgeSlice()
         scan.pkey = id
         if over() then return false end
     end
+end
+
+-- a la connexion : objets absents depuis KEEP_DAYS retires (avant :
+-- seulement apres un releve complet de l HV)
+function ns.AHPurgeOld()
+    local r = realm(false)
+    if not r then return 0 end
+    local today = math.floor(time() / 86400)
+    local n = 0
+    for id, s in pairs(r.items) do
+        local d = dayOf(s)
+        if not d or today - d > KEEP_DAYS then
+            r.items[id] = nil
+            cache[id] = nil
+            n = n + 1
+        end
+    end
+    if n > 0 then version = version + 1 end
+    return n
 end
 
 local function finishSave()

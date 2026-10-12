@@ -619,7 +619,12 @@ end
 -- Maj enfoncee ou relachee sur l objet : comparaison montree ou retiree
 local cmpEv = CreateFrame("Frame")
 cmpEv:RegisterEvent("MODIFIER_STATE_CHANGED")
+-- (Ctrl ou Alt seuls ne changent rien : seulement si l envie change)
+local lastWant
 cmpEv:SetScript("OnEvent", function()
+    local w = wantCompare()
+    if w == lastWant then return end
+    lastWant = w
     if tip and tip:IsShown() then ns.TooltipCompare(tip) end
 end)
 
@@ -681,8 +686,9 @@ local W8 = "Interface\\Buttons\\WHITE8X8"
 local C = ns.COLORS
 
 -- onglet choisi des habillages : fond sombre a peine releve, liseré d accent
+local SELECTED_BG = { 0.15, 0.155, 0.18 }
 function ns.UI.SelectedTab()
-    return { 0.15, 0.155, 0.18 }, C.violet
+    return SELECTED_BG, C.violet
 end
 
 -- "Degrade" : toujours a plat. Les decors (meme couleur aux deux bouts,
@@ -3102,8 +3108,12 @@ local function applyUIScale()
     scalePending = false
     applyingScale = true
     if s >= 0.64 then
-        pcall(SetCVar, "useUiScale", "1")
-        pcall(SetCVar, "uiScale", tostring(s))
+        -- ecrites seulement si elles changent
+        local okU, use = pcall(GetCVar, "useUiScale")
+        if not (okU and not issecret(use) and use == "1") then pcall(SetCVar, "useUiScale", "1") end
+        local okS, cur = pcall(GetCVar, "uiScale")
+        cur = okS and not issecret(cur) and tonumber(cur)
+        if not (cur and math.abs(cur - s) < 0.0001) then pcall(SetCVar, "uiScale", tostring(s)) end
     end
     if math.abs((UIParent:GetScale() or 1) - s) > 0.001 then pcall(UIParent.SetScale, UIParent, s) end
     applyingScale = false

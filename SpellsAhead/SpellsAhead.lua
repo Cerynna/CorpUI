@@ -31,7 +31,7 @@ local WIDTH  = 340
 
 -- Version du cache. A incrementer quand la forme des entrees change : les
 -- anciennes sont alors migrees ou jetees au lieu d etre melangees.
-local CACHE_VERSION = 3
+local CACHE_VERSION = 4    -- 4 : description retiree quand le spellID est connu
 
 local entries      = {}   -- resultat fusionne et trie
 local failedEvents = {}   -- evenements refuses par ce client
@@ -409,6 +409,8 @@ local function migrateCache()
             elseif not seen[key] then
                 seen[key] = true
                 e.name = clean
+                -- sort connu par son numero : l infobulle du jeu le decrit
+                if e.spellID then e.desc = nil end
                 kept[#kept + 1] = e
             end
         end
@@ -524,7 +526,9 @@ local function readAllServices()
                 level   = level,
                 name    = label,
                 icon    = icon,
-                desc    = desc,
+                -- description : seulement sans spellID (sinon l infobulle du
+                -- jeu la donne, et la sauvegarde grossissait de 200 Ko)
+                desc    = (not spellID) and desc or nil,
                 spellID = spellID,
                 rank    = rank or spellRank(spellID),
                 trade   = isTrade,

@@ -60,24 +60,41 @@ local PVP_COLORS = {
     contested = { 1, 0.7, 0 }, combat = { 1, 0.1, 0.1 }, arena = { 1, 0.1, 0.1 },
 }
 
+local ZONE_DEFAULT = { 1, 0.82, 0 }
+local function playerXY()
+    local map = C_Map.GetBestMapForUnit("player")
+    local pos = map and C_Map.GetPlayerMapPosition(map, "player")
+    if pos then return pos:GetXY() end
+end
+-- zone, coordonnees, heure : poses seulement s ils changent
+local shownZone, shownPvp, shownCoords, shownClock
 local function updateInfo()
     if not info or not info:IsShown() then return end
     local zone = GetMinimapZoneText and GetMinimapZoneText() or ""
-    zoneText:SetText(zone)
-    local pvp = GetZonePVPInfo and GetZonePVPInfo()
-    local c = PVP_COLORS[pvp or ""] or { 1, 0.82, 0 }
-    zoneText:SetTextColor(c[1], c[2], c[3])
+    if zone ~= shownZone then
+        shownZone = zone
+        zoneText:SetText(zone)
+    end
+    local pvp = GetZonePVPInfo and GetZonePVPInfo() or ""
+    if pvp ~= shownPvp then
+        shownPvp = pvp
+        local c = PVP_COLORS[pvp] or ZONE_DEFAULT
+        zoneText:SetTextColor(c[1], c[2], c[3])
+    end
     local coords = ""
-    if C_Map and C_Map.GetBestMapForUnit then
-        local ok, x, y = pcall(function()
-            local map = C_Map.GetBestMapForUnit("player")
-            local pos = map and C_Map.GetPlayerMapPosition(map, "player")
-            if pos then return pos:GetXY() end
-        end)
+    if db.coords and C_Map and C_Map.GetBestMapForUnit then
+        local ok, x, y = pcall(playerXY)
         if ok and x and y then coords = string.format("%.1f, %.1f", x * 100, y * 100) end
     end
-    coordText:SetText(db.coords and coords or "")
-    clockText:SetText(db.clock and date("%H:%M") or "")
+    if coords ~= shownCoords then
+        shownCoords = coords
+        coordText:SetText(coords)
+    end
+    local clock = db.clock and date("%H:%M") or ""
+    if clock ~= shownClock then
+        shownClock = clock
+        clockText:SetText(clock)
+    end
 end
 
 ---------------------------------------------------------------------------
@@ -506,14 +523,22 @@ local function releaseAll()
     for f in pairs(collected) do release(f) end
 end
 
+-- cadres refuses : pas reexamines avant 30 s (releve toutes les 2 s)
+local rejected = setmetatable({}, { __mode = "k" })
 local function scanButtons()
     local found = false
+    local now = GetTime()
     for _, parent in ipairs({ Minimap, MinimapBackdrop, MinimapCluster }) do
         if type(parent) == "table" and parent.GetChildren then
             for _, f in ipairs({ parent:GetChildren() }) do
-                if not collected[f] then
+                if not collected[f] and not (rejected[f] and now - rejected[f] < 30 and now >= rejected[f]) then
                     local ok, yes = pcall(collectable, f)
-                    if ok and yes and pcall(grab, f) then found = true end
+                    if ok and yes and pcall(grab, f) then
+                        found = true
+                        rejected[f] = nil
+                    else
+                        rejected[f] = now
+                    end
                 end
             end
         end
@@ -803,6 +828,7 @@ end
 -- format "12.3, 45.6" (sauf le notre), on le rend transparent, et on note ou
 -- il etait (db.gameCoords) pour pouvoir le cibler par son nom plus tard.
 local hiddenCoords = {}
+local hiddenSet = {}
 local function hideGameCoords(hide)
     for _, r in ipairs(hiddenCoords) do pcall(r.SetAlpha, r, hide and 0 or 1) end
     if not hide then return end
@@ -816,7 +842,11 @@ local function hideGameCoords(hide)
                 if ok and type(t) == "string" and not issecret(t)
                     and t:match("^%s*%d+%.?%d*%s*,%s*%d+%.?%d*%s*$") then
                     pcall(r.SetAlpha, r, 0)
-                    table.insert(hiddenCoords, r)
+                    -- (appele plusieurs fois : pas de doublon)
+                    if not hiddenSet[r] then
+                        hiddenSet[r] = true
+                        table.insert(hiddenCoords, r)
+                    end
                     table.insert(found, path)
                 end
             end
@@ -991,12 +1021,19 @@ ev:SetScript("OnEvent", function(_, event)
 
     -- evenements des icones, du zoom et des addons charges plus tard
     local watch = CreateFrame("Frame")
+    local iconsQueued = false
     watch:SetScript("OnEvent", function(_, event)
         if ns.ModuleOff("minicarte", watch) then return end
         if event == "MINIMAP_UPDATE_ZOOM" then
             scheduleZoomReset()
         elseif event == "ADDON_LOADED" then
             C_Timer.After(1, collectorTick)
+        elseif event == "GROUP_ROSTER_UPDATE" then
+            -- rafale (raid) : une seule relecture
+            if not iconsQueued then
+                iconsQueued = true
+                C_Timer.After(0.5, function() iconsQueued = false updateIcons() end)
+            end
         else
             updateIcons()
         end

@@ -90,7 +90,7 @@ local function store(e)
             table.remove(list, i)
             list[#list + 1] = x
             if notify then notify(x, false) end
-            return
+            return x
         end
     end
     e.key = key
@@ -100,6 +100,7 @@ local function store(e)
     list[#list + 1] = e
     while #list > MAX_ERRORS do table.remove(list, 1) end
     if notify then notify(e, true) end
+    return e
 end
 
 ---------------------------------------------------------------------------
@@ -130,14 +131,29 @@ local function record(msg, stack, locals)
     if C_Log and C_Log.LogErrorMessage and readable(msg) and (stack == nil or readable(stack)) then
         pcall(C_Log.LogErrorMessage, string.format("Lua Error: %s\n%s", tostring(msg), tostring(stack or "")))
     end
-    store({ msg = m, stack = st, locals = lo, time = time(), kind = "error" })
+    return store({ msg = m, stack = st, locals = lo, time = time(), kind = "error" })
 end
 
+-- avalanche (la meme erreur a chaque image) : dans la seconde qui suit,
+-- elle est seulement comptee, sans relire pile et locales (couteux)
+local stormMsg, stormAt, stormEntry = nil, 0, nil
 local function onError(msg)
     if handling then return end
     handling = true
+    local now = GetTime()
+    local plain = type(msg) == "string" and not issecret(msg) and msg or nil
+    if plain and plain == stormMsg and stormEntry and now - stormAt < 1 and now >= stormAt then
+        stormEntry.count = (stormEntry.count or 1) + 1
+        stormEntry.sessCount = (stormEntry.sessCount or 1) + 1
+        stormEntry.last = time()
+        stormAt = now
+        if notify then pcall(notify, stormEntry, false) end
+        handling = false
+        return
+    end
     local stack, locals = errorData()
-    pcall(record, msg, stack, locals)
+    local ok, e = pcall(record, msg, stack, locals)
+    stormMsg, stormAt, stormEntry = plain, now, ok and e or nil
     handling = false
 end
 ns._errOnError = onError

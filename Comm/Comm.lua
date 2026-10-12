@@ -820,11 +820,16 @@ local function guildKnown()
 end
 
 local ev = CreateFrame("Frame")
+local rosterQueued = false
 ev:SetScript("OnEvent", function(_, event, ...)
     if event == "CHAT_MSG_ADDON" then
         onAddon(...)
     elseif event == "GROUP_ROSTER_UPDATE" or event == "GROUP_JOINED" or event == "GROUP_LEFT" then
-        rosterChanged()
+        -- plusieurs dans la meme image : un seul passage, a la suivante
+        if not rosterQueued then
+            rosterQueued = true
+            C_Timer.After(0, function() rosterQueued = false rosterChanged() end)
+        end
     elseif event == "PLAYER_REGEN_ENABLED" then
         afterCombat()
     elseif event == "PLAYER_GUILD_UPDATE" or event == "GUILD_ROSTER_UPDATE" then

@@ -33,13 +33,21 @@ function ns.FontList()
     return list
 end
 
+-- (memorisee : cle choisie et nombre de polices connues inchanges)
+local BLIZZARD = { key = "Blizzard" }
+local curKey, curN, curFont
 local function current()
     local key = ns.root and ns.root.font
     if key == nil then key = "Roboto" end           -- defaut demande
+    local root = ns.root or {}
+    local n = #(ns.FONT_REGISTRY or {}) + #(root.fontsUser or {})
+    if curFont and curKey == key and curN == n then return curFont end
+    curFont = BLIZZARD
     for _, f in ipairs(ns.FontList()) do
-        if f.key == key then return f end
+        if f.key == key then curFont = f break end
     end
-    return { key = "Blizzard" }
+    curKey, curN = key, n
+    return curFont
 end
 
 -- La police choisie s applique-t-elle a la langue du jeu ?

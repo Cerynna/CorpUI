@@ -112,31 +112,31 @@ Chaque point coché est fait, testé hors jeu (bancs d'essai : tous les bancs do
 
 ## Lot 5 — Sauvegarde (temps de connexion et de déconnexion, mémoire)
 
-- [ ] **Entraîneurs** (SpellsAheadDB.trainer, 329 Ko). Description retirée quand le sort est connu par son numéro (jamais affichée) ; cible environ 100 Ko.
-- [ ] **Prix de l'HV.**
-  - Historique plafonné à 14 jours (ce que les calculs utilisent) au lieu de 30.
+- [x] **Entraîneurs** (SpellsAheadDB.trainer, 327 Ko). Description retirée quand le sort est connu par son numéro (jamais affichée) : 924 descriptions sur 930, environ 216 Ko en moins dans la sauvegarde actuelle (reste environ 110 Ko). Fait une fois à la connexion (CACHE_VERSION 4).
+- [x] **Prix de l'HV.**
+  - Historique plafonné aux jours que les calculs utilisent : 14 (valeur marché), ou la durée de la moyenne si elle est plus longue (jusqu'à 30). Une moyenne allongée après coup se remplit au fil des jours.
   - Objets disparus purgés aussi à la connexion.
-- [ ] **Comptabilité de l'HV (bogue).**
-  - Doublons de ventes (acheteur d'abord vide, puis nommé) : ventes et bénéfice gonflés.
+- [x] **Comptabilité de l'HV (bogue).**
+  - Doublons de ventes (acheteur d'abord vide, puis nommé) : ventes et bénéfice gonflés. La clé du courrier ne contient plus l'acheteur (les anciennes clés restent reconnues), et les doublons déjà enregistrés sont fusionnés à la connexion (la première vente garde sa date et prend le nom de l'acheteur).
   - Opérations de plus de 90 jours retirées.
-- [ ] **Historique du chat, erreurs, noms d'objets, diagnostics.** Purge des anciens.
+- [x] **Historique du chat, erreurs, noms d'objets, diagnostics.** Déjà plafonnés, rien à ajouter : lignes gardées par fenêtre de chat (réglage, 200 au plus), 200 erreurs, diagnostics des cadres refaits à chaque session.
 
 ## Lot 6 — Divers
 
-- [ ] **Polices.** Police résolue mise en cache.
-- [ ] **Minicarte.**
-  - Rejets d'épingles mémorisés.
-  - Zone et heure seulement au changement.
+- [x] **Polices.** Police résolue mise en cache (avant : liste des polices refaite à chaque appel).
+- [x] **Minicarte.**
+  - Rejets d'épingles mémorisés (réexaminés après 30 s).
+  - Zone, coordonnées et heure posées seulement au changement.
   - Pas de doublons dans les textes cachés.
-  - GROUP_ROSTER_UPDATE retiré des icônes.
-- [ ] **Comm.**
-  - Changements de groupe regroupés.
-  - Mode de noms mis en cache.
+  - Icônes relues une fois par rafale de GROUP_ROSTER_UPDATE (gardé : une icône peut en dépendre).
+- [x] **Comm.**
+  - Changements de groupe d'une même image regroupés.
   - Accesseur sans fermeture dans la liste de guilde.
-- [ ] **Erreurs.** En avalanche, une erreur déjà vue est seulement comptée.
-- [ ] **Comparaison.** Rafraîchie seulement si l'envie de comparer change.
-- [ ] **`ns.UI.SelectedTab`.** Constante au lieu d'une table neuve.
-- [ ] **Échelle.** Variables de l'échelle écrites seulement si elles changent.
+  - Mode de noms : déjà lu une fois par appel, laissé tel quel.
+- [x] **Erreurs.** En avalanche, la même erreur dans la seconde est seulement comptée, sans relire pile et locales (ni réécrire le journal du jeu).
+- [x] **Comparaison.** Rafraîchie seulement si l'envie de comparer change (Ctrl ou Alt seuls ne refont plus rien).
+- [x] **`ns.UI.SelectedTab`.** Constante au lieu d'une table neuve.
+- [x] **Échelle.** Variables de l'échelle écrites seulement si elles changent.
 
 ## Ce qui reste à faire en jeu
 

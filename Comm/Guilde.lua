@@ -34,9 +34,10 @@ local SIZE = 16                         -- plaque : logo de 12 + fond + lisere
 local lit = false                       -- au moins une plaque affichee
 local dirty = true
 
+local function getField(t, k) return t[k] end
 local function read(t, k)
     if type(t) ~= "table" then return nil end
-    local ok, v = pcall(function() return t[k] end)
+    local ok, v = pcall(getField, t, k)
     if not ok or issecret(v) then return nil end
     return v
 end
