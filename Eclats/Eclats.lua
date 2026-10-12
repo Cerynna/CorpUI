@@ -49,10 +49,14 @@ for k in pairs(LOOT_ON) do WATCH[k:lower()] = true end
 -- ciblage doux : valeurs voulues ; les anciennes sont gardees dans db.saved
 local SOFT_ON = {
     SoftTargetInteract = 3, SoftTargetInteractRange = 60, SoftTargetInteractArc = 2,
-    SoftTargetInteractOnlyInRange = 0, SoftTargetIconInteract = 1, SoftTargetIconGameObject = 1,
-    SoftTargetLowPriorityIcons = 1,
+    SoftTargetInteractOnlyInRange = 0,
 }
+-- ouverts seulement sur un objet voulu (13/10 : toujours ouverts, les icones
+-- montraient aussi la sacoche des marchands et la bulle des PNJ) ; fermes,
+-- la plaque est coupee et les icones reprennent les reglages d avant
 local GATE = "SoftTargetNameplateInteract"   -- plaque de l objet vise
+local GATE_ON = { SoftTargetNameplateInteract = 1, SoftTargetIconInteract = 1, SoftTargetIconGameObject = 1,
+                  SoftTargetLowPriorityIcons = 1 }
 
 local SOFT = "softinteract"
 local STAR = "Interface\\Cooldown\\star4"
@@ -120,16 +124,23 @@ end
 local function setGate(open)
     if open == gate or InCombatLockdown() then return end
     gate = open
-    setCVar(GATE, open and 1 or 0)
+    for name, v in pairs(GATE_ON) do
+        local off = 0
+        if name ~= GATE and db and type(db.saved) == "table" and db.saved[name] ~= nil and db.saved[name] ~= false then
+            off = db.saved[name]
+        end
+        setCVar(name, open and v or off)
+    end
 end
 
 local function applySoft()
     if InCombatLockdown() then pendingSoft = "apply" return end
     db.saved = db.saved or {}
-    for name in pairs(SOFT_ON) do
-        if db.saved[name] == nil then db.saved[name] = getCVar(name) or false end
+    for _, list in ipairs({ SOFT_ON, GATE_ON }) do
+        for name in pairs(list) do
+            if db.saved[name] == nil then db.saved[name] = getCVar(name) or false end
+        end
     end
-    if db.saved[GATE] == nil then db.saved[GATE] = getCVar(GATE) or false end
     for name, v in pairs(SOFT_ON) do setCVar(name, v) end
     gate = nil
 end
