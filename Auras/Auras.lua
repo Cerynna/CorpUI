@@ -11,10 +11,11 @@
     Les cadres BuffFrame / DebuffFrame de Blizzard vont au parent cache.
     - Enchantements d arme temporaires (13/10 : pierre a aiguiser, poison,
       armes du chaman ; la fenetre des buffs de Blizzard les montrait) :
-      deux emplacements a droite des buffs (main droite, main gauche),
-      icone de l arme, temps restant, charges ; clic droit : annuler
-      (action securisee "cancelaura" sur l emplacement). Boutons securises
-      toujours affiches : sans enchantement, transparents.
+      EN TETE des buffs, dans leur rangee (main droite, puis main gauche),
+      les buffs decales d une case par enchantement present ; icone de
+      l arme, temps restant, charges ; clic droit : annuler (action
+      securisee "cancelaura" sur l emplacement). Places hors combat : un
+      enchantement pose en combat prend sa case a la fin du combat.
 
     Disposition par groupe (db.layout.buffs / debuffs / target) : taille,
     nombre par ligne, nombre maximum, espacement, sens (haut / bas), temps
@@ -269,25 +270,54 @@ local function buildEnchants()
     end
 end
 
--- a droite des buffs (ils partent du bord droit vers la gauche) ; hors combat
+-- enchantements places en tete des buffs (hors combat) ; reserved : cases
+-- prises, les buffs commencent apres
+local reserved = 0
+local placedSig = ""
+local enchantPending = false
+
+local function presentSig()
+    local sig = ""
+    for k, b in ipairs(enchants) do
+        if b.has and db.weaponEnchants then sig = sig .. k end
+    end
+    return sig
+end
+
 local function layoutEnchants()
     local c = db.layout.buffs
     local timeH = c.time == "below" and TIME_H or 0
-    for k, b in ipairs(enchants) do
-        local x = c.spacing + (k - 1) * (c.size + c.spacing)
+    local slot = 0
+    for _, b in ipairs(enchants) do
         b:SetSize(c.size, c.size)
         b:ClearAllPoints()
-        if c.grow == "up" then
-            b:SetPoint("BOTTOMLEFT", buffHeader, "BOTTOMRIGHT", x, timeH)
-        else
-            b:SetPoint("TOPLEFT", buffHeader, "TOPRIGHT", x, 0)
-        end
         b.time:SetShown(c.time ~= "none")
-        b:Show()
+        if b.has and db.weaponEnchants then
+            local x = slot * (c.size + c.spacing)
+            slot = slot + 1
+            if c.center then
+                -- icones centrees : a droite du bloc
+                b:SetPoint("TOPLEFT", buffHeader, "TOPRIGHT", c.spacing + x, 0)
+            elseif c.grow == "up" then
+                b:SetPoint("BOTTOMRIGHT", buffHeader, "BOTTOMRIGHT", -x, timeH)
+            else
+                b:SetPoint("TOPRIGHT", buffHeader, "TOPRIGHT", -x, 0)
+            end
+            b.placed = true
+            b:Show()
+        else
+            -- sans enchantement : cache (sinon il prendrait les clics d un buff)
+            b.placed = false
+            b:Hide()
+        end
     end
+    reserved = c.center and 0 or slot
+    placedSig = presentSig()
 end
 
--- etat des enchantements : transparence, icone, temps (permis en combat)
+-- etat des enchantements : icone, temps, transparence (permis en combat) ;
+-- un enchantement apparu ou parti : nouvelle disposition hors combat
+local relayoutBuffs
 local function updateEnchants()
     for _, b in ipairs(enchants) do
         local has, left, charges = enchantInfo(b.off)
@@ -299,15 +329,16 @@ local function updateEnchants()
                 b.icon:SetTexture(ok and not issecret(tex) and tex or "Interface\\Icons\\INV_Misc_QuestionMark")
                 b.time:SetText(left and formatLeft(left) or "")
                 b.count:SetText((charges or 0) > 1 and charges or "")
-                b:SetAlpha(1)
             else
                 b.icon:SetTexture(nil)
                 b.time:SetText("")
                 b.count:SetText("")
-                b:SetAlpha(0)
             end
         end
+        -- visible seulement a une case prevue pour lui
+        b:SetAlpha((b.has and b.placed) and 1 or 0)
     end
+    if presentSig() ~= placedSig and relayoutBuffs then relayoutBuffs() end
 end
 ns._enchants = { list = enchants, update = function() updateEnchants() end }
 
@@ -423,12 +454,20 @@ local function playerSpec(key)
     }
     if key == "buffs" then
         spec.cancel = "RightButtonUp"
+        if reserved > 0 and not c.center then
+            local point = (c.grow == "up" and "BOTTOM" or "TOP") .. "RIGHT"
+            spec.anchor = { buffHeader, point, -reserved * (c.size + c.spacing), 0 }
+        end
         spec.groups = { { key = "buffs", filter = "HELPFUL", candidate = {} } }
     else
         spec.groups = { { key = "debuffs", filter = "HARMFUL", candidate = ns.AurasSpellFilter("debuffs") } }
     end
     return spec
 end
+
+-- banc d essai : decalage des buffs (cases prises par les enchantements)
+ns._enchants.reserved = function() return reserved end
+ns._enchants.buffSpec = function() return playerSpec("buffs") end
 
 local function buildNativePlayer()
     if not ns.NativeAuras then return end
@@ -476,7 +515,8 @@ local function layoutGroup(key)
     h:SetSize(per * stepX, math.ceil(n / per) * stepY)
     local font = (ns.FontFile and ns.FontFile("regular")) or STANDARD_TEXT_FONT
     for i, b in ipairs(list) do
-        local col, row = (i - 1) % per, math.floor((i - 1) / per)
+        local at = i - 1 + (key == "buffs" and reserved or 0)
+        local col, row = at % per, math.floor(at / per)
         local x = fromRight and -col * stepX or col * stepX
         b:SetSize(c.size, c.size)
         b:ClearAllPoints()
@@ -513,6 +553,13 @@ local function layoutGroup(key)
     if key == "buffs" and not InCombatLockdown() then
         for _, b in ipairs(list) do b:SetShown(b.inRange) end
     end
+end
+
+relayoutBuffs = function()
+    if InCombatLockdown() then enchantPending = true return end
+    enchantPending = false
+    layoutGroup("buffs")
+    updateEnchants()
 end
 
 -- Au-dessus de notre cadre cible s il existe (vers le haut), ou en
@@ -991,6 +1038,8 @@ ev:SetScript("OnEvent", function(_, event, unit)
         if unit == "player" then updatePlayer() elseif unit == "target" then updateTarget() end
     elseif event == "UNIT_INVENTORY_CHANGED" or event == "PLAYER_EQUIPMENT_CHANGED" then
         updateEnchants()
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        if enchantPending then relayoutBuffs() end
     elseif event == "PLAYER_TARGET_CHANGED" then
         updateTarget()
     elseif event == "PLAYER_ENTERING_WORLD" then
@@ -998,7 +1047,7 @@ ev:SetScript("OnEvent", function(_, event, unit)
     end
 end)
 for _, e in ipairs({ "PLAYER_LOGIN", "UNIT_AURA", "PLAYER_TARGET_CHANGED", "PLAYER_ENTERING_WORLD",
-                     "UNIT_INVENTORY_CHANGED", "PLAYER_EQUIPMENT_CHANGED" }) do
+                     "UNIT_INVENTORY_CHANGED", "PLAYER_EQUIPMENT_CHANGED", "PLAYER_REGEN_ENABLED" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
 
