@@ -146,6 +146,9 @@ end
 ---------------------------------------------------------------------------
 
 local iconBar, diffBtn, trackBtn, mailBtn
+-- icones d autres modules (Erreurs...) : ns.MapIconsExtra = { { key, setup(b) } },
+-- boutons crees ici au meme style ; b.want dit s il faut l afficher
+local extraBtns = {}
 
 local function iconButton()
     local b = CreateFrame("Button", nil, iconBar)
@@ -326,6 +329,13 @@ local function buildIcons()
         t:Show()
     end)
 
+    for _, x in ipairs(ns.MapIconsExtra or {}) do
+        local b = iconButton()
+        b.extraKey = x.key
+        pcall(x.setup, b)
+        extraBtns[#extraBtns + 1] = b
+    end
+
     mailBtn = iconButton()
     setAtlasOr(mailBtn.icon, "ui-hud-minimap-mail-up", "Interface\\Minimap\\Tracking\\Mailbox")
     mailBtn:SetScript("OnEnter", function(self)
@@ -356,6 +366,9 @@ layoutIcons = function()
             b:Hide()
         end
     end
+    for _, b in ipairs(extraBtns) do
+        if on and b.want then table.insert(list, b) else b:Hide() end
+    end
     local x = 0
     for _, b in ipairs(list) do
         local w = size
@@ -384,6 +397,11 @@ layoutIcons = function()
         iconBar:SetPoint("TOPRIGHT", Minimap, "TOPRIGHT", -3, -3)
     end
     iconBar:SetShown(#list > 0)
+end
+
+-- un autre module a change l etat de son icone
+function ns.MapIconsRefresh()
+    if iconBar then layoutIcons() end
 end
 
 local function updateIcons()

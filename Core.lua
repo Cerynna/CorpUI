@@ -2485,6 +2485,7 @@ local PAGES = {
     { key = "hv", cmds = { "hv", "compta" } },
     { key = "talents", cmds = { "talents" } },
     { key = "sorts", cmds = { "sorts" } },
+    { key = "erreurs", cmds = { "erreurs" } },
     { key = "jeux", label = "PAGE_GAMES", cmds = { "murloc", "minerais", "podometre" } },
 }
 local MEDIA = ns.MEDIA

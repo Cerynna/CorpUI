@@ -24,6 +24,11 @@ Media\Fonts\Fonts.lua
 Polices.lua
 Defauts.lua
 
+# Module Erreurs : capture des erreurs Lua (tot : celles du chargement des
+# modules suivants aussi), icone dans la barre de la minicarte
+Erreurs\Strings.lua
+Erreurs\Erreurs.lua
+
 # Communication entre CorpUI (ns.Comm : avant les modules qui l utilisent)
 Comm\Strings.lua
 Comm\Comm.lua
