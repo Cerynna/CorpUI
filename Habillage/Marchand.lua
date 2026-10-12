@@ -836,11 +836,8 @@ ev:SetScript("OnEvent", function(_, event)
 end)
 pcall(ev.RegisterEvent, ev, "PLAYER_REGEN_ENABLED")
 
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.1 then return end
-    walkAcc = walkAcc + acc
-    acc = 0
+ns.Every(0.1, function(dt)
+    walkAcc = walkAcc + dt
     if not db() or InCombatLockdown() then return end
     local mf = global("MerchantFrame")
     if not mf or not mf.CreateTexture or not visible(mf) then
@@ -853,4 +850,4 @@ ev:SetScript("OnUpdate", function(_, dt)
         try(full, mf)
     end
     try(light, mf)
-end)
+end, "Habillage : Marchand", "habillage")

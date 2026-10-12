@@ -137,9 +137,7 @@ end)
 pcall(ev.RegisterEvent, ev, "PLAYER_LOGIN")
 pcall(ev.RegisterEvent, ev, "ADDON_LOADED")
 local since = 0
-ev:SetScript("OnUpdate", function(_, dt)
-    since = since + dt
-    if since < 1 or not db then return end
-    since = 0
+ns.Every(1, function()
+    if not db then return end
     scan()
-end)
+end, "Habillage : Deplacer", "habillage")

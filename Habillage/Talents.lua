@@ -850,11 +850,8 @@ local function pageKey(tf)
     return ""
 end
 
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.2 then return end
-    walkAcc = walkAcc + acc
-    acc = 0
+ns.Every(0.2, function(dt)
+    walkAcc = walkAcc + dt
     if not db() or InCombatLockdown() then return end
     local tf = talentsPage()
     if not visible(tf) then
@@ -871,4 +868,4 @@ ev:SetScript("OnUpdate", function(_, dt)
         end
     end
     pcall(light, tf)
-end)
+end, "Habillage : Talents", "habillage")

@@ -1499,11 +1499,8 @@ ev:SetScript("OnEvent", function(_, event)
 end)
 pcall(ev.RegisterEvent, ev, "PLAYER_REGEN_ENABLED")
 
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.2 then return end
-    walkAcc = walkAcc + acc
-    acc = 0
+ns.Every(0.2, function(dt)
+    walkAcc = walkAcc + dt
     if not db() or InCombatLockdown() then return end
     local walked, any, main = false, false, nil
     for _, spec in ipairs(ROOTS) do
@@ -1532,4 +1529,4 @@ ev:SetScript("OnUpdate", function(_, dt)
     end
     if walked then walkAcc = 0 end
     if any then try("releve", light, main) end
-end)
+end, "Habillage : Communautes", "habillage")

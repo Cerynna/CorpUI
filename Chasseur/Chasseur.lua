@@ -359,7 +359,7 @@ local function build()
     -- distance : relue 10 fois par seconde (chasseurs seulement)
     pill.watch = ns.Every(0.1, function()
         if hunter or pill:IsShown() then update() end
-    end, "Chasseur : distance")
+    end, "Chasseur : distance", "chasseur")
 end
 
 local function apply()

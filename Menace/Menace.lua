@@ -248,4 +248,4 @@ ns.Every(0.2, function()
         hideWarn()
         geterrorhandler()(err)
     end
-end, "Menace : alerte")
+end, "Menace : alerte", "compteur")

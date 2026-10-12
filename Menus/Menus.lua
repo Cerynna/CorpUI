@@ -547,7 +547,7 @@ ns.Every(0.2, function()
         layoutTick = 0
         layoutMicro()
     end
-end, "Menus")
+end, "Menus", "barres")
 
 -- poignees de deplacement affichees / masquees : visibilite de la barre de
 -- formes a revoir (son pilote d etat est suspendu pendant le placement)

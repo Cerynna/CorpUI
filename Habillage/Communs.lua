@@ -859,13 +859,10 @@ ev:SetScript("OnEvent", function()
 end)
 pcall(ev.RegisterEvent, ev, "PLAYER_REGEN_ENABLED")
 
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < TICK then return end
-    acc = 0
+ns.Every(TICK, function()
     if InCombatLockdown() then return end
     local d = ns.skinsDB
     if type(d) ~= "table" or not d.enabled then return end
     local ok, err = pcall(pass, GetTime())
     if not ok then report(err) end
-end)
+end, "Habillage : Communs", "habillage")

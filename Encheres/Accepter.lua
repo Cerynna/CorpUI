@@ -72,6 +72,8 @@ local driver = CreateFrame("Frame")
 driver:SetScript("OnUpdate", function()
     local o = buyOpts()
     if not (o and o.atButton) then return end
+    -- la confirmation d achat n existe qu a l hotel des ventes
+    if not AH.visible(_G.AuctionHouseFrame) then return end
     local btn
     for i = 1, 4 do
         local dlg = _G["StaticPopup" .. i]

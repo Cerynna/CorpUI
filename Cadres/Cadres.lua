@@ -1371,7 +1371,7 @@ ns.Every(0.25, function()
     end
     f.totGUID = (ok and g and not issecret(g)) and g or nil
     updateAll(f)
-end, "Cadres : cible de la cible")
+end, "Cadres : cible de la cible", "cadres")
 
 -- module "cadres" : editeur de tous les cadres (Cadres/Editeur.lua)
 

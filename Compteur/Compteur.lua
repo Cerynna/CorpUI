@@ -1113,7 +1113,7 @@ ns.Every(0.2, function(dt)
     if tick >= 1 and InCombatLockdown() then tick = 0 dirty = true end
     if threatShown() then dirty = true end
     if dirty then refreshAll() end
-end, "Compteur")
+end, "Compteur", "compteur")
 
 ns.Listen(function() if db then dirty = true styleVer = styleVer + 1 end end)
 

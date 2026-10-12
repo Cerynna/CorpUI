@@ -1558,11 +1558,7 @@ for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_REGEN_DISABLED", "ADDON_ACTION_BLOC
 end
 
 -- releve sur NOTRE cadre (aucun crochet) : barre et guide suivent la page
-local acc = 0
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.3 then return end
-    acc = 0
+ns.Every(0.3, function()
     if not db then return end
     local tf = talentsPage()
     local shown = visible(tf)
@@ -1577,7 +1573,7 @@ ev:SetScript("OnUpdate", function(_, dt)
         local ok, err = pcall(updateBar, tf, dec)
         if not ok then M.lastError = tostring(err) end
     end
-end)
+end, "Talents", "talents")
 
 ---------------------------------------------------------------------------
 

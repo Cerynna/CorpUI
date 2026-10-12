@@ -811,14 +811,14 @@ ns.Every(0.1, function()
             applyReady(f.castReady, f.castNotInt, states)
         end
     end
-end, "Plaques : interruption prete")
+end, "Plaques : interruption prete", "plaques")
 ns.Every(0.2, function()
     if not db or not db.enabled then return end
     for _, f in pairs(active) do
         local uf = f.plate and blizzUnitFrame(f.plate)
         if uf and uf:GetAlpha() > 0 then uf:SetAlpha(0) end
     end
-end, "Plaques : opacite du jeu")
+end, "Plaques : opacite du jeu", "plaques")
 
 -- police ou theme changes : prochaines accroches refaites
 ns.Listen(function() layoutVer = layoutVer + 1 end)

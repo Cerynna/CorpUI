@@ -1183,11 +1183,8 @@ ev:SetScript("OnEvent", function(_, event)
 end)
 pcall(ev.RegisterEvent, ev, "PLAYER_REGEN_ENABLED")
 
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.2 then return end
-    walkAcc = walkAcc + acc
-    acc = 0
+ns.Every(0.2, function(dt)
+    walkAcc = walkAcc + dt
     if not db() or InCombatLockdown() then return end
     local root = _G.LFGParentFrame
     if not reserved and type(root) == "table" then pcall(reserve) end
@@ -1205,4 +1202,4 @@ ev:SetScript("OnUpdate", function(_, dt)
         end
     end
     pcall(light, root)
-end)
+end, "Habillage : RechercheGroupe", "habillage")

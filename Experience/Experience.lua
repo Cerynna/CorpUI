@@ -621,7 +621,7 @@ ns.Every(1, function()
     if not db then return end
     tick()
     update()
-end, "Experience")
+end, "Experience", "xp")
 
 ns.RegisterModule({
     command = "xp",

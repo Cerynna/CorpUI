@@ -1218,13 +1218,13 @@ ns.Every(0.2, function()
     end
     alertsIdle = false
     checkAlerts()
-end, "Groupe : alertes")
+end, "Groupe : alertes", "groupe")
 ns.Every(0.5, function()
     if not db or not grouped() then return end
     for _, b in pairs(buttons) do
         if b:IsVisible() then UF.Range(b, b:GetAttribute("unit"), (hs and hs.rangeAlpha or 45) / 100) end
     end
-end, "Groupe : portee")
+end, "Groupe : portee", "groupe")
 
 -- reglages : editeur des cadres (Cadres/Editeur.lua), cadre "Groupe"
 ns.RegisterModule({

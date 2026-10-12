@@ -586,7 +586,7 @@ ns.Every(1, function()
     if not db then return end
     local ok, err = pcall(update)
     if not ok then geterrorhandler()(err) end
-end, "Rappels")
+end, "Rappels", "rappels")
 
 ns.RegisterModule({
     command = "rappels",

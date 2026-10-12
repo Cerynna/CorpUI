@@ -499,13 +499,7 @@ local function tick()
     refreshCurrent()
 end
 
-local driver = CreateFrame("Frame")
-driver:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.25 then return end
-    acc = 0
-    tick()
-end)
+ns.Every(0.25, function() tick() end, "HV : panneau", "hv")
 
 -- bouton "CorpUI" a gauche de la barre de scan
 ns.AHBarHooks = ns.AHBarHooks or {}

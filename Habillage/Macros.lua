@@ -304,11 +304,8 @@ local function report(err)
 end
 
 local ev = CreateFrame("Frame")
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.1 then return end
-    walkAcc = walkAcc + acc
-    acc = 0
+ns.Every(0.1, function(dt)
+    walkAcc = walkAcc + dt
     if not db() or InCombatLockdown() then return end
     -- cases recyclees au defilement : parcours a l ouverture puis toutes
     -- les 0,4 s
@@ -332,4 +329,4 @@ ev:SetScript("OnUpdate", function(_, dt)
         local ok, err = pcall(light)
         if not ok then report(err) end
     end
-end)
+end, "Habillage : Macros", "habillage")

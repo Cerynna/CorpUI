@@ -251,7 +251,7 @@ local function scan()
 end
 
 local ev = CreateFrame("Frame")
-ns.Every(0.5, scan, "Compteur du jeu : habillage")
+ns.Every(0.5, scan, "Compteur du jeu : habillage", "compteur")
 ev:RegisterEvent("PLAYER_LOGIN")
 ev:SetScript("OnEvent", function()
     if ns.ModuleOff("compteur", ev) then return end

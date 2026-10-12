@@ -1315,6 +1315,7 @@ end
 
 local ev = CreateFrame("Frame")
 local acc, walkAcc = 0, 0
+local textWasOn = true
 local wasShown, lastKey = false, nil
 
 ev:SetScript("OnEvent", function(_, event)
@@ -1323,17 +1324,17 @@ ev:SetScript("OnEvent", function(_, event)
 end)
 pcall(ev.RegisterEvent, ev, "PLAYER_REGEN_ENABLED")
 
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.2 then return end
-    walkAcc = walkAcc + acc
-    acc = 0
+ns.Every(0.2, function(dt)
+    walkAcc = walkAcc + dt
     local map = _G.WorldMapFrame
     local vis = type(map) == "table" and map.CreateTexture ~= nil and visible(map)
     local open = vis and db() ~= nil
     -- textes de QuestInfo (fiche, dialogue des PNJ) : suivis aussi en
-    -- combat (SetTextColor seul)
-    run("QuestLogText", textPass, mapOn())
+    -- combat (SetTextColor seul) ; carte fermee, une derniere passe puis
+    -- rien (PNJ.lua fait les siennes, fenetre du PNJ ouverte)
+    local textNow = mapOn()
+    if textNow or textWasOn then run("QuestLogText", textPass, textNow) end
+    textWasOn = textNow
     if not vis then
         wasShown = false
         return
@@ -1353,4 +1354,4 @@ ev:SetScript("OnUpdate", function(_, dt)
     end
     -- etat de nos textures : toujours (combat, habillage coupe compris)
     run("QuestLogState", state)
-end)
+end, "Habillage : JournalQuetes", "habillage")

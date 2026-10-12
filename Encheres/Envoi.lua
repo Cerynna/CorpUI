@@ -341,12 +341,7 @@ local function tick(dt)
 end
 
 local driver = CreateFrame("Frame")
-driver:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.05 then return end
-    tick(acc)
-    acc = 0
-end)
+ns.Every(0.05, function(dt) tick(dt) end, "HV : envoi", "hv")
 driver:SetScript("OnEvent", function(_, event)
     if ns.ModuleOff("hv", driver) then return end
     if event == "MAIL_SEND_SUCCESS" then

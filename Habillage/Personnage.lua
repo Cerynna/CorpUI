@@ -1103,11 +1103,8 @@ for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_EQUIPMENT_CHANGED", "UPDATE_INVENTO
     pcall(ev.RegisterEvent, ev, e)
 end
 
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.2 then return end
-    walkAcc = walkAcc + acc
-    acc = 0
+ns.Every(0.2, function(dt)
+    walkAcc = walkAcc + dt
     if not db() or InCombatLockdown() then return end
     local cf = _G.CharacterFrame
     if type(cf) ~= "table" or not cf.CreateTexture then return end
@@ -1137,4 +1134,4 @@ ev:SetScript("OnUpdate", function(_, dt)
         end
     end
     pcall(light, cf)
-end)
+end, "Habillage : Personnage", "habillage")

@@ -515,10 +515,7 @@ for _, e in ipairs({ "PLAYER_LOGIN", "ADDON_LOADED", "PLAYER_REGEN_ENABLED" }) d
     pcall(ev.RegisterEvent, ev, e)
 end
 local since = 0
-ev:SetScript("OnUpdate", function(_, dt)
-    since = since + dt
-    if since < 0.1 then return end
-    since = 0
+ns.Every(0.1, function()
     pcall(hover)
     -- nouvelles fenetres : une fois par seconde
     ev.tick = (ev.tick or 0) + 1
@@ -526,7 +523,7 @@ ev:SetScript("OnUpdate", function(_, dt)
         ev.tick = 0
         scan()
     end
-end)
+end, "Habillage : Skins", "habillage")
 
 ns.RegisterModule({
     command = "habillage",

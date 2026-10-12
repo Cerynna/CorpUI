@@ -1066,7 +1066,7 @@ do
             if fn then pcall(fn) end
         end
     end
-    ns.Every(60, askRoster, "Infos : liste de guilde")
+    ns.Every(60, askRoster, "Infos : liste de guilde", "infos")
     ns._infoAskRoster = askRoster
 end
 pcall(ev.RegisterEvent, ev, "PLAYER_REGEN_ENABLED")

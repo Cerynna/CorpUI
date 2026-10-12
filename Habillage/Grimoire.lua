@@ -1139,11 +1139,8 @@ ev:SetScript("OnEvent", function(_, event)
 end)
 pcall(ev.RegisterEvent, ev, "PLAYER_REGEN_ENABLED")
 
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.1 then return end
-    walkAcc = walkAcc + acc
-    acc = 0
+ns.Every(0.1, function(dt)
+    walkAcc = walkAcc + dt
     if not db() or InCombatLockdown() then
         st.shown = false
         return
@@ -1161,4 +1158,4 @@ ev:SetScript("OnUpdate", function(_, dt)
         try(full, psf)
     end
     try(light, psf)
-end)
+end, "Habillage : Grimoire", "habillage")

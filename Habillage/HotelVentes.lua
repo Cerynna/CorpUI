@@ -1421,11 +1421,8 @@ ev:SetScript("OnEvent", function(_, event)
 end)
 pcall(ev.RegisterEvent, ev, "PLAYER_REGEN_ENABLED")
 
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.1 then return end
-    walkAcc = walkAcc + acc
-    acc = 0
+ns.Every(0.1, function(dt)
+    walkAcc = walkAcc + dt
     if not db() or InCombatLockdown() then return end
     local f = _G.AuctionHouseFrame
     if type(f) ~= "table" or not f.CreateTexture or not visible(f) then
@@ -1446,4 +1443,4 @@ ev:SetScript("OnUpdate", function(_, dt)
     end
     local ok, err = pcall(light, f)
     if not ok then report(err) end
-end)
+end, "Habillage : HotelVentes", "habillage")

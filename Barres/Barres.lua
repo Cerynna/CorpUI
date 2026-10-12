@@ -1218,7 +1218,7 @@ ns.Every(0.2, function()
     for _, b in ipairs(allButtons) do
         if b:IsVisible() then updateRange(b) end
     end
-end, "Barres : portee")
+end, "Barres : portee", "barres")
 
 ns.RegisterModule({
     command = "barres",

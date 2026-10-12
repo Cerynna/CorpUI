@@ -936,10 +936,7 @@ ev:SetScript("OnEvent", function(_, event)
 end)
 pcall(ev.RegisterEvent, ev, "PLAYER_REGEN_ENABLED")
 
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < TICK then return end
-    acc = 0
+ns.Every(TICK, function()
     if not db() or InCombatLockdown() then return end
     local now = GetTime()
     local any = false
@@ -962,4 +959,4 @@ ev:SetScript("OnUpdate", function(_, dt)
         end
     end
     if any then try("releve", light) end
-end)
+end, "Habillage : Canaux", "habillage")

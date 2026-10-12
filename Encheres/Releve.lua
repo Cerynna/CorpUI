@@ -285,12 +285,7 @@ local function tick(dt)
 end
 
 local driver = CreateFrame("Frame")
-driver:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.1 then return end
-    tick(acc)
-    acc = 0
-end)
+ns.Every(0.1, function(dt) tick(dt) end, "HV : releve du courrier", "hv")
 driver:SetScript("OnEvent", function(_, event, who)
     if ns.ModuleOff("hv", driver) then return end
     if event == "MAIL_INBOX_UPDATE" then

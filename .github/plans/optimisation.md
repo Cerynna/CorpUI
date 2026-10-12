@@ -76,13 +76,15 @@ Chaque point coché est fait, testé hors jeu (bancs d'essai : tous les bancs do
 
 ## Lot 3 — Pilotes permanents (fenêtres fermées, modules coupés)
 
-- [ ] **`ns.ModuleOff`** arrête aussi les pilotes du module coupé.
-- [ ] **Habillage.**
-  - Les 20 pilotes ne tournent plus fenêtres fermées.
-  - PNJ n'est plus vérifié à chaque image fenêtres fermées.
-  - Skins et Communs ne repeignent que les éléments des fenêtres ouvertes.
-  - Le journal de quêtes ne refait plus sa passe de textes carte fermée.
-- [ ] **Hôtel des ventes, courrier, butin, métiers, SpellsAhead, talents, chat, chevrons, parent caché, icône d'erreurs, poignées, file de Comm.** Pilotes posés seulement pendant qu'ils servent.
+- [x] **`ns.ModuleOff`** arrête aussi les pilotes du module coupé (OnUpdate du cadre, tâches du planificateur inscrites pour ce module).
+- [x] **Habillage.**
+  - Les 19 pilotes à seuil passent sur le planificateur commun (5 ou 10 fois par seconde au lieu d'un appel à chaque image, arrêtés habillage coupé).
+  - Le journal de quêtes ne refait plus sa passe de textes carte fermée (une dernière passe à la fermeture).
+  - Laissés tels quels : PNJ (ses textes doivent être posés à chaque image avant le rendu), et le repeint de Skins et Communs (il ne travaille déjà que sur les fenêtres affichées).
+- [x] **Hôtel des ventes, courrier, butin, métiers, SpellsAhead, talents, chat, chevrons, parent caché, icône d'erreurs, poignées, file de Comm.** Pilotes posés seulement pendant qu'ils servent.
+  - Panneau, envoi et relève du courrier de l'HV, file des métiers, SpellsAhead, talents, chevrons, parent caché : planificateur commun.
+  - Bouton d'achat de l'HV : rien hors de l'hôtel des ventes.
+  - Déjà au repos quand ils ne servent pas : butin, poignées (seulement déverrouillé), file de Comm (cachée vide), icône d'erreurs (un test par image, seulement si des erreurs existent).
 
 ## Lot 4 — Sacs, économie, outils
 

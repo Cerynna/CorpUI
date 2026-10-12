@@ -962,12 +962,7 @@ function ns.UI.ArrowChevron(btn, dir, size, hide)
     chev:SetPoint("CENTER", btn, "CENTER", 0, 0)
     arrowChevs[btn] = chev
     if not arrowTick then
-        arrowTick = CreateFrame("Frame")
-        local acc = 0
-        arrowTick:SetScript("OnUpdate", function(_, dt)
-            acc = acc + dt
-            if acc < 0.2 then return end
-            acc = 0
+        arrowTick = ns.Every(0.2, function()
             for b, c in pairs(arrowChevs) do
                 if b:IsVisible() then
                     local okE, en = pcall(b.IsEnabled, b)
@@ -981,7 +976,7 @@ function ns.UI.ArrowChevron(btn, dir, size, hide)
                     end
                 end
             end
-        end)
+        end, "Chevrons des fleches")
     end
     return chev
 end
@@ -2179,19 +2174,12 @@ end
 -- erreur : le cadre de Blizzard reapparait. Un releve leger (1 fois par
 -- seconde, hors combat) remet dans le parent cache tout cadre cache qui en
 -- est sorti.
-do
-    local watch = CreateFrame("Frame")
-    local acc = 0
-    watch:SetScript("OnUpdate", function(_, dt)
-        acc = acc + dt
-        if acc < 1 then return end
-        acc = 0
-        if not next(hiddenOrig) or InCombatLockdown() then return end
-        for f in pairs(hiddenOrig) do
-            local ok, p = pcall(f.GetParent, f)
-            if ok and p ~= ns.hiddenParent then pcall(f.SetParent, f, ns.hiddenParent) end
-        end
-    end)
+local function rehide()
+    if not next(hiddenOrig) or InCombatLockdown() then return end
+    for f in pairs(hiddenOrig) do
+        local ok, p = pcall(f.GetParent, f)
+        if ok and p ~= ns.hiddenParent then pcall(f.SetParent, f, ns.hiddenParent) end
+    end
 end
 
 ---------------------------------------------------------------------------
@@ -2262,9 +2250,11 @@ runner:SetScript("OnUpdate", function(_, elapsed)
     recompute()
 end)
 
-function ns.Every(interval, fn, name)
+ns._runner = runner     -- bancs d essai : faire avancer les taches
+
+function ns.Every(interval, fn, name, module)
     local now = clock
-    local j = setmetatable({ interval = interval or 0, fn = fn, name = name or "?", on = true,
+    local j = setmetatable({ interval = interval or 0, fn = fn, name = name or "?", on = true, module = module,
                              last = now, due = now + (interval or 0), ms = 0, calls = 0 }, Job)
     jobs[#jobs + 1] = j
     if j.due < nextDue then nextDue = j.due end
@@ -2273,6 +2263,15 @@ end
 
 -- /corp perf : memoire de CorpUI et taches les plus couteuses
 local perfSince = GetTime()
+-- taches d un module coupe : arretees (ns.ModuleOff)
+function ns.StopJobs(module)
+    for i = 1, #jobs do
+        local j = jobs[i]
+        if j.module == module and j.on then j.on = false end
+    end
+    recompute()
+end
+
 function ns.PerfReport(reset)
     if reset then
         for _, j in ipairs(jobs) do j.ms, j.calls = 0, 0 end
@@ -2298,6 +2297,9 @@ function ns.PerfReport(reset)
             j.on and "active" or "arretee", j.interval))
     end
 end
+
+-- parent cache : cadres de Blizzard ressortis remis en place (voir plus haut)
+ns.Every(1, rehide, "Parent cache")
 
 ns.inits = {}      -- lances a PLAYER_LOGIN (creation des cadres)
 -- ns.Changed() reveille tous les modules (reglages, apercu, deverrouillage) ;
@@ -2472,6 +2474,9 @@ end
 function ns.ModuleOff(key, frame)
     if ns.ModuleOn(key) then return false end
     if frame and frame.UnregisterAllEvents then pcall(frame.UnregisterAllEvents, frame) end
+    -- ses pilotes aussi : OnUpdate du cadre et taches du planificateur
+    if frame and frame.SetScript then pcall(frame.SetScript, frame, "OnUpdate", nil) end
+    if ns.StopJobs then ns.StopJobs(key) end
     return true
 end
 

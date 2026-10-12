@@ -1611,10 +1611,11 @@ end
 
 local driver = CreateFrame("Frame")
 driver.elapsed = 0
-driver:SetScript("OnUpdate", function(self, dt)
+ns.Every(0.1, function(dt)
+    local self = driver
     self.elapsed = self.elapsed + dt
     local open = book.panel ~= nil and book.panel:IsShown()
-    if self.elapsed < (open and 0.1 or 0.25) then return end
+    if self.elapsed < (open and 0.1 or 0.25) - 0.001 then return end
     self.elapsed = 0
     -- rien en combat. Filet : une page restee ouverte (PLAYER_REGEN_DISABLED
     -- manque) est fermee, ce qui ne cache que notre cadre
@@ -1627,7 +1628,7 @@ driver:SetScript("OnUpdate", function(self, dt)
         return
     end
     if open then watch() end
-end)
+end, "SpellsAhead : grimoire", "sorts")
 
 -- clic n importe ou : sur LEUR bande d onglets, on s efface tout de suite
 -- (le sondage ci-dessus rattrape le cas ou l evenement n existe pas)

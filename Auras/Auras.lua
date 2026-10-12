@@ -1114,7 +1114,7 @@ end
 
 ns.Every(1, function()
     if db then tickTimes() end
-end, "Auras : minuteurs")
+end, "Auras : minuteurs", "auras")
 
 -- reglages : editeur des cadres (Cadres/Editeur.lua), cadres Joueur et Cible
 ns.RegisterModule({

@@ -1841,11 +1841,7 @@ end
 ---------------------------------------------------------------------------
 
 local ev = CreateFrame("Frame")
-local acc = 0
-ev:SetScript("OnUpdate", function(_, dt)
-    acc = acc + dt
-    if acc < 0.2 then return end
-    acc = 0
+ns.Every(0.2, function()
     if not db then return end
     pcall(watch)
     if InCombatLockdown() then
@@ -1858,7 +1854,7 @@ ev:SetScript("OnUpdate", function(_, dt)
         M.errShown = true
         ns.Say("|cffff4040" .. tostring(err) .. "|r")
     end
-end)
+end, "Metiers : file", "metiers")
 
 local listPending = false
 ev:SetScript("OnEvent", function(_, event, a1, a2, a3)
