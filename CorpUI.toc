@@ -12,7 +12,7 @@
 ## Notes-zhTW: 模組化工具箱：增益、角色、施法材料、商人、提醒、即將學會的法術。輸入 /corp
 ## Notes-koKR: 모듈식 도구 모음: 강화 효과, 캐릭터, 재료, 상인, 알림, 배울 주문. /corp 입력
 ## Author: ceryn
-## Version: 1.6.0
+## Version: 1.7.0
 ## SavedVariables: CorpUIDB, SpellsAheadDB
 
 Locales.lua
