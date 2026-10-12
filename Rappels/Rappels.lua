@@ -582,14 +582,11 @@ end)
 pcall(ev.RegisterEvent, ev, "PLAYER_LOGIN")
 
 -- verification toutes les secondes : simple et sans risque d evenement manquant
-local elapsed = 0
-ev:SetScript("OnUpdate", function(_, dt)
-    elapsed = elapsed + dt
-    if elapsed < 1 then return end
-    elapsed = 0
+ns.Every(1, function()
+    if not db then return end
     local ok, err = pcall(update)
     if not ok then geterrorhandler()(err) end
-end)
+end, "Rappels")
 
 ns.RegisterModule({
     command = "rappels",

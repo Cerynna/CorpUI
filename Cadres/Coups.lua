@@ -275,7 +275,7 @@ local function tick(_, dt)
             end
         end
     end
-    if rangeAcc >= 0.2 then
+    if rangeAcc >= 0.2 and box:IsShown() then
         rangeAcc = 0
         -- attaque au prochain coup en attente : barre de la main droite en or
         local q = db.queue and #known > 0 and queued() or false

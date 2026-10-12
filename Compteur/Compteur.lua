@@ -92,10 +92,13 @@ local function readable(v)
     return v ~= nil
 end
 
+local function getField(t, k) return t[k] end
 local function field(t, k)
-    local ok, v = pcall(function() return t[k] end)
+    if t == nil then return nil end
+    local ok, v = pcall(getField, t, k)
     if ok then return v end
 end
+local function count(t) return #t end
 
 -- nombre abrege, meme secret (le client sait abreger une valeur secrete) ;
 -- lisible : 320.93M, 12.4K, comme Details
@@ -219,6 +222,9 @@ local function makeRow(parent)
     return r
 end
 
+-- version du style : changee par les reglages (apply) et les changements
+-- generaux (police, theme) ; une ligne n est restylee que si elle a change
+local styleVer = 1
 local function styleRow(r)
     local h = db.barHeight
     local tex = (TEXTURES[db.texture] or TEXTURES.corpui)()
@@ -867,10 +873,13 @@ local function rowAt(w, i, step)
         r:SetScript("OnLeave", function() GameTooltip:Hide() end)
         w.rows[i] = r
     end
-    styleRow(r)
-    r:ClearAllPoints()
-    r:SetPoint("TOPLEFT", 0, -(i - 1) * step)
-    r:SetPoint("RIGHT")
+    if r.styleVer ~= styleVer or r.step ~= step then
+        r.styleVer, r.step = styleVer, step
+        styleRow(r)
+        r:ClearAllPoints()
+        r:SetPoint("TOPLEFT", 0, -(i - 1) * step)
+        r:SetPoint("RIGHT")
+    end
     return r
 end
 
@@ -910,7 +919,7 @@ refreshWindow = function(w)
     w.mode.fs:SetText(modeName(mode) .. "  |cff9a93aa" .. sessionLabel(conf.session) .. "|r")
     local session = fetch(conf.mode, conf.session)
     local list = sources(session)
-    local okN, n = pcall(function() return #list end)
+    local okN, n = pcall(count, list)
     n = okN and n or 0
     local step = db.barHeight + db.barSpacing
     local visible = math.max(1, math.floor((w.body:GetHeight() + db.barSpacing) / step))
@@ -968,6 +977,7 @@ end
 ---------------------------------------------------------------------------
 
 local function apply()
+    styleVer = styleVer + 1
     if not db then return end
     applyShown()
     -- le compteur du jeu doit rester actif : c est notre source
@@ -1096,20 +1106,16 @@ end
 
 -- rafraichissement : sur evenement (au plus 5 fois par seconde), et chaque
 -- seconde en combat (les valeurs par seconde bougent)
-local since, tick = 0, 0
-ev:SetScript("OnUpdate", function(_, dt)
+local tick = 0
+ns.Every(0.2, function(dt)
     if not db or not db.enabled then return end
-    since = since + dt
     tick = tick + dt
     if tick >= 1 and InCombatLockdown() then tick = 0 dirty = true end
-    if since >= 0.2 and threatShown() then dirty = true end
-    if dirty and since >= 0.2 then
-        since = 0
-        refreshAll()
-    end
-end)
+    if threatShown() then dirty = true end
+    if dirty then refreshAll() end
+end, "Compteur")
 
-ns.Listen(function() if db then dirty = true end end)
+ns.Listen(function() if db then dirty = true styleVer = styleVer + 1 end end)
 
 ns.RegisterModule({
     command = "compteur",

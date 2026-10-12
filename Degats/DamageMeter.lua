@@ -251,13 +251,7 @@ local function scan()
 end
 
 local ev = CreateFrame("Frame")
-local since = 0
-ev:SetScript("OnUpdate", function(_, dt)
-    since = since + dt
-    if since < 0.5 then return end
-    since = 0
-    scan()
-end)
+ns.Every(0.5, scan, "Compteur du jeu : habillage")
 ev:RegisterEvent("PLAYER_LOGIN")
 ev:SetScript("OnEvent", function()
     if ns.ModuleOff("compteur", ev) then return end

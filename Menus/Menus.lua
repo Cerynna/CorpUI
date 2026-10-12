@@ -538,18 +538,16 @@ end
 
 -- etat du micro-menu cinq fois par seconde ; disposition toutes les 2 s
 -- (Blizzard montre / cache certains boutons), hors combat
-local since, layoutTick = 0, 0
-ev:SetScript("OnUpdate", function(_, dt)
-    since = since + dt
-    if since < 0.2 or not db or not db.enabled then return end
-    since = 0
+local layoutTick = 0
+ns.Every(0.2, function()
+    if not db or not db.enabled then return end
     refreshMicro()
     layoutTick = layoutTick + 1
     if layoutTick >= 10 and not InCombatLockdown() then
         layoutTick = 0
         layoutMicro()
     end
-end)
+end, "Menus")
 
 -- poignees de deplacement affichees / masquees : visibilite de la barre de
 -- formes a revoir (son pilote d etat est suspendu pendant le placement)

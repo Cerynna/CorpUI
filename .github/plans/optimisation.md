@@ -19,45 +19,46 @@ Chaque point coché est fait, testé hors jeu (bancs d'essai : tous les bancs do
 
 ## Lot 1 — Combat : le plus rentable (événements d'unité, barres, groupe)
 
-- [ ] **Groupe.** Chaque événement d'unité va directement au bouton de l'unité, au lieu de parcourir les 44 boutons (plusieurs centaines d'événements par seconde en raid avec les plaques).
-- [ ] **Groupe.** Vie, puissance, nom et niveau sont mis à jour séparément. UNIT_FLAGS ne relance plus que l'état de mort.
-- [ ] **Groupe.** UNIT_AURA ne construit plus de signature, remplacée par une version des réglages. Les éléments de l'ancien chemin sont cachés une seule fois.
-- [ ] **Groupe et Dissipation.** Rafales de GROUP_ROSTER_UPDATE regroupées. Seules les ancres sont refaites, et seulement si les sous-groupes ont changé.
-- [ ] **Groupe.** Alertes et portée à l'arrêt hors groupe.
-- [ ] **Barres.**
+- [x] **Groupe.** Chaque événement d'unité va directement au bouton de l'unité, au lieu de parcourir les 44 boutons (plusieurs centaines d'événements par seconde en raid avec les plaques).
+- [x] **Groupe.** Vie, puissance, nom et niveau sont mis à jour séparément. UNIT_FLAGS ne relance plus que l'état de mort.
+- [x] **Groupe.** UNIT_AURA ne construit plus de signature, remplacée par une version des réglages. Les éléments de l'ancien chemin sont cachés une seule fois.
+- [x] **Groupe et Dissipation.** Rafales de GROUP_ROSTER_UPDATE regroupées. Seules les ancres sont refaites, et seulement si les sous-groupes ont changé.
+- [x] **Groupe.** Alertes et portée à l'arrêt hors groupe.
+- [x] **Barres.**
   - Rien si les barres CorpUI sont coupées.
   - Mise à jour partielle selon l'événement (recharge, utilisable, état).
   - Boutons cachés sautés, rattrapés à l'affichage.
   - Rafales d'une même image regroupées.
-- [ ] **Barres.** La couleur de portée ne change que si l'état change.
-- [ ] **Menace.** L'alerte lit directement la menace du joueur au lieu de collecter tout le raid 5 fois par seconde.
-- [ ] **Buffs.**
+- [x] **Barres.** La couleur de portée ne change que si l'état change.
+- [x] **Menace.** L'alerte lit directement la menace du joueur au lieu de collecter tout le raid 5 fois par seconde.
+- [x] **Buffs.**
   - Table unité → membre pour UNIT_AURA.
   - Rien en combat (les noms y sont secrets ; un relevé est déjà prévu à la fin du combat).
-- [ ] **Diffusion `ns.Changed`.**
+- [x] **Diffusion `ns.Changed`.**
   - Les rafraîchissements internes de Buffs ne réveillent plus les 24 modules.
   - Cadres ne refait plus deux fois `updateAll`.
-- [ ] **Recharges.** UNIT_FLAGS et UNIT_CONNECTION : seulement les unités du groupe, et seulement si le suivi est affiché.
-- [ ] **Auras.**
+- [x] **Recharges.** UNIT_FLAGS et UNIT_CONNECTION : seulement les unités du groupe, et seulement si le suivi est affiché.
+- [x] **Auras.**
   - UNIT_AURA inscrit pour le joueur et la cible seulement.
   - Plus de rafraîchissement complet du conteneur de la cible à chaque aura : le conteneur du client se met à jour seul.
-- [ ] **Plaques.**
+- [x] **Plaques.**
   - Disposition refaite seulement après un changement de réglage.
   - UNIT_AURA ignoré avec le conteneur natif.
   - Le pilote ne parcourt plus toutes les plaques à chaque image.
-- [ ] **Ressources.**
+- [x] **Ressources.**
   - Une seule mise à jour par variation de puissance (FREQUENT seul).
   - Points de combo seulement pour les classes qui en ont.
   - Étincelles à l'arrêt quand rien n'est à montrer.
-- [ ] **Compteur.**
+- [x] **Compteur.**
   - Style des lignes seulement au changement de réglage.
   - Lectures sans fermeture.
   - Menace partagée avec Menace.
   - Pilote au repos quand rien n'est à faire.
-- [ ] **Cadres.**
+- [x] **Cadres.**
   - Vie et puissance : valeur secrète testée d'abord, sans erreur attrapée à chaque événement.
   - Cible de la cible : relevée seulement quand elle est affichée.
-- [ ] **Coups, Chasseur, Éclats, Totems, Rappels, Expérience, Menus, Raid, DamageMeter.** Pilotes arrêtés quand ils n'ont rien à faire (module coupé, autre classe, rien d'affiché), et travail réduit à ce qui change.
+- [x] **Coups, Chasseur, Éclats, Totems, Rappels, Expérience, Menus, Raid, DamageMeter.** Pilotes arrêtés quand ils n'ont rien à faire (module coupé, autre classe, rien d'affiché), et travail réduit à ce qui change.
+  - Éclats, Totems et Raid tournaient déjà seulement quand ils servent : laissés tels quels.
 
 ## Lot 2 — Infobulles et barre d'infos (actives en permanence)
 

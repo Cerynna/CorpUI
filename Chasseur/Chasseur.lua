@@ -356,15 +356,10 @@ local function build()
     pill.ruler:Hide()
     pill.mover = ns.UI.Mover(pill, db.pos, L.HUNTER_MOVER)
     pill:Hide()
-    -- distance : relue 10 fois par seconde
-    local acc = 0
-    pill.watch = CreateFrame("Frame")
-    pill.watch:SetScript("OnUpdate", function(_, dt)
-        acc = acc + dt
-        if acc < 0.1 then return end
-        acc = 0
-        update()
-    end)
+    -- distance : relue 10 fois par seconde (chasseurs seulement)
+    pill.watch = ns.Every(0.1, function()
+        if hunter or pill:IsShown() then update() end
+    end, "Chasseur : distance")
 end
 
 local function apply()

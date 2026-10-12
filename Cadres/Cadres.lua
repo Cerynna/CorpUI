@@ -310,6 +310,11 @@ end
 
 -- Valeur (vie ou puissance) selon l etiquette ; cur et max peuvent etre
 -- secrets. Renvoie le mode du diagnostic pour "valeur / max".
+-- deux nombres lisibles (pas secrets) : calcul direct, sans pcall
+local function readableNums(a, b)
+    return type(a) == "number" and type(b) == "number" and not issecret(a) and not issecret(b)
+end
+
 local function renderValue(fs, what, unit, kind, cur, max)
     if what == "curmax" or what == "curmaxpct" then
         return setValueText(fs, cur, max, what == "curmaxpct", unit, kind)
@@ -322,29 +327,27 @@ local function renderValue(fs, what, unit, kind, cur, max)
     elseif what == "pct" then
         local okP, p = apiPercent(unit, kind)
         if okP and pcall(fs.SetFormattedText, fs, "%d%%", p) then return end
-        local ok, txt = pcall(function()
-            if max <= 0 then return "" end
-            return math.floor(cur / max * 100 + 0.5) .. "%"
-        end)
-        if ok then fs:SetText(txt) else clear(fs) end
+        if readableNums(cur, max) then
+            fs:SetText(max <= 0 and "" or (math.floor(cur / max * 100 + 0.5) .. "%"))
+        else
+            clear(fs)
+        end
     elseif what == "curpct" then
-        local ok, txt = pcall(function()
-            if max <= 0 then return "" end
-            return short(cur) .. "  " .. math.floor(cur / max * 100 + 0.5) .. "%"
-        end)
-        if ok then fs:SetText(txt) return end
+        if readableNums(cur, max) then
+            fs:SetText(max <= 0 and "" or (short(cur) .. "  " .. math.floor(cur / max * 100 + 0.5) .. "%"))
+            return
+        end
         local okA, a = pcall(AbbreviateNumbers or tostring, cur)
         local okP, p = apiPercent(unit, kind)
         if okA and okP and pcall(fs.SetFormattedText, fs, "%s  %d%%", a, p) then return end
         if okA and pcall(fs.SetFormattedText, fs, "%s", a) then return end
         clear(fs)
     elseif what == "deficit" then
-        local ok, txt = pcall(function()
+        if readableNums(cur, max) then
             local d = max - cur
-            if d <= 0 then return "" end
-            return "-" .. short(d)
-        end)
-        if ok then fs:SetText(txt) return end
+            fs:SetText(d <= 0 and "" or ("-" .. short(d)))
+            return
+        end
         -- valeurs secretes : le manque vient du client (UnitHealthMissing) et
         -- "vie pleine" se traduit en alpha 0 par une courbe ; sinon rien
         local curve = getFullCurve()
@@ -1110,6 +1113,7 @@ local function apply()
     for _, u in ipairs(UNITS) do
         local f = frames[u.unit]
         local show = db[u.show]
+        local wasShown = f:IsShown()
         f:SetScale(db.scale)
         layoutFrame(f)
         if not u.watch then
@@ -1126,7 +1130,8 @@ local function apply()
             f:Hide()
         end
         if f.mover then f.mover:SetShown(unlocked and show) end
-        if u.watch then updateAll(f) end
+        -- un cadre qui vient de s afficher a deja ete relu par son OnShow
+        if u.watch and (wasShown or not f:IsShown()) then updateAll(f) end
     end
     if db.hideBlizzard or db.blizzardHidden then
         blizzard(db.hideBlizzard)
@@ -1352,15 +1357,21 @@ for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_TARGET_CHANGED", "PLAYER_ENTERING_W
 end
 pcall(ev.RegisterUnitEvent, ev, "UNIT_TARGET", "target")
 
--- la cible de la cible n a pas d evenement fiable : relue 4 fois par seconde
-local since = 0
-ev:SetScript("OnUpdate", function(_, dt)
-    since = since + dt
-    if since < 0.25 then return end
-    since = 0
+-- la cible de la cible n a pas d evenement fiable : relue 4 fois par seconde,
+-- seulement affichee ; la meme unite : vie, puissance et textes seulement
+ns.Every(0.25, function()
     local f = frames.targettarget
-    if f and f:IsVisible() then updateAll(f) end
-end)
+    if not (f and f:IsVisible()) then return end
+    local ok, g = pcall(UnitGUID, "targettarget")
+    if ok and g and not issecret(g) and g == f.totGUID then
+        updateInfo(f)
+        updateHealth(f)
+        updatePower(f)
+        return
+    end
+    f.totGUID = (ok and g and not issecret(g)) and g or nil
+    updateAll(f)
+end, "Cadres : cible de la cible")
 
 -- module "cadres" : editeur de tous les cadres (Cadres/Editeur.lua)
 

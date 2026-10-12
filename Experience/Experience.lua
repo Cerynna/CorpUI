@@ -617,14 +617,11 @@ for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "PLAYER_XP_UPDATE"
 end
 
 -- horloge : temps a ce niveau et de session
-local since = 0
-ev:SetScript("OnUpdate", function(_, dt)
-    since = since + dt
-    if since < 1 or not db then return end
-    since = 0
+ns.Every(1, function()
+    if not db then return end
     tick()
     update()
-end)
+end, "Experience")
 
 ns.RegisterModule({
     command = "xp",
