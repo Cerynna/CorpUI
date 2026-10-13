@@ -2,7 +2,7 @@
 
 Branche `optimisation` (13/10/2026). Le plan s'appuie sur quatre audits du code (socle, combat, sacs et économie, habillage) : plus de 100 constats avec leurs numéros de ligne.
 
-Chaque point coché est fait, testé hors jeu (bancs d'essai : tous les bancs donnent les mêmes résultats qu'avant) et commité. Aucun n'a encore été testé en jeu.
+Chaque point coché est fait, testé hors jeu (bancs d'essai : tous les bancs donnent les mêmes résultats qu'avant) et commité. L'ensemble a été validé en jeu le 13/10.
 
 **Règles tenues partout :**
 - aucun crochet sur le code de Blizzard, aucune écriture dans ses globales ;
@@ -140,7 +140,7 @@ Chaque point coché est fait, testé hors jeu (bancs d'essai : tous les bancs do
 
 ## Ce qui reste à faire en jeu
 
-Tout le plan est fait et vérifié hors jeu (bancs d'essai : mêmes résultats qu'avant, sauf les changements voulus ci-dessous). Rien n'a encore été vu en jeu. La branche n'est pas fusionnée dans main.
+Tout le plan est fait et vérifié hors jeu (bancs d'essai : mêmes résultats qu'avant, sauf les changements voulus ci-dessous). **Vu en jeu le 13/10 : tout fonctionne et les performances sont meilleures** ; branche fusionnée dans main. Les points ci-dessous restent à surveiller au fil du jeu.
 
 **Mesurer :** `/reload`, quelques minutes en ville, en combat et en groupe, puis `/corp perf`. Comparer avec main si besoin (`/corp perf reset` remet les compteurs à zéro).
 
