@@ -738,7 +738,7 @@ local function layout()
     -- trousseau de cles : son propre bloc (toutes les cases, ou seulement
     -- celles qui ont une cle)
     local keyMode = db.keyring or "all"
-    if keyMode ~= "off" and keyringShown() then
+    if db.showKeyring and keyringShown() then
         local list = {}
         for slot = 1, keyringSize() do
             if keyMode == "all" or containerInfo(KEY_BAG, slot) then list[#list + 1] = slot end
@@ -819,6 +819,28 @@ local function build()
         t:Show()
     end)
     slotsBtn:HookScript("OnLeave", ns.HideTooltip)
+
+    -- afficher / cacher le trousseau de cles (si le jeu en a un)
+    if keyringShown() then
+        local keysBtn = ns.UI.Button(frame, "", 22, function()
+            if InCombatLockdown() then ns.Say(L.COMBAT_BLOCKED) return end
+            db.showKeyring = not db.showKeyring
+            layout()
+        end)
+        keysBtn:SetSize(22, 20)
+        keysBtn:SetPoint("LEFT", slotsBtn, "RIGHT", 4, 0)
+        local kIcon = keysBtn:CreateTexture(nil, "ARTWORK")
+        kIcon:SetPoint("TOPLEFT", 2, -1)
+        kIcon:SetPoint("BOTTOMRIGHT", -2, 1)
+        kIcon:SetTexture("Interface\\Icons\\INV_Misc_Key_03")
+        kIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        keysBtn:HookScript("OnEnter", function(self)
+            local t = ns.Tooltip(self, "ANCHOR_RIGHT")
+            t:SetText(L.BAGS_KEYS_TOGGLE)
+            t:Show()
+        end)
+        keysBtn:HookScript("OnLeave", ns.HideTooltip)
+    end
 
     -- croix securisee : fermer marche aussi en combat
     -- (bouton plat de la charte, ancre au sac lui-meme)
@@ -973,8 +995,8 @@ local function buildWindow()
     form:EndColumns()
     -- trousseau de cles (si le jeu en a un)
     if keyringShown() then
-        form:Cycle(L.BAGS_OPT_KEYS, { "all", "used", "off" },
-            { all = L.BAGS_KEYS_ALL, used = L.BAGS_KEYS_USED, off = L.BAGS_KEYS_OFF },
+        form:Cycle(L.BAGS_OPT_KEYS, { "all", "used" },
+            { all = L.BAGS_KEYS_ALL, used = L.BAGS_KEYS_USED },
             function() return db.keyring end, function(v)
                 db.keyring = v
                 if frame:IsShown() then layout() end
@@ -1015,7 +1037,10 @@ ev:SetScript("OnEvent", function(_, event, a1, a2)
         if db.enabled == nil then db.enabled = true end
         if db.hideBlizzard == nil then db.hideBlizzard = true end
         if db.showBagSlots == nil then db.showBagSlots = true end
-        if db.keyring == nil then db.keyring = "all" end
+        if db.keyring ~= "used" then db.keyring = "all" end
+        -- trousseau affiche ou cache : bouton de la fenetre (comme les
+        -- emplacements de sacs)
+        if db.showKeyring == nil then db.showKeyring = true end
         db.columns = db.columns or 10
         -- nouvelles cles : valeurs par defaut seulement
         db.size = db.size or 36
