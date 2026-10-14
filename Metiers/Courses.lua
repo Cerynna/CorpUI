@@ -449,7 +449,7 @@ end
 -- cout HV d une ligne a acheter : "~1po 42pa", "+" si c est une borne
 -- basse (pas assez en vente ou echelle trop courte, scan sans echelle)
 local function costText(it)
-    return "~" .. ns.AHMoney(it.cost) .. (it.costLow and "+" or "")
+    return "~" .. (ns.AHMoney or ns.FormatMoney)(it.cost) .. (it.costLow and "+" or "")
 end
 
 local function pillText(it)
@@ -864,7 +864,7 @@ function M.BuildShopView(parent)
             if n[k] > 0 then
                 local text
                 if k == "buy" and priced then
-                    text = string.format(L.SHOP_SUM_BUY_COST, n.buy, ns.AHMoney(spend) .. (low and "+" or ""))
+                    text = string.format(L.SHOP_SUM_BUY_COST, n.buy, (ns.AHMoney or ns.FormatMoney)(spend) .. (low and "+" or ""))
                 else
                     text = string.format(L["SHOP_SUM_" .. k:upper()], n[k])
                 end

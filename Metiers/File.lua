@@ -470,7 +470,8 @@ end
 M.AHMarginal = marginal
 
 -- montant au format HV (arrondi par ns.AHMoney)
-local function money(c) return ns.AHMoney(c) end
+-- (sans l hotel des ventes de CorpUI : format d argent du noyau)
+local function money(c) return (ns.AHMoney or ns.FormatMoney)(c) end
 
 -- montant avec son cuivre (ns.AHMoney l omet au-dela d une piece d or) :
 -- "1po 60pc" et non "1po", pour que "qte x prix = total" se lise

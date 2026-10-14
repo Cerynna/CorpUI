@@ -29,7 +29,7 @@ Des fonctions d'usage général vivent aujourd'hui dans des modules, et d'autres
 
 Elles passent dans le noyau. Les autres appels d'un module à un autre (par exemple les prix de l'HV dans les métiers, ou la barre d'infos sous le chat) deviennent facultatifs : l'appel ne se fait que si l'autre addon est là. Le relevé complet est fait (script `deps_modules.js`, une trentaine de liens).
 
-## Découpage proposé : 32 addons
+## Découpage proposé : 31 addons
 
 Un addon par module. On ne regroupe que les modules qui ne marchent pas l'un sans l'autre.
 
@@ -101,7 +101,7 @@ Variante plus compacte possible : **un addon par page d'options**, soit une ving
 
 ## Choix de l'utilisateur (14/10)
 
-1. **Granularité** : 32 addons, un par module (regroupés seulement quand ils ne marchent pas l'un sans l'autre).
+1. **Granularité** : le noyau et 30 addons, un par module (regroupés seulement quand ils ne marchent pas l'un sans l'autre).
 2. **Dépôt** : A. Le dépôt vit dans `_classic_beta_\CorpUI-dev`, tous les addons côte à côte, avec des liens (jonctions) dans `AddOns`. Le travail se fait dans ce nouveau dossier, sur la branche `decoupage` : l'addon installé dans `AddOns\CorpUI` (main) ne change pas tant que la bascule n'est pas faite.
 3. **Page Modules** : elle active ou désactive les addons eux-mêmes, puis demande un rechargement.
 4. **Version** : 1.8.0.
