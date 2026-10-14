@@ -42,7 +42,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Barres de sort** | Barres d'incantation du joueur, de la cible et de la focalisation ; sort non interruptible, interruption prête. | `/corp incantations` |
 | **Auras** | Buffs et débuffs du joueur et de la cible, filtres par listes. | `/corp auras` |
 | **Expérience** | Barre d'XP : quêtes, repos, XP par heure, temps avant le niveau. | `/corp xp` |
-| **Minicarte** | Minicarte carrée avec zone, coordonnées et heure ; icônes rangées dans une boîte. | `/corp minicarte` |
+| **Minicarte** | Minicarte carrée avec zone, coordonnées et heure ; icônes rangées dans une boîte. Points de vol sur la carte du monde : bleu pour l'Alliance, rouge pour la Horde, vert pour les deux factions. | `/corp minicarte` |
 | **Barres d'infos** | Jusqu'à dix bandeaux : or, sacs, durabilité, FPS, latence, heure, coordonnées, amis, guilde. | `/corp infos` |
 | **Suivi de quêtes** | Quêtes suivies et leurs objectifs, couleur de difficulté, progression du groupe dans l'infobulle, menu au clic droit. | `/corp quetes` |
 | **Plaques de nom** | Plaques des unités : sort en cours, tes débuffs, points de combo, cible actuelle. | `/corp plaques` |

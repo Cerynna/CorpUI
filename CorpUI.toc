@@ -106,6 +106,8 @@ Sacs\Banque.lua
 # Module Minicarte
 Minicarte\Strings.lua
 Minicarte\Minicarte.lua
+Minicarte\StringsVols.lua
+Minicarte\Vols.lua
 
 # Module Auras
 Auras\Strings.lua

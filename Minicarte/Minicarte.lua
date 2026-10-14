@@ -981,6 +981,9 @@ local function buildWindow()
     end, 14, 36, 1)
     form:EndColumns()
 
+    -- sections ajoutees par d autres fichiers (points de vol : Vols.lua)
+    for _, fn in ipairs(ns.MapOptionsHooks or {}) do fn(form) end
+
     local hint = win:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("TOPLEFT", win, "TOPLEFT", 8, form.y - 8)
     hint:SetWidth(420)
@@ -1065,6 +1068,10 @@ ns.RegisterModule({
     icon = "Interface\\Icons\\INV_Misc_Map02",
     title = function() return L.MOD_MAP end,
     desc = function() return L.MAP_DESC end,
-    Slash = function() toggle() end,
+    Slash = function(input)
+        -- /corp minicarte vols : diagnostic des points de vol de la carte
+        if strlower(strtrim(input or "")) == "vols" and ns.FlightDiag then ns.FlightDiag() return end
+        toggle()
+    end,
     Open = toggle,
 })
