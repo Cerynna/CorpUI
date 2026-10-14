@@ -20,6 +20,7 @@
 ## Notes-zhTW: 我們的拾取視窗和隊伍擲骰（需求 / 貪婪 / 放棄）。
 ## Notes-koKR: CorpUI 전리품 창과 파티 주사위 (입찰 / 차비 / 포기).
 ## Notes-esMX: Nuestra ventana de botin y las tiradas de grupo (Necesidad / Codicia / Pasar).
+## IconTexture: Interface\Icons\INV_Misc_Bag_10
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

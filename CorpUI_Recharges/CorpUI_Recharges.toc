@@ -20,6 +20,7 @@
 ## Notes-zhTW: 隊伍/團隊冷卻監控和個人冷卻條
 ## Notes-koKR: 파티/공격대 재사용 추적과 개인 재사용 바
 ## Notes-esMX: seguimiento de CD de grupo / banda y barra de CD propia
+## IconTexture: Interface\Icons\Spell_Nature_TimeStop
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

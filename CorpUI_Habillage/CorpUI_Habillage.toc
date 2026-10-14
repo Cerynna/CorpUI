@@ -20,6 +20,7 @@
 ## Notes-zhTW: CorpUI 模組：外觀。需要 CorpUI。
 ## Notes-koKR: CorpUI 모듈: 외형. CorpUI 필요.
 ## Notes-esMX: Módulo de CorpUI: Apariencia. Requiere CorpUI.
+## IconTexture: Interface\Icons\INV_Misc_Note_02
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

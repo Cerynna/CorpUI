@@ -20,6 +20,7 @@
 ## Notes-zhTW: 目標標記、地面標記、準備確認、角色確認、開怪倒數
 ## Notes-koKR: 대상 징표, 바닥 징표, 전투 준비 확인, 역할 확인, 풀링 카운트다운
 ## Notes-esMX: marcadores de objetivo y de suelo, comprobación de listos, de roles, cuenta atrás de pull
+## IconTexture: Interface\TargetingFrame\UI-RaidTargetingIcon_8
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

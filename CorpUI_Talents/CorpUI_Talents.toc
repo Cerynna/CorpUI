@@ -20,6 +20,7 @@
 ## Notes-zhTW: 天賦的匯出與匯入
 ## Notes-koKR: 특성 내보내기와 가져오기
 ## Notes-esMX: exportar e importar talentos
+## IconTexture: Interface\AddOns\CorpUI\Media\menu_talents
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

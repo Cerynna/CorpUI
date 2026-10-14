@@ -20,6 +20,7 @@
 ## Notes-zhTW: 聊天視窗的 CorpUI 風格，複製文字
 ## Notes-koKR: 대화창 CorpUI 스타일, 텍스트 복사
 ## Notes-esMX: estilo CorpUI para las ventanas de chat, copiar texto
+## IconTexture: Interface\Icons\INV_Letter_15
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

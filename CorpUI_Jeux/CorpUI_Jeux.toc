@@ -11,6 +11,7 @@
 ## Notes-zhTW: CorpUI 模組：Jeux。需要 CorpUI。
 ## Notes-koKR: CorpUI 모듈: Jeux. CorpUI 필요.
 ## Notes-esMX: Módulo de CorpUI: Jeux. Requiere CorpUI.
+## IconTexture: Interface\AddOns\CorpUI\Media\Jeux\icon
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

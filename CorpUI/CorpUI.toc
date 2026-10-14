@@ -11,6 +11,7 @@
 ## Notes-zhCN: 模块化工具箱：增益、角色、施法材料、商人、提醒、即将学会的法术。输入 /corp
 ## Notes-zhTW: 模組化工具箱：增益、角色、施法材料、商人、提醒、即將學會的法術。輸入 /corp
 ## Notes-koKR: 모듈식 도구 모음: 강화 효과, 캐릭터, 재료, 상인, 알림, 배울 주문. /corp 입력
+## IconTexture: Interface\AddOns\CorpUI\Media\logo64
 ## Author: ceryn
 ## Version: 1.7.2
 ## SavedVariables: CorpUIDB, SpellsAheadDB

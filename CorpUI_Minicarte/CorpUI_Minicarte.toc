@@ -20,6 +20,7 @@
 ## Notes-zhTW: 方形小地圖，顯示區域、座標和時間
 ## Notes-koKR: 지역, 좌표, 시간이 있는 사각 미니맵
 ## Notes-esMX: minimapa cuadrado con zona, coordenadas y hora
+## IconTexture: Interface\Icons\INV_Misc_Map02
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

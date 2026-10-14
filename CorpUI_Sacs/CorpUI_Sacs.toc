@@ -20,6 +20,7 @@
 ## Notes-zhTW: 所有背包合一，可搜尋和整理
 ## Notes-koKR: 모든 가방을 하나로, 검색과 정렬
 ## Notes-esMX: todas tus bolsas en una, con búsqueda y orden
+## IconTexture: Interface\Icons\INV_Misc_Bag_08
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

@@ -20,6 +20,7 @@
 ## Notes-zhTW: 與隊伍共享的團隊筆記（MRT 風格）：編輯器、筆記視窗、標記
 ## Notes-koKR: 파티와 공유하는 공격대 메모 (MRT 방식): 편집기, 메모 창, 징표
 ## Notes-esMX: notas de banda compartidas con el grupo (estilo MRT): editor, ventana de nota, marcadores
+## IconTexture: Interface\Icons\INV_Scroll_03
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

@@ -11,6 +11,7 @@
 ## Notes-zhTW: CorpUI 模組：Invitations。需要 CorpUI。
 ## Notes-koKR: CorpUI 모듈: Invitations. CorpUI 필요.
 ## Notes-esMX: Módulo de CorpUI: Invitations. Requiere CorpUI.
+## IconTexture: Interface\Icons\Spell_Holy_PrayerofSpirit
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

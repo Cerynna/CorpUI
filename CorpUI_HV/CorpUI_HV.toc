@@ -11,6 +11,7 @@
 ## Notes-zhTW: CorpUI 模組：HV。需要 CorpUI。
 ## Notes-koKR: CorpUI 모듈: HV. CorpUI 필요.
 ## Notes-esMX: Módulo de CorpUI: HV. Requiere CorpUI.
+## IconTexture: Interface\Icons\INV_Misc_Coin_01
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

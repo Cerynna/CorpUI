@@ -11,6 +11,7 @@
 ## Notes-zhTW: CorpUI 模組：Marchand。需要 CorpUI。
 ## Notes-koKR: CorpUI 모듈: Marchand. CorpUI 필요.
 ## Notes-esMX: Módulo de CorpUI: Marchand. Requiere CorpUI.
+## IconTexture: Interface\Icons\INV_Misc_Coin_02
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

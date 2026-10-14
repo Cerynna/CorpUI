@@ -11,6 +11,7 @@
 ## Notes-zhTW: CorpUI 模組：Chasseur。需要 CorpUI。
 ## Notes-koKR: CorpUI 모듈: Chasseur. CorpUI 필요.
 ## Notes-esMX: Módulo de CorpUI: Chasseur. Requiere CorpUI.
+## IconTexture: Interface\Icons\Ability_Hunter_SniperShot
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

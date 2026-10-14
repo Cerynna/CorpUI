@@ -20,6 +20,7 @@
 ## Notes-zhTW: 經驗條：任務、休息、每小時經驗、升級時間
 ## Notes-koKR: 경험치 바: 퀘스트, 휴식, 시간당 경험치, 레벨업 시간
 ## Notes-esMX: barra de PX: misiones, descanso, PX/hora, tiempo hasta el nivel
+## IconTexture: Interface\Icons\INV_Misc_Book_11
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

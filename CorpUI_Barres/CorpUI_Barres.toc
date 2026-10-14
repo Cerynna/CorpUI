@@ -20,6 +20,7 @@
 ## Notes-zhTW: 含形態與姿態的快捷列，版面自選
 ## Notes-koKR: 변신과 태세가 있는 행동 단축바, 배치 자유
 ## Notes-esMX: barras de acción con formas y actitudes, disposición a elegir
+## IconTexture: Interface\Icons\INV_Sword_04
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

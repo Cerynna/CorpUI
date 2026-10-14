@@ -11,6 +11,7 @@
 ## Notes-zhTW: CorpUI 模組：Rappels。需要 CorpUI。
 ## Notes-koKR: CorpUI 모듈: Rappels. CorpUI 필요.
 ## Notes-esMX: Módulo de CorpUI: Rappels. Requiere CorpUI.
+## IconTexture: Interface\Icons\Spell_Frost_FrostArmor02
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

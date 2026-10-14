@@ -11,6 +11,7 @@
 ## Notes-zhTW: CorpUI 模組：Metiers。需要 CorpUI。
 ## Notes-koKR: CorpUI 모듈: Metiers. CorpUI 필요.
 ## Notes-esMX: Módulo de CorpUI: Metiers. Requiere CorpUI.
+## IconTexture: Interface\Icons\Trade_Engineering
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

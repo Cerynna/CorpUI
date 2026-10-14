@@ -20,6 +20,7 @@
 ## Notes-zhTW: CorpUI 模組：名條。需要 CorpUI。
 ## Notes-koKR: CorpUI 모듈: 이름표. CorpUI 필요.
 ## Notes-esMX: Módulo de CorpUI: Placas de nombre. Requiere CorpUI.
+## IconTexture: Interface\Icons\Spell_Nature_FaerieFire
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

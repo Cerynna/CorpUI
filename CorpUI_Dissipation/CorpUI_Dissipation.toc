@@ -20,6 +20,7 @@
 ## Notes-zhTW: 隊伍和團隊框架的驅散提示（顏色、聲音）以及團隊小隊分配
 ## Notes-koKR: 파티 및 공격대 프레임의 해제 알림(색상, 소리)과 공격대 파티 배정
 ## Notes-esMX: alerta de disipación en marcos de grupo y banda (color, sonido) y reparto de los grupos de banda
+## IconTexture: Interface\Icons\Spell_Holy_DispelMagic
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI

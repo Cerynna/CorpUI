@@ -20,6 +20,7 @@
 ## Notes-zhTW: CorpUI 模組：單位框架。需要 CorpUI。
 ## Notes-koKR: CorpUI 모듈: 유닛 프레임. CorpUI 필요.
 ## Notes-esMX: Módulo de CorpUI: Marcos de unidad. Requiere CorpUI.
+## IconTexture: Interface\Icons\Achievement_Character_Human_Male
 ## Author: ceryn
 ## Version: 1.7.2
 ## Dependencies: CorpUI
