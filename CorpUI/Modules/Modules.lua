@@ -11,6 +11,10 @@
     Commandes rangees avec un autre module (Core.lua, MODULE_OF) : compta
     avec l HV, degats avec le compteur, reactifs avec le marchand, menus
     avec les barres, les mini-jeux ensemble.
+    Depuis le decoupage (15/10), chaque module vit dans un addon CorpUI_Xxx :
+    l interrupteur active ou desactive aussi l addon (liste des addons du
+    jeu, tous les personnages). Un addon desactive n a qu une ligne (titre
+    et description de son .toc) ; un addon absent n en a pas.
 ----------------------------------------------------------------------------]]
 
 local _, ns = ...
@@ -42,7 +46,49 @@ local function moduleOf(key)
     end
 end
 
+-- addon du module (nil : noyau, ou liste des addons du jeu indisponible),
+-- et s il est charge dans cette session
+local function addonOf(key)
+    if not ((C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo) then return nil end
+    return ns.ModuleAddon and ns.ModuleAddon(key)
+end
+local function loaded(key)
+    local a = addonOf(key)
+    return ns.ModuleOn(key) and (not a or ns.AddonLoaded(a))
+end
+
+-- lignes affichees : un module par ligne ; un addon pas charge (coupe,
+-- desactive) : une seule ligne pour tous ses modules ; absent : rien
+local function entries()
+    local out, seen = {}, {}
+    -- (sans la liste des addons du jeu : une ligne par module, comme avant)
+    for _, e in ipairs(LIST) do
+        local a = e.key and addonOf(e.key)
+        if e.cat then
+            out[#out + 1] = e
+        elseif not a or ns.AddonLoaded(a) then
+            out[#out + 1] = e
+        elseif ns.AddonPresent(a) and not seen[a] then
+            seen[a] = true
+            local keys = {}
+            for _, x in ipairs(LIST) do if x.key and addonOf(x.key) == a then keys[#keys + 1] = x.key end end
+            out[#out + 1] = { key = e.key, addon = a, keys = keys }
+        end
+    end
+    -- intertitres sans ligne dessous : retires
+    local clean = {}
+    for i, e in ipairs(out) do
+        local nextE = out[i + 1]
+        if not (e.cat and (not nextE or nextE.cat)) then clean[#clean + 1] = e end
+    end
+    return clean
+end
+
 local function textOf(e)
+    if e.addon then
+        local title, notes = ns.AddonText(e.addon)
+        return title or e.addon, notes or ""
+    end
     local m = moduleOf(e.key)
     local title = e.label and L[e.label] or (m and m.title and m.title()) or e.key
     local desc = e.desc and L[e.desc] or (m and m.desc and m.desc()) or ""
@@ -50,10 +96,24 @@ local function textOf(e)
     return title, desc
 end
 
+-- voulu / a jour pour une ligne (un addon entier : tous ses modules)
+local function wanted(e)
+    if not e.keys then return ns.ModuleWanted(e.key) end
+    for _, k in ipairs(e.keys) do if ns.ModuleWanted(k) then return true end end
+    return false
+end
+local function current(e)
+    if not e.keys then return loaded(e.key) end
+    return false
+end
+local function setWanted(e, v)
+    for _, k in ipairs(e.keys or { e.key }) do ns.SetModuleWanted(k, v) end
+end
+
 local function pending()
     local n = 0
-    for _, e in ipairs(LIST) do
-        if e.key and ns.ModuleWanted(e.key) ~= ns.ModuleOn(e.key) then n = n + 1 end
+    for _, e in ipairs(entries()) do
+        if e.key and wanted(e) ~= current(e) then n = n + 1 end
     end
     return n
 end
@@ -61,11 +121,11 @@ end
 local function refresh()
     if not rows then return end
     for _, r in ipairs(rows) do
-        local want = ns.ModuleWanted(r.key)
+        local want = wanted(r.entry)
         r.switch:SetChecked(want)
         local c = want and C.text or { 0.5, 0.5, 0.53 }
         r.title:SetTextColor(c[1], c[2], c[3])
-        r.tag:SetShown(want ~= ns.ModuleOn(r.key))
+        r.tag:SetShown(want ~= current(r.entry))
     end
     local n = pending()
     if n > 0 then
@@ -82,13 +142,13 @@ local function addRow(e, y)
     r:SetHeight(ROW_H)
     r:SetPoint("TOPLEFT", win, "TOPLEFT", 4, y)
     r:SetPoint("RIGHT", win, "RIGHT", -4, 0)
-    r.key = e.key
+    r.key, r.entry = e.key, e
     local hl = r:CreateTexture(nil, "HIGHLIGHT")
     hl:SetAllPoints()
     hl:SetColorTexture(1, 1, 1, 0.05)
     local title, desc = textOf(e)
     r.switch = ns.UI.Switch(r, nil, function(v)
-        ns.SetModuleWanted(e.key, v)
+        setWanted(e, v)
         refresh()
     end)
     r.switch:SetPoint("RIGHT", r, "RIGHT", -8, 0)
@@ -127,7 +187,7 @@ local function build()
     status:SetJustifyH("LEFT")
     rows = {}
     local y = -110
-    for _, e in ipairs(LIST) do
+    for _, e in ipairs(entries()) do
         if e.cat then
             local h = win:CreateFontString(nil, "OVERLAY", "GameFontNormal")
             h:SetPoint("TOPLEFT", win, "TOPLEFT", 8, y - 6)
@@ -160,11 +220,12 @@ end
 local CELL_H = 20
 function ns.ModuleSwitchGrid(parent, width, cols)
     local g = CreateFrame("Frame", nil, parent)
-    local per = math.ceil(#LIST / cols)
+    local list = entries()
+    local per = math.ceil(#list / cols)
     local colW = math.floor(width / cols)
     g:SetSize(width, per * CELL_H)
     local switches = {}
-    for i, e in ipairs(LIST) do
+    for i, e in ipairs(list) do
         local col, row = math.floor((i - 1) / per), (i - 1) % per
         local x, y = col * colW, -row * CELL_H
         if e.cat then
@@ -173,7 +234,7 @@ function ns.ModuleSwitchGrid(parent, width, cols)
             h:SetText(L[e.cat])
         else
             local title, desc = textOf(e)
-            local s = ns.UI.Switch(g, nil, function(v) ns.SetModuleWanted(e.key, v) end)
+            local s = ns.UI.Switch(g, nil, function(v) setWanted(e, v) end)
             s:SetPoint("TOPLEFT", g, "TOPLEFT", x, y - 2)
             local fs = g:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
             fs:SetPoint("LEFT", s, "RIGHT", 6, 0)
@@ -189,12 +250,12 @@ function ns.ModuleSwitchGrid(parent, width, cols)
                 tip:Show()
             end)
             s:HookScript("OnLeave", ns.HideTooltip)
-            s.key = e.key
+            s.key, s.entry = e.key, e
             table.insert(switches, s)
         end
     end
     function g:Refresh()
-        for _, s in ipairs(switches) do s:SetChecked(ns.ModuleWanted(s.key)) end
+        for _, s in ipairs(switches) do s:SetChecked(wanted(s.entry)) end
     end
     g:Refresh()
     return g

@@ -2460,6 +2460,58 @@ end
 -- Les commandes rangees avec un autre module en prennent la cle.
 local MODULE_OF = { compta = "hv", degats = "compteur", murloc = "jeux", minerais = "jeux",
                     reactifs = "marchand", menus = "barres" }
+
+-- Module -> addon qui le porte (decoupage du 15/10) ; absent : le noyau.
+local ADDON_OF = {
+    cadres = "CorpUI_Cadres", groupe = "CorpUI_Cadres", incantations = "CorpUI_Cadres", auras = "CorpUI_Cadres",
+    chasseur = "CorpUI_Chasseur", barres = "CorpUI_Barres", menus = "CorpUI_Barres", xp = "CorpUI_Experience",
+    minicarte = "CorpUI_Minicarte", infos = "CorpUI_Infos", quetes = "CorpUI_Quetes", plaques = "CorpUI_Plaques",
+    infobulles = "CorpUI_Infobulles", chat = "CorpUI_Chat", compteur = "CorpUI_Compteur", degats = "CorpUI_Compteur",
+    sacs = "CorpUI_Sacs", butin = "CorpUI_Butin", fil = "CorpUI_Butin", eclats = "CorpUI_Eclats",
+    marchand = "CorpUI_Marchand", reactifs = "CorpUI_Marchand", habillage = "CorpUI_Habillage",
+    buffs = "CorpUI_Buffs", dissipation = "CorpUI_Dissipation", rappels = "CorpUI_Rappels", cd = "CorpUI_Recharges",
+    note = "CorpUI_Notes", raid = "CorpUI_Raid", inv = "CorpUI_Invitations", clics = "CorpUI_Clics",
+    persos = "CorpUI_Persos", metiers = "CorpUI_Metiers", hv = "CorpUI_HV", compta = "CorpUI_HV", dez = "CorpUI_HV",
+    talents = "CorpUI_Talents", sorts = "CorpUI_Sorts", jeux = "CorpUI_Jeux", murloc = "CorpUI_Jeux",
+    minerais = "CorpUI_Jeux", podometre = "CorpUI_Jeux",
+}
+function ns.ModuleAddon(key) return ADDON_OF[key] end
+
+-- liste des addons du jeu (C_AddOns, sinon les anciennes globales)
+local function addonApi(name, ...)
+    local fn = (C_AddOns and C_AddOns[name]) or _G[name]
+    if type(fn) ~= "function" then return nil end
+    local ok, a, b, c, d, e = pcall(fn, ...)
+    if ok then return a, b, c, d, e end
+end
+-- installe (dossier present)
+function ns.AddonPresent(a)
+    local name, _, _, _, reason = addonApi("GetAddOnInfo", a)
+    return name ~= nil and reason ~= "MISSING"
+end
+function ns.AddonLoaded(a) return addonApi("IsAddOnLoaded", a) and true or false end
+-- active pour ce personnage
+function ns.AddonEnabled(a)
+    local guid = UnitGUID and UnitGUID("player")
+    for _, who in ipairs({ guid or false, UnitName("player") or false }) do
+        if who then
+            local st = addonApi("GetAddOnEnableState", a, who)
+            if type(st) == "number" then return st > 0 end
+        end
+    end
+    local st = addonApi("GetAddOnEnableState", a)
+    return type(st) ~= "number" or st > 0
+end
+-- active ou desactive pour tous les personnages (comme le profil partage)
+function ns.SetAddonEnabled(a, on)
+    addonApi(on and "EnableAddOn" or "DisableAddOn", a)
+end
+-- titre et description du .toc (langue du jeu), sans le prefixe CorpUI
+function ns.AddonText(a)
+    local _, title, notes = addonApi("GetAddOnInfo", a)
+    if type(title) == "string" then title = title:gsub("^.-%s%-%s", "", 1) end
+    return title, notes
+end
 local loadedOff
 
 -- allume pour cette session (avant la lecture de la sauvegarde : oui)
@@ -2489,7 +2541,11 @@ end
 -- choix enregistre (celui de la page Modules, effectif au rechargement)
 function ns.ModuleWanted(key)
     local m = ns.root and ns.root.modules
-    return not (type(m) == "table" and m[key] == false)
+    if type(m) == "table" and m[key] == false then return false end
+    -- son addon desactive dans la liste du jeu : coupe aussi
+    local a = ADDON_OF[key]
+    if a and ns.AddonPresent(a) and not ns.AddonEnabled(a) then return false end
+    return true
 end
 
 -- commande d un module coupe : le dit dans le chat et renvoie vrai
@@ -2507,6 +2563,18 @@ function ns.SetModuleWanted(key, on)
     if type(ns.root.modules) ~= "table" then ns.root.modules = {} end
     -- coupe = false ; allume = rien (pas de "x and false or nil" : vaut toujours nil)
     if on then ns.root.modules[key] = nil else ns.root.modules[key] = false end
+    -- l addon du module : active des qu un de ses modules est voulu,
+    -- desactive quand tous sont coupes
+    local a = ADDON_OF[key]
+    if not (a and ns.AddonPresent(a)) then return end
+    if on then
+        ns.SetAddonEnabled(a, true)
+        return
+    end
+    for k, other in pairs(ADDON_OF) do
+        if other == a and not MODULE_OF[k] and ns.root.modules[k] ~= false then return end
+    end
+    ns.SetAddonEnabled(a, false)
 end
 
 -- commande ou alias affiche par /corp (skins, tooltips, ah...)

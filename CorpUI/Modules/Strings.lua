@@ -5,7 +5,7 @@ local _, ns = ...
 ns.AddStrings({
     enUS = {
         PAGE_MODULES = "Modules", MODULES_DESC = "turn each part of CorpUI on or off",
-        MODULES_HINT = "A module turned off loads nothing: no frames, no events, and the game's own interface stays in place. Changes apply after a reload.",
+        MODULES_HINT = "A module turned off loads nothing: no frames, no events, and the game's own interface stays in place. Changes apply after a reload. Turning a module off also disables its addon (CorpUI_...) for all your characters.",
         MODULES_PENDING = "Changes waiting for a reload: %d", MODULES_NONE = "Everything is up to date.",
         MODULES_TAG = "after reload", MODULES_OFF = "%s is turned off. Turn it back on in /corp modules.",
         MODULES_UNITS = "Player, target and focus frames",
@@ -14,7 +14,7 @@ ns.AddStrings({
     },
     frFR = {
         PAGE_MODULES = "Modules", MODULES_DESC = "allume ou coupe chaque partie de CorpUI",
-        MODULES_HINT = "Un module coupé ne charge rien : ni cadres ni événements, l'interface du jeu reste en place. Les changements s'appliquent au rechargement.",
+        MODULES_HINT = "Un module coupé ne charge rien : ni cadres ni événements, l'interface du jeu reste en place. Les changements s'appliquent au rechargement. Couper un module désactive aussi son addon (CorpUI_...) pour tous tes personnages.",
         MODULES_PENDING = "Changements à appliquer au rechargement : %d", MODULES_NONE = "Tout est à jour.",
         MODULES_TAG = "au rechargement", MODULES_OFF = "%s est coupé. Rallume-le dans /corp modules.",
         MODULES_UNITS = "Cadres joueur, cible et focalisation",
@@ -23,7 +23,7 @@ ns.AddStrings({
     },
     deDE = {
         PAGE_MODULES = "Module", MODULES_DESC = "jeden Teil von CorpUI ein- oder ausschalten",
-        MODULES_HINT = "Ein ausgeschaltetes Modul lädt nichts: keine Fenster, keine Ereignisse, die Spieloberfläche bleibt erhalten. Änderungen gelten nach einem Neuladen.",
+        MODULES_HINT = "Ein ausgeschaltetes Modul lädt nichts: keine Fenster, keine Ereignisse, die Spieloberfläche bleibt erhalten. Änderungen gelten nach einem Neuladen. Ein ausgeschaltetes Modul deaktiviert auch sein Addon (CorpUI_...) für alle deine Charaktere.",
         MODULES_PENDING = "Änderungen bis zum Neuladen: %d", MODULES_NONE = "Alles ist aktuell.",
         MODULES_TAG = "nach Neuladen", MODULES_OFF = "%s ist ausgeschaltet. Wieder einschalten unter /corp modules.",
         MODULES_UNITS = "Spieler-, Ziel- und Fokusfenster",
@@ -32,7 +32,7 @@ ns.AddStrings({
     },
     esES = {
         PAGE_MODULES = "Módulos", MODULES_DESC = "activa o desactiva cada parte de CorpUI",
-        MODULES_HINT = "Un módulo desactivado no carga nada: ni marcos ni eventos, la interfaz del juego sigue en su sitio. Los cambios se aplican al recargar.",
+        MODULES_HINT = "Un módulo desactivado no carga nada: ni marcos ni eventos, la interfaz del juego sigue en su sitio. Los cambios se aplican al recargar. Desactivar un módulo también desactiva su addon (CorpUI_...) para todos tus personajes.",
         MODULES_PENDING = "Cambios pendientes de recarga: %d", MODULES_NONE = "Todo está al día.",
         MODULES_TAG = "al recargar", MODULES_OFF = "%s está desactivado. Reactívalo en /corp modules.",
         MODULES_UNITS = "Marcos de jugador, objetivo y foco",
@@ -41,7 +41,7 @@ ns.AddStrings({
     },
     ptBR = {
         PAGE_MODULES = "Módulos", MODULES_DESC = "liga ou desliga cada parte do CorpUI",
-        MODULES_HINT = "Um módulo desligado não carrega nada: nem quadros nem eventos, a interface do jogo continua no lugar. As mudanças valem após recarregar.",
+        MODULES_HINT = "Um módulo desligado não carrega nada: nem quadros nem eventos, a interface do jogo continua no lugar. As mudanças valem após recarregar. Desligar um módulo também desativa o addon dele (CorpUI_...) para todos os seus personagens.",
         MODULES_PENDING = "Mudanças aguardando recarga: %d", MODULES_NONE = "Tudo está em dia.",
         MODULES_TAG = "ao recarregar", MODULES_OFF = "%s está desligado. Ligue de novo em /corp modules.",
         MODULES_UNITS = "Quadros de jogador, alvo e foco",
@@ -50,7 +50,7 @@ ns.AddStrings({
     },
     itIT = {
         PAGE_MODULES = "Moduli", MODULES_DESC = "attiva o disattiva ogni parte di CorpUI",
-        MODULES_HINT = "Un modulo disattivato non carica nulla: né riquadri né eventi, l'interfaccia del gioco resta al suo posto. Le modifiche valgono dopo il ricaricamento.",
+        MODULES_HINT = "Un modulo disattivato non carica nulla: né riquadri né eventi, l'interfaccia del gioco resta al suo posto. Le modifiche valgono dopo il ricaricamento. Spegnere un modulo disattiva anche il suo addon (CorpUI_...) per tutti i tuoi personaggi.",
         MODULES_PENDING = "Modifiche in attesa di ricaricamento: %d", MODULES_NONE = "Tutto è aggiornato.",
         MODULES_TAG = "al ricaricamento", MODULES_OFF = "%s è disattivato. Riattivalo in /corp modules.",
         MODULES_UNITS = "Riquadri giocatore, bersaglio e focus",
@@ -59,7 +59,7 @@ ns.AddStrings({
     },
     ruRU = {
         PAGE_MODULES = "Модули", MODULES_DESC = "включение и выключение каждой части CorpUI",
-        MODULES_HINT = "Выключенный модуль ничего не загружает: ни окон, ни событий, интерфейс игры остаётся на месте. Изменения вступают в силу после перезагрузки.",
+        MODULES_HINT = "Выключенный модуль ничего не загружает: ни окон, ни событий, интерфейс игры остаётся на месте. Изменения вступают в силу после перезагрузки. Отключение модуля также отключает его аддон (CorpUI_...) для всех ваших персонажей.",
         MODULES_PENDING = "Изменений до перезагрузки: %d", MODULES_NONE = "Всё актуально.",
         MODULES_TAG = "после перезагрузки", MODULES_OFF = "%s выключен. Включите его снова в /corp modules.",
         MODULES_UNITS = "Окна игрока, цели и фокуса",
@@ -68,7 +68,7 @@ ns.AddStrings({
     },
     zhCN = {
         PAGE_MODULES = "模块", MODULES_DESC = "开启或关闭 CorpUI 的每个部分",
-        MODULES_HINT = "关闭的模块不加载任何内容：没有框体，没有事件，游戏自带界面保持原样。更改在重载界面后生效。",
+        MODULES_HINT = "关闭的模块不加载任何内容：没有框体，没有事件，游戏自带界面保持原样。更改在重载界面后生效。 关闭模块也会为你的所有角色停用它的插件（CorpUI_...）。",
         MODULES_PENDING = "等待重载的更改：%d", MODULES_NONE = "一切已是最新。",
         MODULES_TAG = "重载后", MODULES_OFF = "%s 已关闭。可在 /corp modules 中重新开启。",
         MODULES_UNITS = "玩家、目标和焦点框体",
@@ -77,7 +77,7 @@ ns.AddStrings({
     },
     zhTW = {
         PAGE_MODULES = "模組", MODULES_DESC = "開啟或關閉 CorpUI 的每個部分",
-        MODULES_HINT = "關閉的模組不載入任何內容：沒有框架，沒有事件，遊戲內建介面保持原樣。變更在重新載入介面後生效。",
+        MODULES_HINT = "關閉的模組不載入任何內容：沒有框架，沒有事件，遊戲內建介面保持原樣。變更在重新載入介面後生效。 關閉模組也會為你的所有角色停用它的插件（CorpUI_...）。",
         MODULES_PENDING = "等待重新載入的變更：%d", MODULES_NONE = "一切都是最新的。",
         MODULES_TAG = "重新載入後", MODULES_OFF = "%s 已關閉。可在 /corp modules 中重新開啟。",
         MODULES_UNITS = "玩家、目標和專注框架",
@@ -86,7 +86,7 @@ ns.AddStrings({
     },
     koKR = {
         PAGE_MODULES = "모듈", MODULES_DESC = "CorpUI의 각 부분을 켜거나 끕니다",
-        MODULES_HINT = "꺼진 모듈은 아무것도 불러오지 않습니다. 프레임도 이벤트도 없고 게임 기본 인터페이스가 그대로 남습니다. 변경 사항은 UI를 다시 불러온 뒤 적용됩니다.",
+        MODULES_HINT = "꺼진 모듈은 아무것도 불러오지 않습니다. 프레임도 이벤트도 없고 게임 기본 인터페이스가 그대로 남습니다. 변경 사항은 UI를 다시 불러온 뒤 적용됩니다. 모듈을 끄면 모든 캐릭터에서 해당 애드온(CorpUI_...)도 비활성화됩니다.",
         MODULES_PENDING = "다시 불러오기를 기다리는 변경: %d", MODULES_NONE = "모두 최신 상태입니다.",
         MODULES_TAG = "다시 불러온 후", MODULES_OFF = "%s 모듈이 꺼져 있습니다. /corp modules에서 다시 켜세요.",
         MODULES_UNITS = "플레이어, 대상, 주시 대상 프레임",
