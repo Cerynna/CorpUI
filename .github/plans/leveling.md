@@ -1,0 +1,138 @@
+# Plan : module de leveling (CorpUI [Leveling])
+
+Demande du 15/10/2026 : un nouveau module pour monter de niveau, inspiré de
+[factoruide](https://github.com/brouznouf/factoruide) et de RestedXP, adapté à WoW Forever.
+
+## 1. Ce que font les deux références
+
+**Factoruide** (code MIT ; données de quêtes en GPL-2.0, avec une part Questie « tous droits réservés ») :
+- Une application de bureau (Rust) simule la partie et calcule la route la plus rapide pour un personnage. Elle installe elle-même son addon et écrit les routes dans `AddOns\Factoruide\Routes.lua`.
+- Chaque étape porte : type (prendre, objectif, rendre, vol, point de vol, entraîneur, pierre de foyer, auberge, farm, donjon), quête, carte, x/y, PNJ ou objet, et niveau prévu.
+- Côté jeu, l'addon offre :
+  - une fenêtre « À faire / Ensuite / À prendre » qui avance toute seule (quête prise, objectif fait, quête rendue, vol, niveau atteint) ;
+  - une grosse flèche qui tourne avec le personnage (verte devant, rouge derrière, distance dessous) et le repère natif de Blizzard (`C_Map.SetUserWaypoint` + `C_SuperTrack`) ;
+  - une macro de ciblage, un bouton d'objet de quête avec raccourci, et le vol pris tout seul vers la destination de l'étape ;
+  - les prochaines étapes numérotées sur la carte, et le temps par niveau comparé au temps prévu ;
+  - l'entraîneur (seulement les sorts utiles), le marchand, l'équipement (récompense prévue, améliorations), les talents conseillés ;
+  - la progression du groupe, et des alertes (cible élite ou trop haute, vie basse).
+
+**RestedXP** (addon gratuit, guides payants ; version Forever qui couvre les niveaux 1 à 35 au 09/10/2026) :
+- Guides écrits à la main par des speedrunners, étape par étape.
+- Flèche réglable, et quêtes prises et rendues automatiquement.
+- Macro de ciblage avec marques de raid, et bouton d'objet.
+- Suivi du temps de leveling, et nettoyage des quêtes hors guide.
+- Guide des talents, et achats en lot.
+
+Leurs guides sont payants et protégés : on n'en reprend rien.
+
+## 2. Ce que CorpUI a déjà (le module Leveling s'y branche au lieu de le refaire)
+
+| Besoin | Module existant |
+| --- | --- |
+| Prendre et rendre les quêtes automatiquement (Maj = pause) | Experience (`db.autoQuest`) |
+| XP/heure, temps estimé, temps à ce niveau | Experience |
+| Suivi des quêtes et de leurs objectifs | Quetes |
+| Sorts à venir et leur niveau | Sorts (SpellsAhead) |
+| Talents : import, export, guide | Talents |
+| Vendre les gris, réparer, racheter les réactifs | Marchand |
+| Points de vol de chaque faction sur la carte du monde | Minicarte (Vols.lua) |
+
+## 3. Le nœud : d'où viennent les étapes ?
+
+Ce que le client Forever donne lui-même (lu dans la source `forever` de Blizzard) :
+- `C_QuestLog.GetQuestsOnMap`, `GetNextWaypoint` et `ReadyForTurnIn` donnent où faire et où rendre chaque quête du journal, y compris quand c'est dans une autre zone ;
+- `C_QuestLine.GetAvailableQuestLines(mapID)` donne les quêtes disponibles avec leur position. La carte du monde de Forever charge `QuestOfferDataProvider`, celui qui affiche les « ! » ; reste à vérifier en jeu que les quêtes classiques y figurent ;
+- `C_Map.SetUserWaypoint`, `C_SuperTrack.SetSuperTrackedUserWaypoint` (flèche de navigation de Blizzard), `GetPlayerFacing` et `C_Map.GetWorldPosFromMapPos` permettent la flèche. Ils sont tous permis à un addon (« AllowedWhenUntainted » : seuls des arguments secrets les bloqueraient).
+
+Trois sources possibles :
+
+**A. Navigateur dynamique, sans base de données (recommandé pour la v1)**
+- Le module choisit la prochaine action à partir de ce que le jeu sait :
+  - rendre une quête prête ;
+  - faire l'objectif le plus proche ;
+  - prendre une quête disponible tout près ;
+  - partir vers une autre zone.
+- Il pèse la distance, l'XP de la récompense et la couleur de la quête.
+- Ça marche à tout niveau et dans toute zone, nouvelles quêtes de Forever comprises.
+- Aucune donnée tierce, donc aucun problème de licence.
+- Limite : ce n'est pas une route optimisée sur toute la partie. Ça pilote de proche en proche.
+
+**B. Pont avec Factoruide**
+- Si l'addon Factoruide est installé et chargé, CorpUI lit ses routes (globale `Factoruide.Routes` et `Factoruide.Assignments`) et les affiche à sa façon.
+- Inconvénients : il faut leur application et leur addon (deux fenêtres à l'écran), et ça dépend d'un format qui peut changer.
+
+**C. Guides écrits, importés par copier-coller**
+- Un format texte CorpUI, comme les chaînes de talents.
+- Inconvénient : il faut écrire les guides. On ne peut pas en fournir de prêts. Les guides RestedXP sont payants, Questie est « tous droits réservés », et les données factoruide sont en GPL, incompatible avec CorpUI qui n'a pas de licence.
+
+Le moteur sera bâti autour d'une « étape » générique (prendre, objectif, rendre, aller à, vol, entraîneur, foyer, farmer). B et C pourront donc s'y brancher plus tard sans tout refaire.
+
+## 4. Contenu de la v1 (addon `CorpUI_Leveling`, famille outils, vert)
+
+1. **Fenêtre Leveling** au style CorpUI, déplaçable avec les poignées communes.
+   - Elle montre l'étape en cours et les 3 à 5 suivantes : icône par type, texte, distance.
+   - Clic gauche : pointer la flèche sur la ligne. Clic droit : ignorer l'étape.
+   - Bouton pour la replier.
+2. **Flèche** à nous (texture du jeu ou Nano Banana) : couleur du vert au rouge, distance, coche à l'arrivée, « ailleurs » sur un autre continent.
+   - En option, le repère de Blizzard, qui met une épingle sur la carte et sa propre flèche de navigation.
+3. **Avancement automatique** :
+   - événements du journal (`QUEST_ACCEPTED`, `QUEST_LOG_UPDATE`, `QUEST_TURNED_IN`) ;
+   - montée de niveau ;
+   - changement de zone ;
+   - arrivée sur place.
+4. **Quêtes à prendre** autour de soi, si le client les donne (point 3).
+5. **Repères sur la carte du monde** : les prochaines étapes numérotées, sur un calque comme celui des points de vol.
+6. **Rythme** : temps passé à chaque niveau, gardé par personnage, et comparé au meilleur de tes autres personnages. Experience compte déjà le temps au niveau en cours.
+7. **Entraîneur** : une étape « aller à l'entraîneur » quand de nouveaux sorts sont disponibles (données de Sorts). En option, apprendre tout ce qui est abordable, désactivée par défaut, Maj = pause.
+8. **Vol** : en option, à l'ouverture d'un maître de vol, prendre tout seul le vol vers le point le plus proche de l'étape (Maj = choisir soi-même).
+9. **Nettoyage** : signaler les quêtes devenues grises (sans XP) dans le journal. On n'abandonne jamais rien sans confirmation.
+
+Plus tard (v2), selon tes retours :
+- bouton d'objet de quête sécurisé avec raccourci ;
+- macro de ciblage (le nom du monstre est tiré du texte de l'objectif, qui dépend de la langue) ;
+- alertes élite ou cible trop haute ;
+- import de guides (C) ;
+- pont Factoruide (B).
+
+## 5. Contraintes Forever respectées
+
+- **Taint** :
+  - aucun crochet sur Blizzard et aucune écriture dans ses globales ;
+  - cadres à nous, calque de carte rattaché à `WorldMapFrame.ScrollContainer.Child`, comme Vols.lua ;
+  - jamais d'ouverture du journal ni de la carte par le code (le module Quetes a montré que ça les marque).
+- **Valeurs secrètes** :
+  - `pcall` et `issecretvalue` sur toute lecture (position, niveau et vie de la cible) ;
+  - rien ne doit dépendre de la vie ou des auras en combat.
+- **Cadres protégés** : la fenêtre n'est accrochée à aucun bouton sécurisé. Le bouton d'objet de la v2 sera posé hors combat seulement.
+- **`RegisterEvent`** : les inscriptions passent par `pcall` (un événement inconnu interrompt le fichier).
+- **Coût** : le calcul de la prochaine action et la flèche tournent sur le planificateur du noyau (`ns.Every`), à cadence raisonnable, et s'arrêtent quand le module est coupé.
+
+## 6. Intégration au découpage
+
+- Dossier `CorpUI_Leveling/` contenant :
+  - `CorpUI_Leveling.toc` : `Dependencies: CorpUI`, `Group: CorpUI`, `OptionalDeps` = les addons précédents, `IconTexture`, titre « CorpUI [Leveling] » en vert ;
+  - `Leveling/Strings.lua` (10 langues) ;
+  - les fichiers du moteur.
+- Entrée dans `ADDON_OF` (Core.lua) et dans `LIST` (Modules.lua), commande `/corp leveling`, et panneau d'options.
+- Bancs fengari : choix de l'action, avancement, angle de la flèche. On vérifie aussi « seul » et « tous sauf un », comme pour le découpage.
+- `liens.ps1` pour la jonction, puis **redémarrage complet du jeu** (nouveau dossier d'addon).
+- Release : patch 2.0.1.
+
+## 7. Livraison par étapes
+
+1. Socle : addon, fenêtre, moteur d'étapes, source A (journal), flèche, avancement. Test en jeu.
+2. Quêtes à prendre, repères sur la carte, vol, repère de Blizzard. Test en jeu.
+3. Rythme par niveau, entraîneur, nettoyage. Test en jeu, puis release.
+
+## 8. Décisions et avancement
+
+**Choix de l'utilisateur (15/10)** :
+- source : navigateur dynamique (A) ;
+- nom : **Leveling** (`CorpUI_Leveling`, `/corp leveling`, alias `/corp lvl`) ;
+- flèche : les deux. La flèche CorpUI est allumée par défaut. Le repère de Blizzard est une option **coupée par défaut** : ses gestionnaires d'événements (`SUPER_TRACKING_CHANGED`…) tourneraient depuis notre appel, donc il faut l'essayer en jeu avant de l'allumer d'office ;
+- « ! » de la carte : on ne sait pas encore si les quêtes classiques y figurent. `/corp leveling diag` le dira au premier test (« N à prendre »).
+
+**Étape 1 faite (15/10, à tester en jeu)** :
+- fichiers : `Leveling/Moteur.lua` (choix des étapes), `Leveling/Fleche.lua` (flèche et repère), `Leveling/Leveling.lua` (fenêtre, réglages, événements), et la texture `Media/fleche.tga`, dessinée par un script et non par Nano Banana ;
+- branchements : `ADDON_OF`, `PAGES` (outils), `LIST` (page Modules), et `Profils` (`leveling.ignored` reste par personnage) ;
+- banc fengari `t_leveling.lua` : ordre des étapes, maintien de l'étape en cours, flèche (angle, couleur, arrivée), choix à la main, étapes ignorées, quêtes grises, valeurs secrètes, niveau maximum, réglages, déverrouillage.

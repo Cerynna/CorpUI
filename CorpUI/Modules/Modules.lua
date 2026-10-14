@@ -34,7 +34,7 @@ local LIST = {
     { key = "raid" }, { key = "inv" }, { key = "clics" },
     { cat = "CAT_TOOLS" },
     { key = "persos" }, { key = "metiers" }, { key = "hv" }, { key = "dez" }, { key = "talents" },
-    { key = "sorts" }, { key = "erreurs" }, { key = "jeux", label = "PAGE_GAMES", desc = "MODULES_GAMES_DESC" }, { key = "podometre" },
+    { key = "sorts" }, { key = "leveling" }, { key = "erreurs" }, { key = "jeux", label = "PAGE_GAMES", desc = "MODULES_GAMES_DESC" }, { key = "podometre" },
 }
 
 local ROW_H = 36

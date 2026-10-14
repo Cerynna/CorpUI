@@ -2473,7 +2473,7 @@ local ADDON_OF = {
     note = "CorpUI_Notes", raid = "CorpUI_Raid", inv = "CorpUI_Invitations", clics = "CorpUI_Clics",
     persos = "CorpUI_Persos", metiers = "CorpUI_Metiers", hv = "CorpUI_HV", compta = "CorpUI_HV", dez = "CorpUI_HV",
     talents = "CorpUI_Talents", sorts = "CorpUI_Sorts", jeux = "CorpUI_Jeux", murloc = "CorpUI_Jeux",
-    minerais = "CorpUI_Jeux", podometre = "CorpUI_Jeux",
+    minerais = "CorpUI_Jeux", podometre = "CorpUI_Jeux", leveling = "CorpUI_Leveling",
 }
 function ns.ModuleAddon(key) return ADDON_OF[key] end
 
@@ -2723,6 +2723,7 @@ local PAGES = {
     { key = "hv", cmds = { "hv", "compta" } },
     { key = "talents", cmds = { "talents" } },
     { key = "sorts", cmds = { "sorts" } },
+    { key = "leveling", cmds = { "leveling" } },
     { key = "erreurs", cmds = { "erreurs" } },
     { key = "jeux", label = "PAGE_GAMES", cmds = { "murloc", "minerais", "podometre" } },
 }
