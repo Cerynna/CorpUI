@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Infobulles
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Infobulles]|r
 ## Notes: CorpUI module: Infobulles. Needs CorpUI.
 ## Notes-frFR: Module de CorpUI : Infobulles. Demande CorpUI.
 ## Notes-deDE: CorpUI-Modul: Infobulles. Benötigt CorpUI.

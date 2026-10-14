@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Persos
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Persos]|r
 ## Notes: CorpUI module: Persos. Needs CorpUI.
 ## Notes-frFR: Module de CorpUI : Persos. Demande CorpUI.
 ## Notes-deDE: CorpUI-Modul: Persos. Benötigt CorpUI.

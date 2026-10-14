@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Quetes
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Quetes]|r
 ## Notes: CorpUI module: Quetes. Needs CorpUI.
 ## Notes-frFR: Module de CorpUI : Quetes. Demande CorpUI.
 ## Notes-deDE: CorpUI-Modul: Quetes. Benötigt CorpUI.

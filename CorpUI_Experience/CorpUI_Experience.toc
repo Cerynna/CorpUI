@@ -1,14 +1,14 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Experience
-## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Expérience
-## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Erfahrung
-## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Experiencia
-## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Experiência
-## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Esperienza
-## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Опыт
-## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 经验
-## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 經驗
-## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 경험치
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Experience]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Expérience]|r
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Erfahrung]|r
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Experiencia]|r
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Experiência]|r
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Esperienza]|r
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Опыт]|r
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[经验]|r
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[經驗]|r
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[경험치]|r
 ## Notes: XP bar: quests, rested, XP/hour, time to level
 ## Notes-frFR: barre d'XP : quêtes, repos, XP/heure, temps avant le niveau
 ## Notes-deDE: EP-Leiste: Quests, Erholung, EP/Stunde, Zeit bis zur Stufe

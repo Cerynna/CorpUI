@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Marchand
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Marchand]|r
 ## Notes: CorpUI module: Marchand. Needs CorpUI.
 ## Notes-frFR: Module de CorpUI : Marchand. Demande CorpUI.
 ## Notes-deDE: CorpUI-Modul: Marchand. Benötigt CorpUI.

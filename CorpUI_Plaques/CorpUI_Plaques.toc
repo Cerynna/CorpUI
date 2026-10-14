@@ -1,14 +1,14 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Nameplates
-## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Plaques de nom
-## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Namensplaketten
-## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Placas de nombre
-## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Placas de nome
-## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Barre dei nomi
-## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Индикаторы здоровья
-## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 姓名板
-## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 名條
-## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 이름표
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Nameplates]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Plaques de nom]|r
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Namensplaketten]|r
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Placas de nombre]|r
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Placas de nome]|r
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Barre dei nomi]|r
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Индикаторы здоровья]|r
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[姓名板]|r
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[名條]|r
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[이름표]|r
 ## Notes: CorpUI module: Nameplates. Needs CorpUI.
 ## Notes-frFR: Module de CorpUI : Plaques de nom. Demande CorpUI.
 ## Notes-deDE: CorpUI-Modul: Namensplaketten. Benötigt CorpUI.

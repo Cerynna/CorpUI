@@ -1,14 +1,14 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Chat
-## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Chat
-## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Chat
-## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Chat
-## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Bate-papo
-## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Chat
-## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Чат
-## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 聊天
-## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 聊天
-## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 대화
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Chat]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Chat]|r
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Chat]|r
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Chat]|r
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Bate-papo]|r
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Chat]|r
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Чат]|r
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[聊天]|r
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[聊天]|r
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[대화]|r
 ## Notes: CorpUI style for chat windows, text copy
 ## Notes-frFR: style CorpUI pour les fenêtres de discussion, copie du texte
 ## Notes-deDE: CorpUI-Stil für Chatfenster, Text kopieren

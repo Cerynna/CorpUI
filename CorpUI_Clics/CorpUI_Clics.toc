@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Clics
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Clics]|r
 ## Notes: CorpUI module: Clics. Needs CorpUI.
 ## Notes-frFR: Module de CorpUI : Clics. Demande CorpUI.
 ## Notes-deDE: CorpUI-Modul: Clics. Benötigt CorpUI.

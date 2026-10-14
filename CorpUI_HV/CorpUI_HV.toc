@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - HV
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[HV]|r
 ## Notes: CorpUI module: HV. Needs CorpUI.
 ## Notes-frFR: Module de CorpUI : HV. Demande CorpUI.
 ## Notes-deDE: CorpUI-Modul: HV. Benötigt CorpUI.

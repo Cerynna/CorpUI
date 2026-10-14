@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Metiers
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Metiers]|r
 ## Notes: CorpUI module: Metiers. Needs CorpUI.
 ## Notes-frFR: Module de CorpUI : Metiers. Demande CorpUI.
 ## Notes-deDE: CorpUI-Modul: Metiers. Benötigt CorpUI.

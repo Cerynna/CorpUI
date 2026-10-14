@@ -1,14 +1,14 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Dispels
-## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Dissipation
-## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Bannung
-## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Disipación
-## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Dissipação
-## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Dissoluzione
-## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Рассеивание
-## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 驱散
-## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 驅散
-## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 해제
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Dispels]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Dissipation]|r
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Bannung]|r
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Disipación]|r
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Dissipação]|r
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Dissoluzione]|r
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Рассеивание]|r
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[驱散]|r
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[驅散]|r
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[해제]|r
 ## Notes: dispel alert on party and raid frames (color, sound) and dispel assignments per raid group
 ## Notes-frFR: alerte de dissipation sur les cadres de groupe et de raid (couleur, son) et répartition des groupes du raid
 ## Notes-deDE: Bannwarnung auf Gruppen- und Schlachtzugsfenstern (Farbe, Ton) und Aufteilung der Schlachtzugsgruppen

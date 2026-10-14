@@ -1,14 +1,14 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Talents
-## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Talents
-## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Talente
-## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Talentos
-## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Talentos
-## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Talenti
-## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Таланты
-## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 天赋
-## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 天賦
-## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 특성
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Talents]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Talents]|r
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Talente]|r
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Talentos]|r
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Talentos]|r
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Talenti]|r
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Таланты]|r
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[天赋]|r
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[天賦]|r
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[특성]|r
 ## Notes: export and import of talent builds
 ## Notes-frFR: export et import des talents
 ## Notes-deDE: Export und Import von Talentverteilungen

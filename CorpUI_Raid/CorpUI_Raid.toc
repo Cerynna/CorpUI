@@ -1,14 +1,14 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Raid bar
-## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Barre de raid
-## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Schlachtzugsleiste
-## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Barra de banda
-## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Barra de raide
-## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Barra dell'incursione
-## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Панель рейда
-## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 团队工具条
-## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 團隊工具列
-## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 공격대 바
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Raid bar]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Barre de raid]|r
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Schlachtzugsleiste]|r
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Barra de banda]|r
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Barra de raide]|r
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Barra dell'incursione]|r
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Панель рейда]|r
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[团队工具条]|r
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[團隊工具列]|r
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[공격대 바]|r
 ## Notes: target and ground markers, ready check, role check, pull timer
 ## Notes-frFR: marqueurs de cible et au sol, appel, vérification des rôles, décompte de pull
 ## Notes-deDE: Ziel- und Bodenmarkierungen, Bereitschaftscheck, Rollenabfrage, Pull-Countdown

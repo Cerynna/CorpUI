@@ -1,14 +1,14 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Unit frames
-## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Cadres d'unité
-## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Einheitenfenster
-## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Marcos de unidad
-## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Quadros de unidade
-## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Riquadri unità
-## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Рамки юнитов
-## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 单位框体
-## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 單位框架
-## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 유닛 프레임
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Unit frames]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Cadres d'unité]|r
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Einheitenfenster]|r
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Marcos de unidad]|r
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Quadros de unidade]|r
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Riquadri unità]|r
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Рамки юнитов]|r
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[单位框体]|r
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[單位框架]|r
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[유닛 프레임]|r
 ## Notes: CorpUI module: Unit frames. Needs CorpUI.
 ## Notes-frFR: Module de CorpUI : Cadres d'unité. Demande CorpUI.
 ## Notes-deDE: CorpUI-Modul: Einheitenfenster. Benötigt CorpUI.

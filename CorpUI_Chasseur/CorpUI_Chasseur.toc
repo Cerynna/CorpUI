@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Chasseur
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Chasseur]|r
 ## Notes: CorpUI module: Chasseur. Needs CorpUI.
 ## Notes-frFR: Module de CorpUI : Chasseur. Demande CorpUI.
 ## Notes-deDE: CorpUI-Modul: Chasseur. Benötigt CorpUI.

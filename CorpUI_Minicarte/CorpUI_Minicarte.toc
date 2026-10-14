@@ -1,14 +1,14 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Minimap
-## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Minicarte
-## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Minikarte
-## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Minimapa
-## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Minimapa
-## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Minimappa
-## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Миникарта
-## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 小地图
-## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 小地圖
-## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 미니맵
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Minimap]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Minicarte]|r
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Minikarte]|r
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Minimapa]|r
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Minimapa]|r
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Minimappa]|r
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Миникарта]|r
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[小地图]|r
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[小地圖]|r
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[미니맵]|r
 ## Notes: square minimap with zone, coordinates and clock
 ## Notes-frFR: minicarte carrée avec zone, coordonnées et heure
 ## Notes-deDE: eckige Minikarte mit Gebiet, Koordinaten und Uhr

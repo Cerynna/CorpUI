@@ -1,14 +1,14 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Raid notes
-## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Notes de raid
-## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Raidnotizen
-## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Notas de banda
-## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Notas de raide
-## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Note di incursione
-## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Заметки рейда
-## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 团队笔记
-## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 團隊筆記
-## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 공격대 메모
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Raid notes]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Notes de raid]|r
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Raidnotizen]|r
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Notas de banda]|r
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Notas de raide]|r
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Note di incursione]|r
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Заметки рейда]|r
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[团队笔记]|r
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[團隊筆記]|r
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[공격대 메모]|r
 ## Notes: raid notes shared with the group (MRT style): editor, note window, markers
 ## Notes-frFR: notes de raid partagées avec le groupe (façon MRT) : éditeur, fenêtre de note, marqueurs
 ## Notes-deDE: Raidnotizen für die Gruppe (wie MRT): Editor, Notizfenster, Markierungen

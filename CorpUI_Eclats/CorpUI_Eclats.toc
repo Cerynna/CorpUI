@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Eclats
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Eclats]|r
 ## Notes: CorpUI module: Eclats. Needs CorpUI.
 ## Notes-frFR: Module de CorpUI : Eclats. Demande CorpUI.
 ## Notes-deDE: CorpUI-Modul: Eclats. Benötigt CorpUI.

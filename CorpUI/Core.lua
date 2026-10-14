@@ -2509,7 +2509,8 @@ end
 -- titre et description du .toc (langue du jeu), sans le prefixe CorpUI
 function ns.AddonText(a)
     local _, title, notes = addonApi("GetAddOnInfo", a)
-    if type(title) == "string" then title = title:gsub("^.-%s%-%s", "", 1) end
+    -- "CorpUI [Module]" (crochets colores), sinon l ancien "CorpUI - Module"
+    if type(title) == "string" then title = title:match("%[(.-)%]") or title:gsub("^.-%s%-%s", "", 1) end
     return title, notes
 end
 local loadedOff

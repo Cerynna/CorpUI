@@ -1,14 +1,14 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Action bars
-## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Barres d'action
-## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Aktionsleisten
-## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Barras de acción
-## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Barras de ação
-## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Barre delle azioni
-## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Панели команд
-## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 动作条
-## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 快捷列
-## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 행동 단축바
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Action bars]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Barres d'action]|r
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Aktionsleisten]|r
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Barras de acción]|r
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Barras de ação]|r
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Barre delle azioni]|r
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Панели команд]|r
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[动作条]|r
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[快捷列]|r
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[행동 단축바]|r
 ## Notes: action bars with forms and stances, layout of your choice
 ## Notes-frFR: barres d'action avec formes et postures, disposition au choix
 ## Notes-deDE: Aktionsleisten mit Formen und Haltungen, frei anordnen

@@ -1,14 +1,14 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Meter
-## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Compteur
-## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Zähler
-## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Medidor
-## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Medidor
-## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Contatore
-## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Измеритель
-## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 统计
-## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 統計
-## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 미터기
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Meter]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Compteur]|r
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Zähler]|r
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Medidor]|r
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Medidor]|r
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Contatore]|r
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Измеритель]|r
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[统计]|r
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[統計]|r
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[미터기]|r
 ## Notes: Our damage meter: damage, healing, interrupts, dispels, deaths...
 ## Notes-frFR: Notre compteur : dégâts, soins, interruptions, dissipations, morts...
 ## Notes-deDE: Unser Zähler: Schaden, Heilung, Unterbrechungen, Bannungen, Tode...

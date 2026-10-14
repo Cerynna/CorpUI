@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Buffs
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Buffs]|r
 ## Notes: CorpUI module: Buffs. Needs CorpUI.
 ## Notes-frFR: Module de CorpUI : Buffs. Demande CorpUI.
 ## Notes-deDE: CorpUI-Modul: Buffs. Benötigt CorpUI.

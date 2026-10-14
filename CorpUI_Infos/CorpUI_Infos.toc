@@ -1,14 +1,14 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Info bar
-## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Barre d'infos
-## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Infoleiste
-## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Barra de información
-## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Barra de informações
-## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Barra informazioni
-## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Инфопанель
-## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 信息条
-## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 資訊條
-## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 정보바
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Info bar]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Barre d'infos]|r
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Infoleiste]|r
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Barra de información]|r
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Barra de informações]|r
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Barra informazioni]|r
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[Инфопанель]|r
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[信息条]|r
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[資訊條]|r
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r |cff69ccf0[정보바]|r
 ## Notes: gold, bags, durability, FPS, latency, time, coordinates, friends, guild
 ## Notes-frFR: or, sacs, durabilité, FPS, latence, heure, coordonnées, amis, guilde
 ## Notes-deDE: Gold, Taschen, Haltbarkeit, FPS, Latenz, Uhrzeit, Koordinaten, Freunde, Gilde

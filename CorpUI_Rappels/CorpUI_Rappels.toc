@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: |cffd65cffCorp|r|cffffd100UI|r - Rappels
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cffff9933[Rappels]|r
 ## Notes: CorpUI module: Rappels. Needs CorpUI.
 ## Notes-frFR: Module de CorpUI : Rappels. Demande CorpUI.
 ## Notes-deDE: CorpUI-Modul: Rappels. Benötigt CorpUI.
