@@ -1,7 +1,6 @@
 # Release de CorpUI : a chaque tag vX.Y.Z pousse sur GitHub, construit
-# CorpUI-X.Y.Z.zip (un dossier CorpUI pret a poser dans AddOns, sans les
-# fichiers de developpement : voir .gitattributes) et cree la release avec
-# la liste des changements depuis la version precedente.
+# CorpUI-X.Y.Z.zip (le noyau CorpUI et les addons CorpUI_Xxx, cote a cote,
+# prets a poser dans AddOns) et cree la release avec ses notes.
 # Lancer une version : .github/scripts/release.sh X.Y.Z
 name: Release
 
@@ -21,19 +20,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Version du .toc identique au tag
+      - name: Version de tous les .toc identique au tag
         id: ver
         run: |
           VER="${GITHUB_REF_NAME#v}"
-          TOC=$(grep -m1 '^## Version:' CorpUI.toc | sed 's/^## Version:[[:space:]]*//' | tr -d '\r')
-          if [ "$TOC" != "$VER" ]; then
-            echo "::error::Le .toc annonce la version $TOC, le tag est $GITHUB_REF_NAME"
-            exit 1
-          fi
+          for toc in CorpUI/CorpUI.toc CorpUI_*/CorpUI_*.toc; do
+            TOC=$(grep -m1 '^## Version:' "$toc" | sed 's/^## Version:[[:space:]]*//' | tr -d '\r')
+            if [ "$TOC" != "$VER" ]; then
+              echo "::error::$toc annonce la version $TOC, le tag est $GITHUB_REF_NAME"
+              exit 1
+            fi
+          done
           echo "ver=$VER" >> "$GITHUB_OUTPUT"
 
       - name: Archive CorpUI-X.Y.Z.zip
-        run: git archive --format=zip --prefix=CorpUI/ -o "CorpUI-${{ steps.ver.outputs.ver }}.zip" "$GITHUB_REF_NAME"
+        run: |
+          # tous les dossiers d addons, cote a cote (CorpUI, CorpUI_Cadres...)
+          ADDONS=$(git ls-tree -d --name-only "$GITHUB_REF_NAME" | grep -E '^CorpUI(_[A-Za-z]+)?$')
+          git archive --format=zip -o "CorpUI-${{ steps.ver.outputs.ver }}.zip" "$GITHUB_REF_NAME" $ADDONS
 
       - name: Notes de version
         run: |
@@ -43,8 +47,8 @@ jobs:
           ## Installation
 
           1. Télécharge **CorpUI-@VER@.zip** ci-dessous (pas « Source code »).
-          2. Décompresse-le dans `World of Warcraft\_classic_beta_\Interface\AddOns\` : tu obtiens un dossier `CorpUI`.
-          3. Pour une mise à jour, remplace l'ancien dossier `CorpUI` (tes réglages sont gardés : ils sont dans `WTF`), puis relance le jeu.
+          2. Décompresse-le dans `World of Warcraft\_classic_beta_\Interface\AddOns\` : tu obtiens le dossier `CorpUI` (le noyau) et un dossier `CorpUI_Xxx` par module.
+          3. Pour une mise à jour, supprime d'abord les anciens dossiers `CorpUI` et `CorpUI_Xxx` (tes réglages sont gardés : ils sont dans `WTF`), décompresse, puis relance le jeu.
 
           ## Changements
 

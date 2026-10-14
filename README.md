@@ -95,13 +95,15 @@ Les mini-jeux peuvent s'ouvrir tout seuls pendant les trajets en griffon.
 ## Installation
 
 1. Ouvre la [dernière version](https://github.com/Cerynna/CorpUI/releases/latest) (rubrique **Releases** du dépôt) et télécharge **CorpUI-X.Y.Z.zip**, pas « Source code ».
-2. Décompresse-le dans `World of Warcraft\_classic_beta_\Interface\AddOns\` : tu obtiens un dossier `CorpUI`.
-3. Lance le jeu, active CorpUI dans la liste des addons, puis tape `/corp`.
+2. Décompresse-le dans `World of Warcraft\_classic_beta_\Interface\AddOns\` : tu obtiens le dossier `CorpUI` (le noyau) et un dossier `CorpUI_Xxx` par module (`CorpUI_Cadres`, `CorpUI_Barres`…).
+3. Lance le jeu, active CorpUI dans la liste des addons (les modules sont rangés dessous), puis tape `/corp`.
 
-Mise à jour : remplace le dossier `CorpUI` par celui de la nouvelle version. Tes réglages sont gardés (ils sont dans `WTF`). `/corp qui` montre la version de CorpUI des joueurs de ta guilde et de ton groupe.
+Chaque module est un addon : un module coupé (page **Modules** de `/corp`, ou liste des addons du jeu) n'est pas chargé du tout.
+
+Mise à jour : supprime les anciens dossiers `CorpUI` et `CorpUI_Xxx`, puis décompresse la nouvelle version. Tes réglages sont gardés (ils sont dans `WTF`). `/corp qui` montre la version de CorpUI des joueurs de ta guilde et de ton groupe.
 
 > [!NOTE]
-> Version en cours de développement : bouton **Code** puis **Download ZIP** (ou `git clone`), et renomme le dossier en **`CorpUI`** (le ZIP de GitHub l'appelle `CorpUI-main`).
+> Version en cours de développement : bouton **Code** puis **Download ZIP** (ou `git clone`), puis copie les dossiers `CorpUI` et `CorpUI_*` dans `AddOns`. Pour développer, `.github\scripts\liens.ps1` (PowerShell) crée à la place des liens vers le dépôt.
 
 > [!TIP]
 > Les nouvelles images, polices et sons ne sont pris en compte qu'après un redémarrage complet du jeu ; un `/reload` suffit pour le reste.
@@ -135,7 +137,7 @@ WoWForever protège beaucoup de données en combat (valeurs « secrètes ») et 
 
 ## Publier une version
 
-Depuis le dossier `CorpUI`, dans Git Bash : `.github/scripts/release.sh 1.2.0`. Le script met la version dans le `.toc`, commite, pose le tag `v1.2.0` et pousse. GitHub construit alors `CorpUI-1.2.0.zip` (un dossier `CorpUI` sans les fichiers de développement) et publie la release. Ses notes : le fichier `.github/notes/v1.2.0.md` s'il existe (rédigé, avec accents), sinon la liste des changements depuis la version précédente.
+Depuis le dépôt, dans Git Bash : `.github/scripts/release.sh 1.2.0`. Le script met la version dans tous les `.toc` (noyau et modules), commite, pose le tag `v1.2.0` et pousse. GitHub construit alors `CorpUI-1.2.0.zip` (les dossiers `CorpUI` et `CorpUI_Xxx`, sans les fichiers de développement) et publie la release. Ses notes : le fichier `.github/notes/v1.2.0.md` s'il existe (rédigé, avec accents), sinon la liste des changements depuis la version précédente.
 
 ## Crédits
 
