@@ -1,0 +1,30 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Dispels
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Dissipation
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Bannung
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Disipación
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Dissipação
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Dissoluzione
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Рассеивание
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 驱散
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 驅散
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 해제
+## Notes: dispel alert on party and raid frames (color, sound) and dispel assignments per raid group
+## Notes-frFR: alerte de dissipation sur les cadres de groupe et de raid (couleur, son) et répartition des groupes du raid
+## Notes-deDE: Bannwarnung auf Gruppen- und Schlachtzugsfenstern (Farbe, Ton) und Aufteilung der Schlachtzugsgruppen
+## Notes-esES: alerta de disipación en marcos de grupo y banda (color, sonido) y reparto de los grupos de banda
+## Notes-ptBR: alerta de dissipação nos quadros de grupo e raide (cor, som) e divisão dos grupos da raide
+## Notes-itIT: avviso di dissoluzione sui riquadri di gruppo e incursione (colore, suono) e ripartizione dei gruppi
+## Notes-ruRU: сигнал рассеивания на рамках группы и рейда (цвет, звук) и распределение групп рейда
+## Notes-zhCN: 小队和团队框体的驱散提示（颜色、声音）以及团队小组分配
+## Notes-zhTW: 隊伍和團隊框架的驅散提示（顏色、聲音）以及團隊小隊分配
+## Notes-koKR: 파티 및 공격대 프레임의 해제 알림(색상, 소리)과 공격대 파티 배정
+## Notes-esMX: alerta de disipación en marcos de grupo y banda (color, sonido) y reparto de los grupos de banda
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte, CorpUI_Experience, CorpUI_Clics, CorpUI_Plaques, CorpUI_Quetes, CorpUI_Infobulles, CorpUI_Compteur, CorpUI_Chat, CorpUI_Habillage, CorpUI_Talents, CorpUI_Butin, CorpUI_Eclats, CorpUI_HV, CorpUI_Jeux, CorpUI_Raid, CorpUI_Invitations, CorpUI_Notes, CorpUI_Recharges
+## Group: CorpUI
+
+Dissipation\Strings.lua
+Dissipation\Dissipation.lua

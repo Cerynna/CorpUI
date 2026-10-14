@@ -1,0 +1,31 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Cooldowns
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Recharges
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Abklingzeiten
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Reutilizaciones
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Recargas
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Ricariche
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Восстановление
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 冷却
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 冷卻
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 재사용 대기시간
+## Notes: group / raid cooldown tracker and personal cooldown bar
+## Notes-frFR: suivi des CD du groupe / raid et barre de CD perso
+## Notes-deDE: Gruppen-/Schlachtzugs-Abklingzeiten und eigene Abklingzeitleiste
+## Notes-esES: seguimiento de CD de grupo / banda y barra de CD propia
+## Notes-ptBR: acompanhamento de recargas do grupo / raide e barra de recargas pessoal
+## Notes-itIT: monitoraggio delle ricariche di gruppo / incursione e barra personale
+## Notes-ruRU: отслеживание КД группы / рейда и личная панель КД
+## Notes-zhCN: 小队/团队冷却监控和个人冷却条
+## Notes-zhTW: 隊伍/團隊冷卻監控和個人冷卻條
+## Notes-koKR: 파티/공격대 재사용 추적과 개인 재사용 바
+## Notes-esMX: seguimiento de CD de grupo / banda y barra de CD propia
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte, CorpUI_Experience, CorpUI_Clics, CorpUI_Plaques, CorpUI_Quetes, CorpUI_Infobulles, CorpUI_Compteur, CorpUI_Chat, CorpUI_Habillage, CorpUI_Talents, CorpUI_Butin, CorpUI_Eclats, CorpUI_HV, CorpUI_Jeux, CorpUI_Raid, CorpUI_Invitations, CorpUI_Notes
+## Group: CorpUI
+
+Recharges\Strings.lua
+Recharges\Sorts.lua
+Recharges\Recharges.lua

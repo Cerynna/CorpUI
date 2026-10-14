@@ -1,0 +1,30 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Experience
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Expérience
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Erfahrung
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Experiencia
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Experiência
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Esperienza
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Опыт
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 经验
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 經驗
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 경험치
+## Notes: XP bar: quests, rested, XP/hour, time to level
+## Notes-frFR: barre d'XP : quêtes, repos, XP/heure, temps avant le niveau
+## Notes-deDE: EP-Leiste: Quests, Erholung, EP/Stunde, Zeit bis zur Stufe
+## Notes-esES: barra de PX: misiones, descanso, PX/hora, tiempo hasta el nivel
+## Notes-ptBR: barra de XP: missões, descanso, XP/hora, tempo até o nível
+## Notes-itIT: barra PE: missioni, riposo, PE/ora, tempo al livello
+## Notes-ruRU: полоса опыта: задания, отдых, опыт/час, время до уровня
+## Notes-zhCN: 经验条：任务、休息、每小时经验、升级时间
+## Notes-zhTW: 經驗條：任務、休息、每小時經驗、升級時間
+## Notes-koKR: 경험치 바: 퀘스트, 휴식, 시간당 경험치, 레벨업 시간
+## Notes-esMX: barra de PX: misiones, descanso, PX/hora, tiempo hasta el nivel
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte
+## Group: CorpUI
+
+Experience\Strings.lua
+Experience\Experience.lua

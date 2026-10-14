@@ -1,0 +1,21 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Chasseur
+## Notes: CorpUI module: Chasseur. Needs CorpUI.
+## Notes-frFR: Module de CorpUI : Chasseur. Demande CorpUI.
+## Notes-deDE: CorpUI-Modul: Chasseur. Benötigt CorpUI.
+## Notes-esES: Módulo de CorpUI: Chasseur. Requiere CorpUI.
+## Notes-ptBR: Módulo do CorpUI: Chasseur. Requer o CorpUI.
+## Notes-itIT: Modulo di CorpUI: Chasseur. Richiede CorpUI.
+## Notes-ruRU: Модуль CorpUI: Chasseur. Требуется CorpUI.
+## Notes-zhCN: CorpUI 模块：Chasseur。需要 CorpUI。
+## Notes-zhTW: CorpUI 模組：Chasseur。需要 CorpUI。
+## Notes-koKR: CorpUI 모듈: Chasseur. CorpUI 필요.
+## Notes-esMX: Módulo de CorpUI: Chasseur. Requiere CorpUI.
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres
+## Group: CorpUI
+
+Chasseur\Strings.lua
+Chasseur\Chasseur.lua

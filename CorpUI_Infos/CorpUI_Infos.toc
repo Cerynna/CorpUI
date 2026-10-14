@@ -1,0 +1,30 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Info bar
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Barre d'infos
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Infoleiste
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Barra de información
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Barra de informações
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Barra informazioni
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Инфопанель
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 信息条
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 資訊條
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 정보바
+## Notes: gold, bags, durability, FPS, latency, time, coordinates, friends, guild
+## Notes-frFR: or, sacs, durabilité, FPS, latence, heure, coordonnées, amis, guilde
+## Notes-deDE: Gold, Taschen, Haltbarkeit, FPS, Latenz, Uhrzeit, Koordinaten, Freunde, Gilde
+## Notes-esES: oro, bolsas, durabilidad, FPS, latencia, hora, coordenadas, amigos, hermandad
+## Notes-ptBR: ouro, bolsas, durabilidade, FPS, latência, hora, coordenadas, amigos, guilda
+## Notes-itIT: oro, borse, durabilità, FPS, latenza, ora, coordinate, amici, gilda
+## Notes-ruRU: золото, сумки, прочность, FPS, задержка, время, координаты, друзья, гильдия
+## Notes-zhCN: 金币、背包、耐久、帧数、延迟、时间、坐标、好友、公会
+## Notes-zhTW: 金幣、背包、耐久、幀數、延遲、時間、座標、好友、公會
+## Notes-koKR: 골드, 가방, 내구도, FPS, 지연 시간, 시간, 좌표, 친구, 길드
+## Notes-esMX: oro, bolsas, durabilidad, FPS, latencia, hora, coordenadas, amigos, hermandad
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres
+## Group: CorpUI
+
+Infos\Strings.lua
+Infos\Infos.lua

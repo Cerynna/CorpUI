@@ -1,0 +1,27 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Jeux
+## Notes: CorpUI module: Jeux. Needs CorpUI.
+## Notes-frFR: Module de CorpUI : Jeux. Demande CorpUI.
+## Notes-deDE: CorpUI-Modul: Jeux. Benötigt CorpUI.
+## Notes-esES: Módulo de CorpUI: Jeux. Requiere CorpUI.
+## Notes-ptBR: Módulo do CorpUI: Jeux. Requer o CorpUI.
+## Notes-itIT: Modulo di CorpUI: Jeux. Richiede CorpUI.
+## Notes-ruRU: Модуль CorpUI: Jeux. Требуется CorpUI.
+## Notes-zhCN: CorpUI 模块：Jeux。需要 CorpUI。
+## Notes-zhTW: CorpUI 模組：Jeux。需要 CorpUI。
+## Notes-koKR: CorpUI 모듈: Jeux. CorpUI 필요.
+## Notes-esMX: Módulo de CorpUI: Jeux. Requiere CorpUI.
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte, CorpUI_Experience, CorpUI_Clics, CorpUI_Plaques, CorpUI_Quetes, CorpUI_Infobulles, CorpUI_Compteur, CorpUI_Chat, CorpUI_Habillage, CorpUI_Talents, CorpUI_Butin, CorpUI_Eclats, CorpUI_HV
+## Group: CorpUI
+
+Jeux\Strings.lua
+Jeux\Jeux.lua
+Jeux\Murloc.lua
+Jeux\Minerais.lua
+Podometre\Strings.lua
+Podometre\Cartes.lua
+Podometre\Podometre.lua
+Podometre\Classeur.lua

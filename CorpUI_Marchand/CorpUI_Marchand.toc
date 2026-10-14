@@ -1,0 +1,23 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Marchand
+## Notes: CorpUI module: Marchand. Needs CorpUI.
+## Notes-frFR: Module de CorpUI : Marchand. Demande CorpUI.
+## Notes-deDE: CorpUI-Modul: Marchand. Benötigt CorpUI.
+## Notes-esES: Módulo de CorpUI: Marchand. Requiere CorpUI.
+## Notes-ptBR: Módulo do CorpUI: Marchand. Requer o CorpUI.
+## Notes-itIT: Modulo di CorpUI: Marchand. Richiede CorpUI.
+## Notes-ruRU: Модуль CorpUI: Marchand. Требуется CorpUI.
+## Notes-zhCN: CorpUI 模块：Marchand。需要 CorpUI。
+## Notes-zhTW: CorpUI 模組：Marchand。需要 CorpUI。
+## Notes-koKR: CorpUI 모듈: Marchand. CorpUI 필요.
+## Notes-esMX: Módulo de CorpUI: Marchand. Requiere CorpUI.
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos
+## Group: CorpUI
+
+Reactifs\Strings.lua
+Reactifs\Reactifs.lua
+Marchand\Strings.lua
+Marchand\Marchand.lua

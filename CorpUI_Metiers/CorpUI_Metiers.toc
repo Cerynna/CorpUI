@@ -1,0 +1,22 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Metiers
+## Notes: CorpUI module: Metiers. Needs CorpUI.
+## Notes-frFR: Module de CorpUI : Metiers. Demande CorpUI.
+## Notes-deDE: CorpUI-Modul: Metiers. Benötigt CorpUI.
+## Notes-esES: Módulo de CorpUI: Metiers. Requiere CorpUI.
+## Notes-ptBR: Módulo do CorpUI: Metiers. Requer o CorpUI.
+## Notes-itIT: Modulo di CorpUI: Metiers. Richiede CorpUI.
+## Notes-ruRU: Модуль CorpUI: Metiers. Требуется CorpUI.
+## Notes-zhCN: CorpUI 模块：Metiers。需要 CorpUI。
+## Notes-zhTW: CorpUI 模組：Metiers。需要 CorpUI。
+## Notes-koKR: CorpUI 모듈: Metiers. CorpUI 필요.
+## Notes-esMX: Módulo de CorpUI: Metiers. Requiere CorpUI.
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand
+## Group: CorpUI
+
+Metiers\Strings.lua
+Metiers\File.lua
+Metiers\Courses.lua

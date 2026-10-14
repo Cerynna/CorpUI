@@ -1,0 +1,21 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Eclats
+## Notes: CorpUI module: Eclats. Needs CorpUI.
+## Notes-frFR: Module de CorpUI : Eclats. Demande CorpUI.
+## Notes-deDE: CorpUI-Modul: Eclats. Benötigt CorpUI.
+## Notes-esES: Módulo de CorpUI: Eclats. Requiere CorpUI.
+## Notes-ptBR: Módulo do CorpUI: Eclats. Requer o CorpUI.
+## Notes-itIT: Modulo di CorpUI: Eclats. Richiede CorpUI.
+## Notes-ruRU: Модуль CorpUI: Eclats. Требуется CorpUI.
+## Notes-zhCN: CorpUI 模块：Eclats。需要 CorpUI。
+## Notes-zhTW: CorpUI 模組：Eclats。需要 CorpUI。
+## Notes-koKR: CorpUI 모듈: Eclats. CorpUI 필요.
+## Notes-esMX: Módulo de CorpUI: Eclats. Requiere CorpUI.
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte, CorpUI_Experience, CorpUI_Clics, CorpUI_Plaques, CorpUI_Quetes, CorpUI_Infobulles, CorpUI_Compteur, CorpUI_Chat, CorpUI_Habillage, CorpUI_Talents, CorpUI_Butin
+## Group: CorpUI
+
+Eclats\Strings.lua
+Eclats\Eclats.lua

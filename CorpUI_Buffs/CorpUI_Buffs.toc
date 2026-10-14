@@ -1,0 +1,22 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Buffs
+## Notes: CorpUI module: Buffs. Needs CorpUI.
+## Notes-frFR: Module de CorpUI : Buffs. Demande CorpUI.
+## Notes-deDE: CorpUI-Modul: Buffs. Benötigt CorpUI.
+## Notes-esES: Módulo de CorpUI: Buffs. Requiere CorpUI.
+## Notes-ptBR: Módulo do CorpUI: Buffs. Requer o CorpUI.
+## Notes-itIT: Modulo di CorpUI: Buffs. Richiede CorpUI.
+## Notes-ruRU: Модуль CorpUI: Buffs. Требуется CorpUI.
+## Notes-zhCN: CorpUI 模块：Buffs。需要 CorpUI。
+## Notes-zhTW: CorpUI 模組：Buffs。需要 CorpUI。
+## Notes-koKR: CorpUI 모듈: Buffs. CorpUI 필요.
+## Notes-esMX: Módulo de CorpUI: Buffs. Requiere CorpUI.
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## Group: CorpUI
+
+Buffs\Data.lua
+Buffs\Buffs.lua
+Buffs\Assign.lua
+Buffs\BuffBar.lua

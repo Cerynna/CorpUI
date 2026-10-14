@@ -1,0 +1,50 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Skins
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Habillage
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Design
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Apariencia
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Aparência
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Aspetto
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Оформление
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 外观
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 外觀
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 외형
+## Notes: CorpUI module: Skins. Needs CorpUI.
+## Notes-frFR: Module de CorpUI : Habillage. Demande CorpUI.
+## Notes-deDE: CorpUI-Modul: Design. Benötigt CorpUI.
+## Notes-esES: Módulo de CorpUI: Apariencia. Requiere CorpUI.
+## Notes-ptBR: Módulo do CorpUI: Aparência. Requer o CorpUI.
+## Notes-itIT: Modulo di CorpUI: Aspetto. Richiede CorpUI.
+## Notes-ruRU: Модуль CorpUI: Оформление. Требуется CorpUI.
+## Notes-zhCN: CorpUI 模块：外观。需要 CorpUI。
+## Notes-zhTW: CorpUI 模組：外觀。需要 CorpUI。
+## Notes-koKR: CorpUI 모듈: 외형. CorpUI 필요.
+## Notes-esMX: Módulo de CorpUI: Apariencia. Requiere CorpUI.
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte, CorpUI_Experience, CorpUI_Clics, CorpUI_Plaques, CorpUI_Quetes, CorpUI_Infobulles, CorpUI_Compteur, CorpUI_Chat
+## Group: CorpUI
+
+Habillage\Strings.lua
+Habillage\Fenetres.lua
+Habillage\Communs.lua
+Habillage\Personnage.lua
+Habillage\Metiers.lua
+Habillage\HotelVentes.lua
+Habillage\Grimoire.lua
+Habillage\Talents.lua
+Habillage\JournalQuetes.lua
+Habillage\Communautes.lua
+Habillage\RechercheGroupe.lua
+Habillage\Collections.lua
+Habillage\Heritage.lua
+Habillage\PNJ.lua
+Habillage\Marchand.lua
+Habillage\Courrier.lua
+Habillage\Maitre.lua
+Habillage\Social.lua
+Habillage\Canaux.lua
+Habillage\Macros.lua
+Habillage\Deplacer.lua
+Habillage\Skins.lua

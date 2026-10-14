@@ -1,0 +1,30 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Talents
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Talents
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Talente
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Talentos
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Talentos
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Talenti
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Таланты
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 天赋
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 天賦
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 특성
+## Notes: export and import of talent builds
+## Notes-frFR: export et import des talents
+## Notes-deDE: Export und Import von Talentverteilungen
+## Notes-esES: exportar e importar talentos
+## Notes-ptBR: exportar e importar talentos
+## Notes-itIT: esportazione e importazione dei talenti
+## Notes-ruRU: экспорт и импорт талантов
+## Notes-zhCN: 天赋的导出与导入
+## Notes-zhTW: 天賦的匯出與匯入
+## Notes-koKR: 특성 내보내기와 가져오기
+## Notes-esMX: exportar e importar talentos
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte, CorpUI_Experience, CorpUI_Clics, CorpUI_Plaques, CorpUI_Quetes, CorpUI_Infobulles, CorpUI_Compteur, CorpUI_Chat, CorpUI_Habillage
+## Group: CorpUI
+
+Talents\Strings.lua
+Talents\Talents.lua

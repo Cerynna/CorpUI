@@ -1,0 +1,33 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Action bars
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Barres d'action
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Aktionsleisten
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Barras de acción
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Barras de ação
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Barre delle azioni
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Панели команд
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 动作条
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 快捷列
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 행동 단축바
+## Notes: action bars with forms and stances, layout of your choice
+## Notes-frFR: barres d'action avec formes et postures, disposition au choix
+## Notes-deDE: Aktionsleisten mit Formen und Haltungen, frei anordnen
+## Notes-esES: barras de acción con formas y actitudes, disposición a elegir
+## Notes-ptBR: barras de ação com formas e posturas, disposição à escolha
+## Notes-itIT: barre delle azioni con forme e posture, disposizione a scelta
+## Notes-ruRU: панели команд с формами и стойками, раскладка на выбор
+## Notes-zhCN: 带形态和姿态的动作条，布局自选
+## Notes-zhTW: 含形態與姿態的快捷列，版面自選
+## Notes-koKR: 변신과 태세가 있는 행동 단축바, 배치 자유
+## Notes-esMX: barras de acción con formas y actitudes, disposición a elegir
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs
+## Group: CorpUI
+
+Barres\Strings.lua
+Barres\Barres.lua
+Barres\AppelTotems.lua
+Menus\Strings.lua
+Menus\Menus.lua

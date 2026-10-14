@@ -1,0 +1,31 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Bags
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Sacs
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Taschen
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Bolsas
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Bolsas
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Borse
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Сумки
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 背包
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 背包
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 가방
+## Notes: all your bags in one, with search and sorting
+## Notes-frFR: tous tes sacs en un seul, avec recherche et tri
+## Notes-deDE: alle Taschen in einer, mit Suche und Sortierung
+## Notes-esES: todas tus bolsas en una, con búsqueda y orden
+## Notes-ptBR: todas as bolsas em uma, com busca e ordenação
+## Notes-itIT: tutte le borse in una, con ricerca e ordinamento
+## Notes-ruRU: все сумки в одной, с поиском и сортировкой
+## Notes-zhCN: 所有背包合一，可搜索和整理
+## Notes-zhTW: 所有背包合一，可搜尋和整理
+## Notes-koKR: 모든 가방을 하나로, 검색과 정렬
+## Notes-esMX: todas tus bolsas en una, con búsqueda y orden
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur
+## Group: CorpUI
+
+Sacs\Strings.lua
+Sacs\Sacs.lua
+Sacs\Banque.lua

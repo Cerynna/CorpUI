@@ -1,0 +1,21 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Persos
+## Notes: CorpUI module: Persos. Needs CorpUI.
+## Notes-frFR: Module de CorpUI : Persos. Demande CorpUI.
+## Notes-deDE: CorpUI-Modul: Persos. Benötigt CorpUI.
+## Notes-esES: Módulo de CorpUI: Persos. Requiere CorpUI.
+## Notes-ptBR: Módulo do CorpUI: Persos. Requer o CorpUI.
+## Notes-itIT: Modulo di CorpUI: Persos. Richiede CorpUI.
+## Notes-ruRU: Модуль CorpUI: Persos. Требуется CorpUI.
+## Notes-zhCN: CorpUI 模块：Persos。需要 CorpUI。
+## Notes-zhTW: CorpUI 模組：Persos。需要 CorpUI。
+## Notes-koKR: CorpUI 모듈: Persos. CorpUI 필요.
+## Notes-esMX: Módulo de CorpUI: Persos. Requiere CorpUI.
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs
+## Group: CorpUI
+
+Persos\Strings.lua
+Persos\Persos.lua

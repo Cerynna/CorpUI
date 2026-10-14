@@ -1,0 +1,21 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Sorts
+## Notes: CorpUI module: Sorts. Needs CorpUI.
+## Notes-frFR: Module de CorpUI : Sorts. Demande CorpUI.
+## Notes-deDE: CorpUI-Modul: Sorts. Benötigt CorpUI.
+## Notes-esES: Módulo de CorpUI: Sorts. Requiere CorpUI.
+## Notes-ptBR: Módulo do CorpUI: Sorts. Requer o CorpUI.
+## Notes-itIT: Modulo di CorpUI: Sorts. Richiede CorpUI.
+## Notes-ruRU: Модуль CorpUI: Sorts. Требуется CorpUI.
+## Notes-zhCN: CorpUI 模块：Sorts。需要 CorpUI。
+## Notes-zhTW: CorpUI 模組：Sorts。需要 CorpUI。
+## Notes-koKR: CorpUI 모듈: Sorts. CorpUI 필요.
+## Notes-esMX: Módulo de CorpUI: Sorts. Requiere CorpUI.
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels
+## Group: CorpUI
+
+SpellsAhead\Strings.lua
+SpellsAhead\SpellsAhead.lua

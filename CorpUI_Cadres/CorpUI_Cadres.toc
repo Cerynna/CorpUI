@@ -1,0 +1,44 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Unit frames
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Cadres d'unité
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Einheitenfenster
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Marcos de unidad
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Quadros de unidade
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Riquadri unità
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Рамки юнитов
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 单位框体
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 單位框架
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 유닛 프레임
+## Notes: CorpUI module: Unit frames. Needs CorpUI.
+## Notes-frFR: Module de CorpUI : Cadres d'unité. Demande CorpUI.
+## Notes-deDE: CorpUI-Modul: Einheitenfenster. Benötigt CorpUI.
+## Notes-esES: Módulo de CorpUI: Marcos de unidad. Requiere CorpUI.
+## Notes-ptBR: Módulo do CorpUI: Quadros de unidade. Requer o CorpUI.
+## Notes-itIT: Modulo di CorpUI: Riquadri unità. Richiede CorpUI.
+## Notes-ruRU: Модуль CorpUI: Рамки юнитов. Требуется CorpUI.
+## Notes-zhCN: CorpUI 模块：单位框体。需要 CorpUI。
+## Notes-zhTW: CorpUI 模組：單位框架。需要 CorpUI。
+## Notes-koKR: CorpUI 모듈: 유닛 프레임. CorpUI 필요.
+## Notes-esMX: Módulo de CorpUI: Marcos de unidad. Requiere CorpUI.
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts
+## Group: CorpUI
+
+Cadres\Strings.lua
+Cadres\Cadres.lua
+Cadres\Ressources.lua
+Cadres\StringsCentre.lua
+Cadres\Centre.lua
+Cadres\StringsTotems.lua
+Cadres\Totems.lua
+Cadres\StringsCoups.lua
+Cadres\Coups.lua
+Groupe\Strings.lua
+Groupe\Groupe.lua
+Incantations\Strings.lua
+Incantations\Incantations.lua
+Auras\Strings.lua
+Auras\Auras.lua
+Cadres\Editeur.lua

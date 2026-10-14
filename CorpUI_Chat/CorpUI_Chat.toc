@@ -1,0 +1,30 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Chat
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Chat
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Chat
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Chat
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Bate-papo
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Chat
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Чат
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 聊天
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 聊天
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 대화
+## Notes: CorpUI style for chat windows, text copy
+## Notes-frFR: style CorpUI pour les fenêtres de discussion, copie du texte
+## Notes-deDE: CorpUI-Stil für Chatfenster, Text kopieren
+## Notes-esES: estilo CorpUI para las ventanas de chat, copiar texto
+## Notes-ptBR: estilo CorpUI para as janelas de bate-papo, copiar texto
+## Notes-itIT: stile CorpUI per le finestre di chat, copia del testo
+## Notes-ruRU: стиль CorpUI для окон чата, копирование текста
+## Notes-zhCN: 聊天窗口的 CorpUI 风格，复制文字
+## Notes-zhTW: 聊天視窗的 CorpUI 風格，複製文字
+## Notes-koKR: 대화창 CorpUI 스타일, 텍스트 복사
+## Notes-esMX: estilo CorpUI para las ventanas de chat, copiar texto
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte, CorpUI_Experience, CorpUI_Clics, CorpUI_Plaques, CorpUI_Quetes, CorpUI_Infobulles, CorpUI_Compteur
+## Group: CorpUI
+
+Discussion\Strings.lua
+Discussion\Chat.lua

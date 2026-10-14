@@ -1,0 +1,51 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r
+## Notes: Complete interface in modules: unit, party and raid frames, action bars, cast bars, info bar, buffs, characters, reagents, merchant, reminders. Type /corp
+## Notes-frFR: Interface complète en modules : cadres joueur, groupe et raid, barres d'action, barres de sort, barre d'infos, buffs, persos, réactifs, marchand, rappels. Tape /corp
+## Notes-deDE: Werkzeugkasten in Modulen: Buffs, Charaktere, Reagenzien, Händler, Erinnerungen, kommende Zauber. Gib /corp ein
+## Notes-esES: Caja de herramientas por módulos: beneficios, personajes, componentes, mercader, recordatorios, próximos hechizos. Escribe /corp
+## Notes-esMX: Caja de herramientas por módulos: beneficios, personajes, componentes, mercader, recordatorios, próximos hechizos. Escribe /corp
+## Notes-ptBR: Caixa de ferramentas em módulos: bônus, personagens, componentes, mercador, lembretes, próximos feitiços. Digite /corp
+## Notes-itIT: Cassetta degli attrezzi a moduli: potenziamenti, personaggi, reagenti, mercante, promemoria, prossimi incantesimi. Digita /corp
+## Notes-ruRU: Набор инструментов из модулей: баффы, персонажи, реагенты, торговец, напоминания, будущие заклинания. Введите /corp
+## Notes-zhCN: 模块化工具箱：增益、角色、施法材料、商人、提醒、即将学会的法术。输入 /corp
+## Notes-zhTW: 模組化工具箱：增益、角色、施法材料、商人、提醒、即將學會的法術。輸入 /corp
+## Notes-koKR: 모듈식 도구 모음: 강화 효과, 캐릭터, 재료, 상인, 알림, 배울 주문. /corp 입력
+## Author: ceryn
+## Version: 1.7.2
+## SavedVariables: CorpUIDB, SpellsAheadDB
+
+Locales.lua
+Strings.lua
+StringsExtra.lua
+Core.lua
+StringsPartage.lua
+Partage.lua
+Sons.lua
+Raccourcis.lua
+Movers.lua
+Media\Fonts\Fonts.lua
+Polices.lua
+Defauts.lua
+
+# Module Erreurs : capture des erreurs Lua (tot : celles du chargement des
+# modules suivants aussi), icone dans la barre de la minicarte
+Erreurs\Strings.lua
+Erreurs\Erreurs.lua
+
+# Communication entre CorpUI (ns.Comm : avant les modules qui l utilisent)
+Comm\Strings.lua
+Comm\Comm.lua
+Comm\Guilde.lua
+
+# Profils (reglages par personnage, export / import)
+Profils\Strings.lua
+Profils\Profils.lua
+
+# Page Modules (allumer / couper chaque module ; ns.ModuleOn dans Core.lua)
+Modules\Strings.lua
+Modules\Modules.lua
+
+# Assistant d installation
+Installation\Strings.lua
+Installation\Assistant.lua

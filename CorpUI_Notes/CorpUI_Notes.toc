@@ -1,0 +1,30 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Raid notes
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Notes de raid
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Raidnotizen
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Notas de banda
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Notas de raide
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Note di incursione
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Заметки рейда
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 团队笔记
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 團隊筆記
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 공격대 메모
+## Notes: raid notes shared with the group (MRT style): editor, note window, markers
+## Notes-frFR: notes de raid partagées avec le groupe (façon MRT) : éditeur, fenêtre de note, marqueurs
+## Notes-deDE: Raidnotizen für die Gruppe (wie MRT): Editor, Notizfenster, Markierungen
+## Notes-esES: notas de banda compartidas con el grupo (estilo MRT): editor, ventana de nota, marcadores
+## Notes-ptBR: notas de raide compartilhadas com o grupo (estilo MRT): editor, janela de nota, marcadores
+## Notes-itIT: note di incursione condivise con il gruppo (stile MRT): editor, finestra della nota, marcatori
+## Notes-ruRU: заметки рейда для группы (как в MRT): редактор, окно заметки, метки
+## Notes-zhCN: 与队伍共享的团队笔记（MRT 风格）：编辑器、笔记窗口、标记
+## Notes-zhTW: 與隊伍共享的團隊筆記（MRT 風格）：編輯器、筆記視窗、標記
+## Notes-koKR: 파티와 공유하는 공격대 메모 (MRT 방식): 편집기, 메모 창, 징표
+## Notes-esMX: notas de banda compartidas con el grupo (estilo MRT): editor, ventana de nota, marcadores
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte, CorpUI_Experience, CorpUI_Clics, CorpUI_Plaques, CorpUI_Quetes, CorpUI_Infobulles, CorpUI_Compteur, CorpUI_Chat, CorpUI_Habillage, CorpUI_Talents, CorpUI_Butin, CorpUI_Eclats, CorpUI_HV, CorpUI_Jeux, CorpUI_Raid, CorpUI_Invitations
+## Group: CorpUI
+
+Notes\Strings.lua
+Notes\Notes.lua

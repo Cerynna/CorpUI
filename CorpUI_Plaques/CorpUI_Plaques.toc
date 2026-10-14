@@ -1,0 +1,30 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Nameplates
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r - Plaques de nom
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r - Namensplaketten
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r - Placas de nombre
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r - Placas de nome
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r - Barre dei nomi
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r - Индикаторы здоровья
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r - 姓名板
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r - 名條
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r - 이름표
+## Notes: CorpUI module: Nameplates. Needs CorpUI.
+## Notes-frFR: Module de CorpUI : Plaques de nom. Demande CorpUI.
+## Notes-deDE: CorpUI-Modul: Namensplaketten. Benötigt CorpUI.
+## Notes-esES: Módulo de CorpUI: Placas de nombre. Requiere CorpUI.
+## Notes-ptBR: Módulo do CorpUI: Placas de nome. Requer o CorpUI.
+## Notes-itIT: Modulo di CorpUI: Barre dei nomi. Richiede CorpUI.
+## Notes-ruRU: Модуль CorpUI: Индикаторы здоровья. Требуется CorpUI.
+## Notes-zhCN: CorpUI 模块：姓名板。需要 CorpUI。
+## Notes-zhTW: CorpUI 模組：名條。需要 CorpUI。
+## Notes-koKR: CorpUI 모듈: 이름표. CorpUI 필요.
+## Notes-esMX: Módulo de CorpUI: Placas de nombre. Requiere CorpUI.
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte, CorpUI_Experience, CorpUI_Clics
+## Group: CorpUI
+
+Plaques\Strings.lua
+Plaques\Plaques.lua

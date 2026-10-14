@@ -1,0 +1,21 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r - Clics
+## Notes: CorpUI module: Clics. Needs CorpUI.
+## Notes-frFR: Module de CorpUI : Clics. Demande CorpUI.
+## Notes-deDE: CorpUI-Modul: Clics. Benötigt CorpUI.
+## Notes-esES: Módulo de CorpUI: Clics. Requiere CorpUI.
+## Notes-ptBR: Módulo do CorpUI: Clics. Requer o CorpUI.
+## Notes-itIT: Modulo di CorpUI: Clics. Richiede CorpUI.
+## Notes-ruRU: Модуль CorpUI: Clics. Требуется CorpUI.
+## Notes-zhCN: CorpUI 模块：Clics。需要 CorpUI。
+## Notes-zhTW: CorpUI 模組：Clics。需要 CorpUI。
+## Notes-koKR: CorpUI 모듈: Clics. CorpUI 필요.
+## Notes-esMX: Módulo de CorpUI: Clics. Requiere CorpUI.
+## Author: ceryn
+## Version: 1.7.2
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte, CorpUI_Experience
+## Group: CorpUI
+
+Clics\Strings.lua
+Clics\ClickCast.lua
