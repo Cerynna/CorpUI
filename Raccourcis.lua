@@ -13,6 +13,8 @@
     principale sur le bouton lui-meme. L infobulle nomme le bouton comme le
     panneau des barres (bindLabel : "Barre du bas 2 - 5"...).
     Interdit en combat (le jeu bloque les changements de raccourcis).
+    Dans le noyau : les boutons de plusieurs modules s y inscrivent (barres,
+    barre de raid, Dez).
 ----------------------------------------------------------------------------]]
 
 local _, ns = ...
@@ -161,7 +163,6 @@ end
 local ev = CreateFrame("Frame")
 ev:RegisterEvent("PLAYER_REGEN_DISABLED")
 ev:SetScript("OnEvent", function()
-    if ns.ModuleOff("barres", ev) then return end
     if ns.quickBinding and overlay then
         ns.quickBinding = false
         overlay:Hide()

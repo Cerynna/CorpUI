@@ -8,6 +8,10 @@
 
 local _, ns = ...
 
+-- Le noyau publie son espace de noms : les addons CorpUI_Xxx le reprennent
+-- (local ns = CorpUI). Globale a nous, jamais lue par le jeu.
+CorpUI = ns
+
 local locales = {}
 
 locales.enUS = {

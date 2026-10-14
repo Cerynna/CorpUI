@@ -156,16 +156,8 @@ end
 -- Rendu d un bouton
 ---------------------------------------------------------------------------
 
-local function shortKey(key)  -- partage : ns.ShortKey
-    if not key then return "" end
-    -- modificateurs en capitales ("S1", "C2", "A3")
-    key = key:gsub("SHIFT%-", "S"):gsub("CTRL%-", "C"):gsub("ALT%-", "A")
-    key = key:gsub("MOUSEWHEELUP", "MwH"):gsub("MOUSEWHEELDOWN", "MwB"):gsub("BUTTON", "M")
-    key = key:gsub("NUMPAD", "N"):gsub("SPACE", "Esp")
-    return key
-end
 
-ns.ShortKey = shortKey
+local shortKey = ns.ShortKey   -- noyau (Partage.lua)
 
 local function setCooldown(b, action)
     if C_ActionBar and C_ActionBar.GetActionCooldownDuration and b.cd.SetCooldownFromDurationObject then

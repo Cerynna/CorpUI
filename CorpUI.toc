@@ -19,6 +19,10 @@ Locales.lua
 Strings.lua
 StringsExtra.lua
 Core.lua
+StringsPartage.lua
+Partage.lua
+Sons.lua
+Raccourcis.lua
 Movers.lua
 Media\Fonts\Fonts.lua
 Polices.lua
@@ -87,7 +91,6 @@ Groupe\Groupe.lua
 # Module Barres
 Barres\Strings.lua
 Barres\Barres.lua
-Barres\QuickBind.lua
 Barres\AppelTotems.lua
 
 # Module Incantations
