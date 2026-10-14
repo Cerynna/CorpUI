@@ -13,7 +13,7 @@
 ## Notes-esMX: Módulo de CorpUI: Metiers. Requiere CorpUI.
 ## IconTexture: Interface\Icons\Trade_Engineering
 ## Author: ceryn
-## Version: 1.7.2
+## Version: 2.0.0
 ## Dependencies: CorpUI
 ## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand
 ## Group: CorpUI

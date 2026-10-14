@@ -13,7 +13,7 @@
 ## Notes-esMX: Módulo de CorpUI: Persos. Requiere CorpUI.
 ## IconTexture: Interface\Icons\INV_Misc_GroupNeedMore
 ## Author: ceryn
-## Version: 1.7.2
+## Version: 2.0.0
 ## Dependencies: CorpUI
 ## OptionalDeps: CorpUI_Buffs
 ## Group: CorpUI

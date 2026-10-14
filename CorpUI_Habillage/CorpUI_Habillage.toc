@@ -22,7 +22,7 @@
 ## Notes-esMX: Módulo de CorpUI: Apariencia. Requiere CorpUI.
 ## IconTexture: Interface\Icons\INV_Misc_Note_02
 ## Author: ceryn
-## Version: 1.7.2
+## Version: 2.0.0
 ## Dependencies: CorpUI
 ## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte, CorpUI_Experience, CorpUI_Clics, CorpUI_Plaques, CorpUI_Quetes, CorpUI_Infobulles, CorpUI_Compteur, CorpUI_Chat
 ## Group: CorpUI
