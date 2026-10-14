@@ -2,6 +2,8 @@ local _, ns = ...
 
 ns.AddStrings({
     enUS = {
+        BAGS_KEYS = "Key ring", BAGS_OPT_KEYS = "Key ring",
+        BAGS_KEYS_ALL = "All slots", BAGS_KEYS_USED = "Keys only", BAGS_KEYS_OFF = "Hidden",
         BAGS_REAGENTS = "Reagent bag",
         MOD_BAGS = "Bags",
         BAGS_DESC = "all your bags in one, with search and sorting",
@@ -44,6 +46,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Show the game's bank window instead (until the bank is closed)",
     },
     frFR = {
+        BAGS_KEYS = "Trousseau de clés", BAGS_OPT_KEYS = "Trousseau de clés",
+        BAGS_KEYS_ALL = "Toutes les cases", BAGS_KEYS_USED = "Seulement les clés", BAGS_KEYS_OFF = "Masqué",
         BAGS_REAGENTS = "Sac de composants",
         MOD_BAGS = "Sacs",
         BAGS_DESC = "tous tes sacs en un seul, avec recherche et tri",
@@ -86,6 +90,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Afficher plutôt la fenêtre de banque du jeu (jusqu'à la fermeture de la banque)",
     },
     deDE = {
+        BAGS_KEYS = "Schlüsselbund", BAGS_OPT_KEYS = "Schlüsselbund",
+        BAGS_KEYS_ALL = "Alle Plätze", BAGS_KEYS_USED = "Nur Schlüssel", BAGS_KEYS_OFF = "Ausgeblendet",
         BAGS_REAGENTS = "Reagenzientasche",
         MOD_BAGS = "Taschen",
         BAGS_DESC = "alle Taschen in einer, mit Suche und Sortierung",
@@ -128,6 +134,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Stattdessen das Bankfenster des Spiels zeigen (bis die Bank geschlossen wird)",
     },
     esES = {
+        BAGS_KEYS = "Llavero", BAGS_OPT_KEYS = "Llavero",
+        BAGS_KEYS_ALL = "Todas las casillas", BAGS_KEYS_USED = "Solo las llaves", BAGS_KEYS_OFF = "Oculto",
         BAGS_REAGENTS = "Bolsa de componentes",
         MOD_BAGS = "Bolsas",
         BAGS_DESC = "todas tus bolsas en una, con búsqueda y orden",
@@ -170,6 +178,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Mostrar en su lugar la ventana de banco del juego (hasta cerrar el banco)",
     },
     ptBR = {
+        BAGS_KEYS = "Chaveiro", BAGS_OPT_KEYS = "Chaveiro",
+        BAGS_KEYS_ALL = "Todos os espaços", BAGS_KEYS_USED = "Só as chaves", BAGS_KEYS_OFF = "Oculto",
         BAGS_REAGENTS = "Bolsa de reagentes",
         MOD_BAGS = "Bolsas",
         BAGS_DESC = "todas as bolsas em uma, com busca e ordenação",
@@ -212,6 +222,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Mostrar a janela de banco do jogo no lugar (até fechar o banco)",
     },
     itIT = {
+        BAGS_KEYS = "Portachiavi", BAGS_OPT_KEYS = "Portachiavi",
+        BAGS_KEYS_ALL = "Tutti gli spazi", BAGS_KEYS_USED = "Solo le chiavi", BAGS_KEYS_OFF = "Nascosto",
         BAGS_REAGENTS = "Borsa dei reagenti",
         MOD_BAGS = "Borse",
         BAGS_DESC = "tutte le borse in una, con ricerca e ordinamento",
@@ -254,6 +266,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Mostra invece la finestra della banca del gioco (fino alla chiusura della banca)",
     },
     ruRU = {
+        BAGS_KEYS = "Связка ключей", BAGS_OPT_KEYS = "Связка ключей",
+        BAGS_KEYS_ALL = "Все ячейки", BAGS_KEYS_USED = "Только ключи", BAGS_KEYS_OFF = "Скрыта",
         BAGS_REAGENTS = "Сумка для реагентов",
         MOD_BAGS = "Сумки",
         BAGS_DESC = "все сумки в одной, с поиском и сортировкой",
@@ -296,6 +310,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Показать окно банка игры (до закрытия банка)",
     },
     zhCN = {
+        BAGS_KEYS = "钥匙链", BAGS_OPT_KEYS = "钥匙链",
+        BAGS_KEYS_ALL = "所有格子", BAGS_KEYS_USED = "仅钥匙", BAGS_KEYS_OFF = "隐藏",
         BAGS_REAGENTS = "材料包",
         MOD_BAGS = "背包",
         BAGS_DESC = "所有背包合一，可搜索和整理",
@@ -338,6 +354,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "改为显示游戏的银行窗口（直到关闭银行）",
     },
     zhTW = {
+        BAGS_KEYS = "鑰匙圈", BAGS_OPT_KEYS = "鑰匙圈",
+        BAGS_KEYS_ALL = "所有格子", BAGS_KEYS_USED = "僅鑰匙", BAGS_KEYS_OFF = "隱藏",
         BAGS_REAGENTS = "材料包",
         MOD_BAGS = "背包",
         BAGS_DESC = "所有背包合一，可搜尋和整理",
@@ -380,6 +398,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "改為顯示遊戲的銀行視窗（直到關閉銀行）",
     },
     koKR = {
+        BAGS_KEYS = "열쇠고리", BAGS_OPT_KEYS = "열쇠고리",
+        BAGS_KEYS_ALL = "모든 칸", BAGS_KEYS_USED = "열쇠만", BAGS_KEYS_OFF = "숨김",
         BAGS_REAGENTS = "재료 가방",
         MOD_BAGS = "가방",
         BAGS_DESC = "모든 가방을 하나로, 검색과 정렬",

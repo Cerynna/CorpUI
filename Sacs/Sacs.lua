@@ -49,6 +49,28 @@ local owner = CreateFrame("Frame")
 -- Objets
 ---------------------------------------------------------------------------
 
+-- trousseau de cles (KEYRING_CONTAINER, -2) : seulement si le jeu le montre
+-- (C_ActionBar.ShouldShowKeyring, comme ses propres sacs)
+local KEY_BAG = KEYRING_CONTAINER or (Enum and Enum.BagIndex and Enum.BagIndex.Keyring)
+if type(KEY_BAG) ~= "number" then KEY_BAG = nil end
+local function keyringShown()
+    if not KEY_BAG then return false end
+    if C_ActionBar and C_ActionBar.ShouldShowKeyring then
+        local ok, v = pcall(C_ActionBar.ShouldShowKeyring)
+        if ok and not issecret(v) and v == false then return false end
+    end
+    return true
+end
+local function keyringSize()
+    if GetKeyRingSize then
+        local ok, n = pcall(GetKeyRingSize)
+        if ok and type(n) == "number" and not issecret(n) and n > 0 then return n end
+    end
+    local fn = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
+    local ok, n = pcall(fn, KEY_BAG)
+    return (ok and type(n) == "number" and not issecret(n)) and n or 0
+end
+
 local function containerInfo(bag, slot)
     if C_Container and C_Container.GetContainerItemInfo then
         local ok, info = pcall(C_Container.GetContainerItemInfo, bag, slot)
@@ -238,8 +260,11 @@ local function updateAll()
                 newCount = newCount + 1
                 newList[newCount] = b
             end
-            total = total + 1
-            if not b.link then free = free + 1 end
+            -- places libres : celles des sacs (pas du trousseau)
+            if b.bag ~= KEY_BAG then
+                total = total + 1
+                if not b.link then free = free + 1 end
+            end
         end
     end
     freeText:SetText(string.format(L.BAGS_FREE, free, total))
@@ -463,7 +488,8 @@ local function createItemButton(parent, bag, slot, secure, name, size)
 end
 
 local function makeButton(bag, slot)
-    local b = createItemButton(frame, bag, slot, true, "CorpUIBag" .. bag .. "Slot" .. slot, db.size)
+    local name = (bag == KEY_BAG) and ("CorpUIBagKeySlot" .. slot) or ("CorpUIBag" .. bag .. "Slot" .. slot)
+    local b = createItemButton(frame, bag, slot, true, name, db.size)
     buttons[bag .. ":" .. slot] = b
     return b
 end
@@ -709,6 +735,22 @@ local function layout()
         y = y + rowsOf(n) * step
     end
 
+    -- trousseau de cles : son propre bloc (toutes les cases, ou seulement
+    -- celles qui ont une cle)
+    local keyMode = db.keyring or "all"
+    if keyMode ~= "off" and keyringShown() then
+        local list = {}
+        for slot = 1, keyringSize() do
+            if keyMode == "all" or containerInfo(KEY_BAG, slot) then list[#list + 1] = slot end
+        end
+        if #list > 0 then
+            header((type(KEYRING) == "string" and not issecret(KEYRING) and KEYRING ~= "") and KEYRING or L.BAGS_KEYS)
+            n = 0
+            for _, slot in ipairs(list) do place(KEY_BAG, slot) end
+            y = y + rowsOf(n) * step
+        end
+    end
+
     for i = nsec + 1, #sections do
         sections[i].title:Hide()
         sections[i].line:Hide()
@@ -929,6 +971,15 @@ local function buildWindow()
         if frame:IsShown() then layout() end
     end)
     form:EndColumns()
+    -- trousseau de cles (si le jeu en a un)
+    if keyringShown() then
+        form:Cycle(L.BAGS_OPT_KEYS, { "all", "used", "off" },
+            { all = L.BAGS_KEYS_ALL, used = L.BAGS_KEYS_USED, off = L.BAGS_KEYS_OFF },
+            function() return db.keyring end, function(v)
+                db.keyring = v
+                if frame:IsShown() then layout() end
+            end)
+    end
     -- reglage du jeu (partage avec ses sacs) : trier du dernier sac au premier
     if C_Container and C_Container.GetSortBagsRightToLeft and C_Container.SetSortBagsRightToLeft then
         form:Check(L.BAGS_OPT_SORT_RTL, function()
@@ -964,6 +1015,7 @@ ev:SetScript("OnEvent", function(_, event, a1, a2)
         if db.enabled == nil then db.enabled = true end
         if db.hideBlizzard == nil then db.hideBlizzard = true end
         if db.showBagSlots == nil then db.showBagSlots = true end
+        if db.keyring == nil then db.keyring = "all" end
         db.columns = db.columns or 10
         -- nouvelles cles : valeurs par defaut seulement
         db.size = db.size or 36
