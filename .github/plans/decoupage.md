@@ -105,3 +105,27 @@ Variante plus compacte possible : **un addon par page d'options**, soit une ving
 2. **Dépôt** : A. Le dépôt vit dans `_classic_beta_\CorpUI-dev`, tous les addons côte à côte, avec des liens (jonctions) dans `AddOns`. Le travail se fait dans ce nouveau dossier, sur la branche `decoupage` : l'addon installé dans `AddOns\CorpUI` (main) ne change pas tant que la bascule n'est pas faite.
 3. **Page Modules** : elle active ou désactive les addons eux-mêmes, puis demande un rechargement.
 4. **Version** : 1.8.0.
+
+## Avancement (15/10)
+
+Étapes 1 à 6 faites et poussées sur `decoupage`. Les bancs d'essai donnent les mêmes résultats que l'addon unique, et les 60 essais « chaque addon seul avec le noyau » et « tous sauf un » passent sans erreur nouvelle.
+
+| Étape | Commit | Ce qui a été fait |
+|---|---|---|
+| 2 | e9f006f | Globale `CorpUI` ; fonctions partagées dans le noyau : `Partage.lua` (sorts, classes, temps, raccourcis abrégés), `Sons.lua`, `Raccourcis.lua` (raccourcis rapides), `StringsPartage.lua`. |
+| 3 | 8f94d29 | Appels entre modules vérifiés : déjà protégés presque partout ; repli du format d'argent dans les Métiers sans HV. |
+| 4 | b1b67f1 | 31 dossiers (git mv), un .toc par addon : titres et descriptions en 10 langues, `Dependencies: CorpUI`, `Group: CorpUI`, `OptionalDeps` qui garde l'ordre de chargement d'avant (sacs avant barres). |
+| 5 | 0b0ffab | Page Modules et assistant : activer ou désactiver les addons (tous les personnages) ; une ligne par addon désactivé ; aucune ligne pour un addon absent. |
+| 6 | 161a30a | Release à plusieurs dossiers (zip de 31 dossiers), version dans tous les .toc, `liens.ps1`, README. |
+
+Écart avec le plan : l'étape 1 (outils de bancs) s'est faite au fil des étapes 2 à 4. Tout reste hors du dépôt (bancs d'essai).
+
+### Étape 7 : bascule pour le test en jeu (à faire avec l'utilisateur)
+
+1. Fermer le jeu : de nouveaux addons ne sont vus qu'au redémarrage.
+2. Sortir l'ancien dossier `AddOns\CorpUI` (un clone git de main) hors de `AddOns`, par exemple vers `_classic_beta_\CorpUI-ancien`. Rien n'est supprimé.
+3. Dans `CorpUI-dev`, lancer `.github\scripts\liens.ps1` : 31 jonctions dans `AddOns`.
+4. Relancer le jeu. Vérifier : la liste des addons (CorpUI et ses modules rangés dessous), `/corp`, la page Modules (couper puis rallumer un module), quelques modules coupés dans la liste du jeu, `/corp perf`.
+5. Retour en arrière possible : supprimer les jonctions, puis remettre `CorpUI-ancien` à sa place.
+
+Ensuite : fusion de `decoupage` dans main, puis release 1.8.0.
