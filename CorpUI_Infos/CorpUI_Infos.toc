@@ -22,7 +22,7 @@
 ## Notes-esMX: oro, bolsas, durabilidad, FPS, latencia, hora, coordenadas, amigos, hermandad
 ## IconTexture: Interface\Icons\INV_Misc_PocketWatch_01
 ## Author: ceryn
-## Version: 2.0.0
+## Version: 2.0.1
 ## Dependencies: CorpUI
 ## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres
 ## Group: CorpUI
