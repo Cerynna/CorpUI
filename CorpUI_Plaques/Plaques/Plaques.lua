@@ -646,7 +646,7 @@ end
 -- (RaidTargetFrame, que le jeu montre, cache et dessine), visible malgre
 -- l opacite 0 de son parent (SetIgnoreParentAlpha), agrandie et posee
 -- au-dessus de notre barre, centree, plus haut que le nom et la rangee de
--- debuffs (demande du 16/10). Le jeu la replace a chaque nouvelle unite :
+-- debuffs (demande du 15/10). Le jeu la replace a chaque nouvelle unite :
 -- la tache de 0,2 s la remet.
 local function raidMark(plate)
     local uf = blizzUnitFrame(plate)
@@ -655,7 +655,7 @@ local function raidMark(plate)
     if ok and type(rt) == "table" and rt.SetIgnoreParentAlpha and rt.SetPoint then return rt end
 end
 
--- Reglages (16/10) : position (au-dessus, a gauche, a droite, sur la barre),
+-- Reglages (15/10) : position (au-dessus, a gauche, a droite, sur la barre),
 -- taille, decalages, opacite. Reglages ouverts : un crane d exemple, a nous,
 -- sur chaque plaque visible, a la meme place (le vrai marqueur ne se montre
 -- que sur une cible marquee).
@@ -686,7 +686,7 @@ end
 
 -- L icone passe devant la barre de vie : la barre est un cadre enfant de
 -- notre plaque, elle couvrait tout ce que la plaque dessine elle-meme (vu en
--- jeu le 16/10, position "sur la barre"). Apercu sur un cadre a nous, et
+-- jeu le 15/10, position "sur la barre"). Apercu sur un cadre a nous, et
 -- cadre de l icone de Blizzard, au meme niveau, au-dessus de la barre.
 local MARK_LEVEL = 20
 
@@ -846,7 +846,7 @@ local DEFAULTS = {
     castLock = true, castReady = true,   -- non interruptible, interruption prete
     debuffSize = 18, debuffMax = 5, debuffMine = true, debuffTimer = true,
     targetBorder = true, targetScale = 115, fadeOthers = true,
-    -- icone de raid (16/10) : position top / left / right / center
+    -- icone de raid (15/10) : position top / left / right / center
     raidMark = true, raidMarkSize = 28, raidMarkPos = "top", raidMarkX = 0, raidMarkY = 0, raidMarkAlpha = 100,
 }
 

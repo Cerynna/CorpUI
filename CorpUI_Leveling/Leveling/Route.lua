@@ -1,7 +1,7 @@
 --[[--------------------------------------------------------------------------
     CorpUI - module Leveling : la route (guide pas a pas)
 
-    Demande du 16/10 : un guide a suivre pas a pas qui optimise la montee
+    Demande du 15/10 : un guide a suivre pas a pas qui optimise la montee
     de niveau, facon RestedXP. Les etapes de la zone (prendre, faire,
     rendre) sont mises dans l ordre d une tournee :
       - au pole de donneurs, tout prendre (distance nulle entre eux) ;
@@ -451,7 +451,7 @@ end
 -- autres inserees
 -- profondeur d une etape dans ses prealables (prendre 0, faire 1, rendre 2,
 -- suite d une chaine 3...) : les nouvelles etapes s inserent dans cet ordre,
--- sinon un rendu pouvait passer avant son objectif (vu en jeu le 16/10)
+-- sinon un rendu pouvait passer avant son objectif (vu en jeu le 15/10)
 local function depthOf(tasks)
     local memo = {}
     local function depth(t, guard)

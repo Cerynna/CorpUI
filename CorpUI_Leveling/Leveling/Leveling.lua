@@ -1,10 +1,10 @@
 --[[--------------------------------------------------------------------------
     CorpUI - module Leveling : la fenetre, les reglages, les evenements
 
-    Guide pas a pas (16/10) : les etapes de la route (Route.lua),
+    Guide pas a pas (15/10) : les etapes de la route (Route.lua),
     numerotees, l etape en cours en tete, les dernieres faites cochees en
     gris au-dessus, puis les suivantes (nombre au choix). Meme dessin que le suivi des quetes (module Quetes,
-    demande du 16/10) : pas de fond, titre clair, filet fin, puis par
+    demande du 15/10) : pas de fond, titre clair, filet fin, puis par
     etape le titre de la quete dans la couleur de sa difficulte, la
     distance a droite (a la place du niveau), et une ligne en retrait :
     quete a prendre (or), prete a rendre (vert), objectif (gris) ou texte

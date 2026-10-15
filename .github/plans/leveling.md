@@ -145,7 +145,7 @@ Plus tard (v2), selon tes retours :
 - Filtres appliqués en jeu : camp, race, classe, niveau minimum, quêtes préalables (toutes, ou le nombre requis), quêtes exclusives, réputation, version du jeu (ajout et retrait, 1.60.1 = 16001), et quêtes déjà rendues (`GetAllCompletedQuestIDs`).
 - Les titres viennent du jeu (`RequestLoadQuestByID`) ; en attendant, la ligne affiche « Quête n° X ».
 
-## 9. Guide pas à pas (demande du 16/10)
+## 9. Guide pas à pas (demande du 15/10)
 
 > « un guide à suivre pas à pas qui optimise le level up, un peu comme RestedXP »
 
@@ -172,9 +172,9 @@ Plus tard (v2), selon tes retours :
 
 **Autres sources possibles :** les routes de l'appli factoruide (optimisation globale de 1 à 60, mais il faut leur appli et leur addon), ou des guides écrits à la main.
 
-**Choix du 16/10** : planificateur CorpUI ; en plus des quêtes : entraîneur de classe, changement de zone, pierre de foyer et vols. Pas de rythme de niveau.
+**Choix du 15/10** : planificateur CorpUI ; en plus des quêtes : entraîneur de classe, changement de zone, pierre de foyer et vols. Pas de rythme de niveau.
 
-**Livraison 1 (16/10, à tester en jeu)** :
+**Livraison 1 (15/10, à tester en jeu)** :
 - `Leveling/Route.lua` : rassemble les étapes de la zone (journal, quêtes à prendre de la base, suites de chaînes prévues), puis construit la tournée :
   - plus proche voisin ;
   - amélioration par différence (n² par passe) ;
