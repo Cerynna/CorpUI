@@ -45,7 +45,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Minicarte** | Minicarte carrée avec zone, coordonnées et heure ; icônes rangées dans une boîte. Points de vol sur la carte du monde : bleu pour l'Alliance, rouge pour la Horde, vert pour les deux factions. | `/corp minicarte` |
 | **Barres d'infos** | Jusqu'à dix bandeaux : or, sacs, durabilité, FPS, latence, heure, coordonnées, amis, guilde. | `/corp infos` |
 | **Suivi de quêtes** | Quêtes suivies et leurs objectifs, couleur de difficulté, progression du groupe dans l'infobulle, menu au clic droit. | `/corp quetes` |
-| **Plaques de nom** | Plaques des unités : sort en cours, tes débuffs, points de combo, cible actuelle. | `/corp plaques` |
+| **Plaques de nom** | Plaques des unités : sort en cours, tes débuffs, points de combo, cible actuelle, icône de raid. | `/corp plaques` |
 | **Infobulles** | Infobulles au style CorpUI, prix de l'hôtel des ventes et objets possédés par tes personnages. | `/corp infobulles` |
 | **Chat** | Fenêtres de discussion au style CorpUI : onglets détachés, colonne d'icônes, champ de saisie encadré, onglets par défaut, historique, copie du texte et des liens. | `/corp chat` |
 | **Compteur** | Fenêtres façon Details : dégâts, soins, absorptions, interruptions, dissipations, morts, et la menace du groupe sur ta cible avec alerte avant l'aggro. | `/corp compteur` |
@@ -80,6 +80,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Comptabilité** | Ventes, achats, frais de l'hôtel des ventes, or de tous les personnages. | `/corp compta` |
 | **Talents** | Export et import des talents. | `/corp talents` |
 | **Sorts à venir** | Les prochains sorts et le niveau pour les apprendre. | `/corp sorts` |
+| **Leveling** | Guide pas à pas pour monter de niveau : route de la zone (prendre, faire, rendre), étapes au même endroit regroupées, quêtes à prendre autour de toi, flèche. | `/corp leveling` |
 | **Profils** | Réglages par personnage, copie, partage. | `/corp profils` |
 
 ### Mini-jeux
