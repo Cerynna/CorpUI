@@ -640,6 +640,117 @@ local function blizzUnitFrame(plate)
     if ok and type(uf) == "table" and uf.SetAlpha then return uf end
 end
 
+-- Icone de raid (crane, croix...). Le numero du marqueur est secret sur ce
+-- client (GetRaidTargetIndex : SecretReturns) : un addon ne peut pas
+-- choisir l image lui-meme. On garde l icone du cadre de Blizzard
+-- (RaidTargetFrame, que le jeu montre, cache et dessine), visible malgre
+-- l opacite 0 de son parent (SetIgnoreParentAlpha), agrandie et posee
+-- au-dessus de notre barre, centree, plus haut que le nom et la rangee de
+-- debuffs (demande du 16/10). Le jeu la replace a chaque nouvelle unite :
+-- la tache de 0,2 s la remet.
+local function raidMark(plate)
+    local uf = blizzUnitFrame(plate)
+    if not uf then return nil end
+    local ok, rt = pcall(function() return uf.RaidTargetFrame end)
+    if ok and type(rt) == "table" and rt.SetIgnoreParentAlpha and rt.SetPoint then return rt end
+end
+
+-- Reglages (16/10) : position (au-dessus, a gauche, a droite, sur la barre),
+-- taille, decalages, opacite. Reglages ouverts : un crane d exemple, a nous,
+-- sur chaque plaque visible, a la meme place (le vrai marqueur ne se montre
+-- que sur une cible marquee).
+local MARK_ANCHORS = {
+    top = { "BOTTOM", "TOP" }, left = { "RIGHT", "LEFT" },
+    right = { "LEFT", "RIGHT" }, center = { "CENTER", "CENTER" },
+}
+local MARK_TEX = "Interface\\TargetingFrame\\UI-RaidTargetingIcons"
+local markPreview = false
+
+local function markSpot()
+    local pos = MARK_ANCHORS[db.raidMarkPos] and db.raidMarkPos or "top"
+    local x, y = db.raidMarkX or 0, db.raidMarkY or 0
+    if pos == "top" then
+        -- au-dessus du nom (texte hors de la barre) et de la rangee de debuffs
+        local up = 3
+        if not db.textInside and (db.showName or db.showLevel) then up = up + db.nameSize + 4 end
+        if db.debuffs then up = up + math.floor(db.debuffSize * 0.78 + 0.5) + 3 end
+        y = y + up
+    elseif pos == "left" then
+        x = x - 9       -- passe la fleche de la cible
+    elseif pos == "right" then
+        x = x + 9
+    end
+    local a = MARK_ANCHORS[pos]
+    return a[1], a[2], x, y, db.raidMarkSize or 28, (db.raidMarkAlpha or 100) / 100
+end
+
+-- L icone passe devant la barre de vie : la barre est un cadre enfant de
+-- notre plaque, elle couvrait tout ce que la plaque dessine elle-meme (vu en
+-- jeu le 16/10, position "sur la barre"). Apercu sur un cadre a nous, et
+-- cadre de l icone de Blizzard, au meme niveau, au-dessus de la barre.
+local MARK_LEVEL = 20
+
+local function placeMark(f)
+    local point, rel, x, y, size, alpha = markSpot()
+    local sig = table.concat({ point, x, y, size, alpha }, ":")
+    local level = (f:GetFrameLevel() or 0) + MARK_LEVEL
+    -- apercu : notre crane d exemple
+    if markPreview and db.raidMark then
+        if not f.markHost then
+            f.markHost = CreateFrame("Frame", nil, f)
+            f.markHost:SetAllPoints(f)
+        end
+        if f.markHost:GetFrameLevel() ~= level then f.markHost:SetFrameLevel(level) end
+        if not f.markPreview then
+            f.markPreview = f.markHost:CreateTexture(nil, "OVERLAY", nil, 7)
+            f.markPreview:SetTexture(MARK_TEX)
+            f.markPreview:SetTexCoord(0.75, 1, 0.25, 0.5)   -- crane (marqueur 8)
+        end
+        if f.previewSig ~= sig then
+            f.previewSig = sig
+            f.markPreview:SetSize(size, size)
+            f.markPreview:ClearAllPoints()
+            f.markPreview:SetPoint(point, f, rel, x, y)
+            f.markPreview:SetAlpha(alpha)
+        end
+        f.markPreview:Show()
+    elseif f.markPreview then
+        f.markPreview:Hide()
+    end
+    local rt = f.plate and raidMark(f.plate)
+    if not rt then return end
+    if not db.raidMark then
+        if f.markOn then
+            pcall(rt.SetIgnoreParentAlpha, rt, false)
+            f.markOn = nil
+        end
+        return
+    end
+    if not f.markOn then
+        pcall(rt.SetIgnoreParentAlpha, rt, true)
+        f.markOn = true
+    end
+    local okL, cur = pcall(rt.GetFrameLevel, rt)
+    if not okL or cur ~= level then pcall(rt.SetFrameLevel, rt, level) end
+    local ok, _, relTo = pcall(rt.GetPoint, rt, 1)
+    if ok and relTo == f and f.markSig == sig then return end
+    f.markSig = sig
+    pcall(rt.SetSize, rt, size, size)
+    pcall(rt.SetAlpha, rt, alpha)
+    pcall(rt.ClearAllPoints, rt)
+    pcall(rt.SetPoint, rt, point, f, rel, x, y)
+end
+
+-- reglage de l icone change, ou apercu allume / eteint : toutes les plaques
+local function markAll(preview)
+    if preview ~= nil then markPreview = preview end
+    if not db then return end
+    for _, f in pairs(active) do
+        f.markSig, f.previewSig = nil, nil
+        placeMark(f)
+    end
+end
+
 local function attach(unit)
     local plate = C_NamePlate and C_NamePlate.GetNamePlateForUnit(unit)
     if not plate or (plate.IsForbidden and plate:IsForbidden()) then return end
@@ -659,6 +770,8 @@ local function attach(unit)
     layout(f)
     local uf = blizzUnitFrame(plate)
     if uf then uf:SetAlpha(0) end
+    f.markOn, f.markSig = nil, nil
+    placeMark(f)
     active[unit] = f
     updateAll(f)
     f:Show()
@@ -685,6 +798,12 @@ local function restoreAll()
         local f = active[unit]
         local uf = f.plate and blizzUnitFrame(f.plate)
         if uf then uf:SetAlpha(1) end
+        local rt = f.plate and raidMark(f.plate)
+        if rt then
+            pcall(rt.SetIgnoreParentAlpha, rt, false)
+            pcall(rt.SetSize, rt, 22, 22)       -- taille d origine (Blizzard_NamePlates.xml)
+            pcall(rt.SetAlpha, rt, 1)
+        end
         detach(unit)
     end
 end
@@ -727,6 +846,8 @@ local DEFAULTS = {
     castLock = true, castReady = true,   -- non interruptible, interruption prete
     debuffSize = 18, debuffMax = 5, debuffMine = true, debuffTimer = true,
     targetBorder = true, targetScale = 115, fadeOthers = true,
+    -- icone de raid (16/10) : position top / left / right / center
+    raidMark = true, raidMarkSize = 28, raidMarkPos = "top", raidMarkX = 0, raidMarkY = 0, raidMarkAlpha = 100,
 }
 
 ev:SetScript("OnEvent", function(_, event, unit)
@@ -818,6 +939,7 @@ ns.Every(0.2, function()
     for _, f in pairs(active) do
         local uf = f.plate and blizzUnitFrame(f.plate)
         if uf and uf:GetAlpha() > 0 then uf:SetAlpha(0) end
+        placeMark(f)
     end
 end, "Plaques : opacite du jeu", "plaques")
 
@@ -895,6 +1017,27 @@ local function buildWindow()
     num(L.PLATES_TEXT_SIZE, "nameSize", 6, 18, 1)
     form:EndColumns()
 
+    -- icone de raid : apercu (crane) sur les plaques visibles tant que les
+    -- reglages sont ouverts ; chaque reglage la replace aussitot
+    form:Header(L.PLATES_H_RAIDMARK)
+    form:Columns(2)
+    chk(L.PLATES_OPT_RAIDMARK, "raidMark")
+    form:Cycle(L.PLATES_RAIDMARK_POS, { "top", "left", "right", "center" }, {
+        top = L.PLATES_RAIDMARK_TOP, left = L.PLATES_RAIDMARK_LEFT,
+        right = L.PLATES_RAIDMARK_RIGHT, center = L.PLATES_RAIDMARK_CENTER,
+    }, function() return db.raidMarkPos end, function(v) db.raidMarkPos = v markAll() end)
+    local function markNum(fmt, key, lo, hi, step)
+        return form:Number(fmt, function() return db[key] end, function(v)
+            db[key] = v
+            markAll()
+        end, lo, hi, step)
+    end
+    markNum(L.PLATES_RAIDMARK_SIZE, "raidMarkSize", 12, 64, 2)
+    markNum(L.PLATES_RAIDMARK_ALPHA, "raidMarkAlpha", 20, 100, 5)
+    markNum(L.PLATES_RAIDMARK_X, "raidMarkX", -80, 80, 1)
+    markNum(L.PLATES_RAIDMARK_Y, "raidMarkY", -80, 80, 1)
+    form:EndColumns()
+
     -- barre de sort
     form:Header(L.PLATES_H_CAST)
     form:Columns(2)
@@ -948,7 +1091,8 @@ local function buildWindow()
     hint:SetJustifyH("LEFT")
     hint:SetText(L.PLATES_HINT)
     win:SetHeight(math.floor(90 - form.y))
-    win:HookScript("OnShow", function() form:Refresh() end)
+    win:HookScript("OnShow", function() form:Refresh() markAll(true) end)
+    win:HookScript("OnHide", function() markAll(false) end)
 end
 
 local function toggle()
