@@ -2,8 +2,12 @@
     CorpUI - module Leveling : la fenetre, les reglages, les evenements
 
     Fenetre "Leveling" : l etape en cours en tete, puis les suivantes
-    (nombre au choix), chacune avec son icone, la quete (couleur de sa
-    difficulte), l objectif ou le texte du repere, la distance.
+    (nombre au choix). Meme dessin que le suivi des quetes (module Quetes,
+    demande du 16/10) : pas de fond, titre clair, filet fin, puis par
+    etape le titre de la quete dans la couleur de sa difficulte, la
+    distance a droite (a la place du niveau), et une ligne en retrait :
+    quete a prendre (or), prete a rendre (vert), objectif (gris) ou texte
+    du repere (bleu). Survol : voile violet, comme le suivi.
       clic gauche : pointer la fleche sur cette etape (encore : laisser
                     CorpUI choisir) ;
       clic droit  : ignorer l etape (par personnage ; /corp leveling reset).
@@ -26,24 +30,17 @@ local LV = ns.Leveling
 local num, str, call = LV.num, LV.str, LV.call
 local issecret = issecretvalue or function() return false end
 
-local WIDTH = 290
+local WIDTH = 230          -- largeur du suivi des quetes
 local HEAD_H = 22
-local ROW_H = 34
 local MAX_ROWS = 8
 
 local KINDS = {
-    accept = { icon = "Interface\\GossipFrame\\AvailableQuestIcon", color = { 1, 0.82, 0 }, label = "LVL_K_ACCEPT" },
-    turnin = { icon = "Interface\\GossipFrame\\ActiveQuestIcon", color = { 0.35, 1, 0.35 }, label = "LVL_K_TURNIN" },
-    objective = { icon = "Interface\\Icons\\INV_Misc_Note_01", color = { 1, 0.6, 0.25 }, label = "LVL_K_OBJECTIVE" },
-}
--- icone d un objectif selon son type (monstre, objet a ramasser, objet du decor)
-local OBJ_ICONS = {
-    monster = "Interface\\Icons\\Ability_Warrior_Cleave",
-    item = "Interface\\Icons\\INV_Misc_Bag_08",
-    object = "Interface\\Icons\\INV_Misc_Gear_01",
+    accept = { color = { 1, 0.82, 0 }, label = "LVL_K_ACCEPT", sub = "LVL_SUB_ACCEPT" },
+    turnin = { color = { 0.3, 0.9, 0.3 }, label = "LVL_K_TURNIN", sub = "LVL_SUB_TURNIN" },
+    objective = { color = { 0.85, 0.85, 0.85 }, label = "LVL_K_OBJECTIVE" },
 }
 
-local db, frame, header, rows
+local db, frame, header, body, rows
 local list = {}           -- etapes du dernier calcul
 local current, pinned     -- cle de l etape en tete ; cle choisie a la main
 local dirty, lastRun = true, 0
@@ -67,11 +64,6 @@ local function levelColor(level)
         if ok and type(c) == "table" and num(c.r) then return c.r, c.g, c.b end
     end
     return 1, 0.82, 0
-end
-
-local function iconOf(a)
-    if a.kind == "objective" then return OBJ_ICONS[a.objType or ""] or KINDS.objective.icon end
-    return KINDS[a.kind].icon
 end
 
 local function stepName(a)
@@ -132,34 +124,27 @@ end
 local function row(i)
     if rows[i] then return rows[i] end
     local C = ns.COLORS
-    local r = CreateFrame("Button", nil, frame)
-    r:SetHeight(ROW_H)
-    r:SetPoint("TOPLEFT", frame, "TOPLEFT", 4, -HEAD_H - 2 - (i - 1) * ROW_H)
-    r:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -4, -HEAD_H - 2 - (i - 1) * ROW_H)
+    local r = CreateFrame("Button", nil, body)
+    r:SetWidth(WIDTH)
     r:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-    -- etape en cours : voile a gauche
+    -- etape en cours : voile leger ; survol : celui du suivi des quetes
     r.mark = r:CreateTexture(nil, "BACKGROUND")
-    r.mark:SetAllPoints()
-    ns.UI.Gradient(r.mark, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.35, C.violet[1], C.violet[2], C.violet[3], 0)
+    r.mark:SetPoint("TOPLEFT", 1, 1)
+    r.mark:SetPoint("BOTTOMRIGHT", -1, -1)
+    ns.UI.Gradient(r.mark, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.18, C.violet[1], C.violet[2], C.violet[3], 0)
     local hl = r:CreateTexture(nil, "HIGHLIGHT")
-    hl:SetAllPoints()
-    ns.UI.Gradient(hl, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.2, C.violet[1], C.violet[2], C.violet[3], 0.05)
-    r.icon = r:CreateTexture(nil, "ARTWORK")
-    r.icon:SetSize(18, 18)
-    r.icon:SetPoint("LEFT", 3, 0)
+    hl:SetPoint("TOPLEFT", 1, 1)
+    hl:SetPoint("BOTTOMRIGHT", -1, -1)
+    ns.UI.Gradient(hl, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.32, C.violet[1], C.violet[2], C.violet[3], 0.04)
     r.dist = r:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    r.dist:SetPoint("TOPRIGHT", -3, -4)
+    r.dist:SetPoint("TOPRIGHT", 0, -1)
     r.dist:SetJustifyH("RIGHT")
-    r.line1 = r:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    r.line1:SetPoint("TOPLEFT", r.icon, "TOPRIGHT", 6, 6)
-    r.line1:SetPoint("RIGHT", r.dist, "LEFT", -4, 0)
-    r.line1:SetJustifyH("LEFT")
-    r.line1:SetWordWrap(false)
-    r.line2 = r:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    r.line2:SetPoint("TOPLEFT", r.line1, "BOTTOMLEFT", 0, -2)
-    r.line2:SetPoint("RIGHT", r, "RIGHT", -3, 0)
-    r.line2:SetJustifyH("LEFT")
-    r.line2:SetWordWrap(false)
+    r.title = r:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    r.title:SetJustifyH("LEFT")
+    r.title:SetWordWrap(true)
+    r.sub = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    r.sub:SetJustifyH("LEFT")
+    r.sub:SetWordWrap(true)
     r:SetScript("OnClick", onRowClick)
     r:SetScript("OnEnter", tooltip)
     r:SetScript("OnLeave", ns.HideTooltip)
@@ -167,24 +152,39 @@ local function row(i)
     return r
 end
 
-local function hex(r, g, b)
-    return string.format("%02x%02x%02x", math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
-end
-
-local function fill(r, a, first)
+-- une etape : titre (et distance), ligne en retrait ; renvoie sa hauteur
+local function fill(r, a, first, y)
     r.step = a
     r.mark:SetShown(first)
-    r.icon:SetTexture(iconOf(a))
-    local k = KINDS[a.kind]
-    local tr, tg, tb = levelColor(a.level)
-    local title = "|cff" .. hex(tr, tg, tb) .. (a.title or "?") .. "|r"
-    r.line1:SetText("|cff" .. hex(k.color[1], k.color[2], k.color[3]) .. L[k.label] .. "|r " .. title)
-    local sub = a.kind == "objective" and a.text or nil
-    if a.via and a.viaText then sub = a.viaText end
-    if a.pinned then sub = (sub and (sub .. " · ") or "") .. L.LVL_PINNED end
-    r.line2:SetText(sub or "")
+    r:ClearAllPoints()
+    r:SetPoint("TOPLEFT", body, "TOPLEFT", 0, -y)
     r.dist:SetText(a.dist and string.format(L.LVL_DIST, math.floor(a.dist + 0.5)) or (a.map and L.LVL_ELSEWHERE or ""))
+    r.title:ClearAllPoints()
+    r.title:SetPoint("TOPLEFT", 4, 0)
+    r.title:SetPoint("TOPRIGHT", -((r.dist:GetStringWidth() or 0) + 6), 0)
+    r.title:SetText(a.title or "?")
+    r.title:SetTextColor(levelColor(a.level))
+    local k = KINDS[a.kind]
+    local sub, c = nil, k.color
+    if a.via and a.viaText then
+        sub, c = "- " .. a.viaText, { 0.6, 0.8, 1 }
+    elseif a.kind == "objective" then
+        sub = a.text and ("- " .. a.text) or nil
+    else
+        sub = L[k.sub]
+    end
+    if a.pinned then sub = (sub and (sub .. " · ") or "") .. L.LVL_PINNED end
+    r.sub:ClearAllPoints()
+    r.sub:SetPoint("TOPLEFT", r.title, "BOTTOMLEFT", 10, -2)
+    r.sub:SetPoint("RIGHT", r, "RIGHT", -2, 0)
+    r.sub:SetText(sub or "")
+    r.sub:SetTextColor(c[1], c[2], c[3])
+    r.sub:SetShown(sub ~= nil)
+    local h = math.max(12, r.title:GetStringHeight() or 0)
+    if sub then h = h + 2 + math.max(10, r.sub:GetStringHeight() or 0) end
+    r:SetHeight(h + 2)
     r:Show()
+    return h + 2
 end
 
 local function headerText()
@@ -202,13 +202,13 @@ local function draw()
         return
     end
     headerText()
-    header.toggle.label:SetText(db.collapsed and "+" or "-")
+    header.toggle.label:SetText(db.collapsed and "+" or "−")
     local n = db.collapsed and 1 or math.max(1, math.min(MAX_ROWS, db.rows or 5))
-    local count = 0
+    local y, count = 4, 0
     for i = 1, MAX_ROWS do
         local a = i <= n and list[i]
         if a then
-            fill(row(i), a, i == 1)
+            y = y + fill(row(i), a, i == 1, y) + 4
             count = i
         elseif rows[i] then
             rows[i]:Hide()
@@ -216,37 +216,39 @@ local function draw()
         end
     end
     frame.empty:SetShown(count == 0)
-    local h = HEAD_H + 4 + math.max(1, count) * ROW_H
-    if count == 0 then h = HEAD_H + 4 + 22 end
-    frame:SetHeight(h)
+    if count == 0 then y = 4 + 14 + 4 end
+    body:SetHeight(y)
+    frame:SetHeight(HEAD_H + 2 + y)
     frame:Show()
 end
 
 local function build()
     db.pos = db.pos or { point = "TOPLEFT", x = 20, y = -300 }
-    local C = ns.COLORS
     frame = CreateFrame("Frame", "CorpUILeveling", UIParent)
     frame:SetSize(WIDTH, HEAD_H + 30)
     frame:SetFrameStrata("LOW")
     ns.ApplyPos(frame, db.pos)
-    ns.UI.Skin(frame, 0.72, true)
     rows = {}
 
+    -- en-tete du suivi des quetes : titre, niveau et XP, bouton replier,
+    -- filet fin dessous ; pas de fond, la liste est posee sur le jeu
     header = CreateFrame("Frame", nil, frame)
     header:SetPoint("TOPLEFT")
     header:SetPoint("TOPRIGHT")
     header:SetHeight(HEAD_H)
     local rule = header:CreateTexture(nil, "BORDER")
-    rule:SetPoint("BOTTOMLEFT", 4, 0)
-    rule:SetPoint("BOTTOMRIGHT", -4, 0)
+    rule:SetPoint("BOTTOMLEFT", 0, 1)
+    rule:SetPoint("BOTTOMRIGHT", 0, 1)
     rule:SetHeight(1)
     ns.NoSnap(rule)
-    ns.UI.Gradient(rule, "HORIZONTAL", C.gold[1], C.gold[2], C.gold[3], 0.8, C.gold[1], C.gold[2], C.gold[3], 0)
+    rule:SetColorTexture(1, 1, 1, 0.22)
     header.title = header:CreateFontString(nil, "OVERLAY")
     ns.UI.HeadFont(header.title, 12)
-    header.title:SetPoint("LEFT", 6, 0)
-    header.title:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
+    header.title:SetPoint("LEFT", 2, 0)
+    header.title:SetTextColor(0.93, 0.93, 0.93)
     header.title:SetText(L.MOD_LEVELING)
+    header.level = header:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    header.level:SetPoint("LEFT", header.title, "RIGHT", 6, 0)
     header.toggle = CreateFrame("Button", nil, header)
     header.toggle:SetSize(18, 18)
     header.toggle:SetPoint("RIGHT", -3, 0)
@@ -257,12 +259,16 @@ local function build()
         db.collapsed = not db.collapsed
         draw()
     end)
-    header.level = header:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    header.level:SetPoint("RIGHT", header.toggle, "LEFT", -4, 0)
 
-    frame.empty = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    frame.empty:SetPoint("TOPLEFT", 8, -HEAD_H - 6)
-    frame.empty:SetPoint("RIGHT", -8, 0)
+    body = CreateFrame("Frame", nil, frame)
+    body:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -2)
+    body:SetPoint("TOPRIGHT", header, "BOTTOMRIGHT", 0, -2)
+    body:SetHeight(1)
+    ns.NoSnap(body)
+
+    frame.empty = body:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    frame.empty:SetPoint("TOPLEFT", 4, -4)
+    frame.empty:SetPoint("RIGHT", -4, 0)
     frame.empty:SetJustifyH("LEFT")
     frame.empty:SetText(L.LVL_NOTHING)
     frame:Hide()
