@@ -40,7 +40,7 @@ local function call(fn, ...)
     local ok, a, b, c = pcall(fn, ...)
     if ok then return a, b, c end
 end
-LV.num, LV.str, LV.call = num, str, call
+LV.num, LV.str, LV.call, LV.yes = num, str, call, yes
 
 -- poids du choix (distances en metres du jeu)
 LV.W = {
@@ -163,11 +163,15 @@ local function logQuests()
                 q.trivial = yes(call(Q.IsQuestTrivial, id))
                 q.xp = num(call(GetQuestLogRewardXP, id))
                 if not q.done then
+                    -- tous les objectifs (texte et fait ou non), et le premier pas fait
+                    q.objectives = {}
                     local objs = call(Q.GetQuestObjectives, id)
                     for _, o in ipairs(type(objs) == "table" and objs or {}) do
-                        if type(o) == "table" and not yes(o.finished) then
-                            q.objective, q.objType = str(o.text), str(o.type)
-                            break
+                        local txt = type(o) == "table" and str(o.text)
+                        if txt then
+                            local fin = yes(o.finished)
+                            q.objectives[#q.objectives + 1] = { text = txt, finished = fin }
+                            if not fin and not q.objective then q.objective, q.objType = txt, str(o.type) end
                         end
                     end
                 end
@@ -192,6 +196,7 @@ local function questPoints(maps)
     end
     return out
 end
+LV.QuestPoints = questPoints
 
 -- Quetes a prendre. Deux sources :
 --   1. le jeu (lignes de quetes, comme les "!" de la carte de Blizzard) :
@@ -244,6 +249,16 @@ local function idSet(s)
     return t
 end
 
+-- positions d objectifs : "x:y:carte/x:y:carte" -> { { carte, x, y }, ... } (0-1)
+local function points(s)
+    if not s or s == "" then return nil end
+    local t = {}
+    for x, y, m in s:gmatch("([%d%.]+):([%d%.]+):(%d+)") do
+        t[#t + 1] = { tonumber(m), tonumber(x) / 100, tonumber(y) / 100 }
+    end
+    return #t > 0 and t or nil
+end
+
 -- quetes de la base pour une carte, decodees a la premiere demande
 local decoded = {}
 function LV.Offers(map)
@@ -264,7 +279,7 @@ function LV.Offers(map)
                               pre = idList(f[6]), need = tonumber(f[7] or ""), alt = idList(f[8]),
                               classes = idSet(f[9]), races = idSet(f[10]), added = tonumber(f[11] or ""),
                               removed = tonumber(f[12] or ""), rep = (f[13] and f[13] ~= "") and f[13] or nil,
-                              breadcrumb = f[14] == "b" }
+                              breadcrumb = f[14] == "b", obj = points(f[15]) }
             end
         end
     end
@@ -297,7 +312,8 @@ local function repOk(rep)
 end
 
 -- quete de la base que ce personnage peut prendre maintenant ?
-function LV.CanTake(q, who, inLog)
+-- assumed : quetes supposees rendues (route prevue : la suite d une chaine)
+function LV.CanTake(q, who, inLog, assumed)
     if inLog[q.id] or done(q.id) then return false end
     local ver = version()
     if ver and q.added and q.added > ver then return false end
@@ -309,13 +325,13 @@ function LV.CanTake(q, who, inLog)
     if q.pre then
         local n = 0
         for _, p in ipairs(q.pre) do
-            if done(p) then n = n + 1 end
+            if done(p) or (assumed and assumed[p]) then n = n + 1 end
         end
         if n < (q.need or #q.pre) then return false end
     end
     if q.alt then
         for _, a in ipairs(q.alt) do
-            if done(a) or inLog[a] then return false end
+            if done(a) or inLog[a] or (assumed and assumed[a]) then return false end
         end
     end
     if q.rep and not repOk(q.rep) then return false end

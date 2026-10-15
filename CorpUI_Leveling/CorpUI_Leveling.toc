@@ -30,5 +30,6 @@
 Leveling\Strings.lua
 Leveling\Donnees.lua
 Leveling\Moteur.lua
+Leveling\Route.lua
 Leveling\Fleche.lua
 Leveling\Leveling.lua

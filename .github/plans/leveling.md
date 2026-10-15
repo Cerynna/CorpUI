@@ -144,3 +144,45 @@ Plus tard (v2), selon tes retours :
 - L'avis MIT est gardé en tête de `Donnees.lua`, et seulement là : c'est la seule condition de la licence. L'utilisateur ne veut ni crédit dans le README ni mention visible.
 - Filtres appliqués en jeu : camp, race, classe, niveau minimum, quêtes préalables (toutes, ou le nombre requis), quêtes exclusives, réputation, version du jeu (ajout et retrait, 1.60.1 = 16001), et quêtes déjà rendues (`GetAllCompletedQuestIDs`).
 - Les titres viennent du jeu (`RequestLoadQuestByID`) ; en attendant, la ligne affiche « Quête n° X ».
+
+## 9. Guide pas à pas (demande du 16/10)
+
+> « un guide à suivre pas à pas qui optimise le level up, un peu comme RestedXP »
+
+**But** : une liste d'étapes numérotées (prendre, faire, rendre, aller à, entraîneur, pierre de foyer…). L'étape en cours est en tête, avec la flèche ; elle se coche toute seule une fois faite. L'ordre suit une **route planifiée** pour limiter les trajets, et non plus « la plus proche à chaque instant ».
+
+**Données disponibles :**
+- AllTheThings : donneurs et positions (déjà intégrés), **1 907 objectifs avec position**, monstres d'objectif, quêtes préalables et suites de chaînes, niveau minimum, camp, race et classe.
+- Le jeu, une fois la quête prise : position exacte des objectifs et du PNJ de rendu, XP de la récompense, couleur de difficulté.
+
+**Approche recommandée : planificateur CorpUI en jeu**
+1. **Zone** : celle où tu es, tant qu'elle a des quêtes non grises. Sinon, la suivante d'après les niveaux de la base pour ton camp.
+2. **Pôles** : les donneurs proches les uns des autres (moins de 50 m environ) sont regroupés.
+3. **Tournée** :
+   - au pôle, prendre toutes les quêtes disponibles (et les suites débloquées sur place) ;
+   - faire les objectifs dans l'ordre d'une tournée (plus proche voisin, puis amélioration 2-opt contre les allers-retours), en groupant les objectifs proches ;
+   - revenir rendre au pôle ;
+   - passer au pôle suivant, le plus rentable (quêtes ÷ distance).
+4. **Route stable** : elle n'est recalculée que si une étape est faite, si une quête apparaît ou disparaît, ou si tu t'écartes nettement du plan.
+5. **Affichage** : au dessin du suivi des quêtes, avec numéros et coches (étapes faites en gris), l'étape en cours en surbrillance, et « sauter l'étape » au clic droit.
+
+**Limites :**
+- Ce n'est ni une route de speedrunner, ni la simulation complète de factoruide (XP fine, puissance du personnage).
+- Une quête sans position d'objectif dans la base n'est placée qu'une fois prise : c'est le jeu qui donne alors la position.
+
+**Autres sources possibles :** les routes de l'appli factoruide (optimisation globale de 1 à 60, mais il faut leur appli et leur addon), ou des guides écrits à la main.
+
+**Choix du 16/10** : planificateur CorpUI ; en plus des quêtes : entraîneur de classe, changement de zone, pierre de foyer et vols. Pas de rythme de niveau.
+
+**Livraison 1 (16/10, à tester en jeu)** :
+- `Leveling/Route.lua` : rassemble les étapes de la zone (journal, quêtes à prendre de la base, suites de chaînes prévues), puis construit la tournée :
+  - plus proche voisin ;
+  - amélioration par différence (n² par passe) ;
+  - au pôle, tout prendre d'un coup (donneurs à moins de 40 m).
+- Route stable et gardée par personnage (`leveling.route`) : une étape faite passe dans l'historique, une nouvelle s'insère à sa meilleure place.
+- Recalcul : changement de zone (après 20 s) ou `/corp leveling route`.
+- Données : positions des objectifs (`qo`) ajoutées à `Donnees.lua` (99 Ko).
+- Fenêtre : étapes numérotées, deux dernières faites cochées en grise, clic droit = ignorer la quête.
+- Banc `t_leveling` : 85 vérifications. Sur les vraies données de Zéphras : 72 étapes, 179 ms sous fengari (bien moins en jeu), 12 ms par mise à jour.
+
+**Livraison 2 (à faire)** : changement de zone, entraîneur de classe, pierre de foyer et vols.

@@ -142,7 +142,7 @@ function LV.SetArrow(a, options)
         arrow.title:SetText(L.LVL_ARROW)
         arrow.via:SetText("")
     else
-        arrow.title:SetText(a.title or "")
+        arrow.title:SetText(a.title or (LV.Title and LV.Title(a.id)) or "")
         arrow.via:SetText(a.via and a.viaText or "")
     end
     arrow.wait = 0

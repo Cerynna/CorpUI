@@ -50,7 +50,7 @@ local KEYS = {
     -- ajoutee le 10/10 : module Chasseur (distance)
     hunter = {},
     -- ajoutee le 15/10 : module Leveling (etapes ignorees : par personnage)
-    leveling = { ignored = true },
+    leveling = { ignored = true, route = true },
 }
 
 local function copy(v)

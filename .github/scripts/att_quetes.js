@@ -58,6 +58,24 @@ function visit(n) {
       const prev = quests.get(id) || {};
       for (const f of tNode.fields) {
         if (f.type === 'TableKeyString' && f.key.name !== 'g' && prev[f.key.name] === undefined) prev[f.key.name] = lit(f.value);
+        // objectifs : qo(<n>, { coords = { [carte] = { { x, y }, ... } } }) parmi les enfants
+        if (f.type === 'TableKeyString' && f.key.name === 'g' && f.value.type === 'TableConstructorExpression' && !prev.obj) {
+          const pts = [];
+          for (const c of f.value.fields) {
+            const e = c.value;
+            if (!e || e.type !== 'CallExpression' || !e.base || e.base.name !== 'qo') continue;
+            const t = lit(e.arguments[1]);
+            const co = t && typeof t === 'object' ? t.coords : null;
+            if (!co || typeof co !== 'object') continue;
+            for (const [map, list] of Object.entries(co)) {
+              if (Array.isArray(list) && Array.isArray(list[0]) && typeof list[0][0] === 'number') {
+                pts.push([Number(map), list[0][0], list[0][1]]);
+                break;
+              }
+            }
+          }
+          if (pts.length) prev.obj = pts.slice(0, 4);
+        }
       }
       quests.set(id, prev);
     }
@@ -78,7 +96,7 @@ for (const f of FILES) {
 const nums = v => Array.isArray(v) ? v.filter(x => typeof x === 'number') : [];
 const fmt = v => (Math.round(v * 10) / 10).toFixed(1).replace(/\.0$/, '');
 // une quete par carte ou son donneur se trouve :
-// id,x,y,niv,camp,prealables,nb requis,exclusives,classes,races,ajout,retrait,reputation,marques
+// id,x,y,niv,camp,prealables,nb requis,exclusives,classes,races,ajout,retrait,reputation,marques,objectifs
 const byMap = new Map();
 let kept = 0, skipped = 0;
 for (const [id, t] of [...quests.entries()].sort((a, b) => a[0] - b[0])) {
@@ -99,6 +117,8 @@ for (const [id, t] of [...quests.entries()].sort((a, b) => a[0] - b[0])) {
     typeof t.rwp === 'number' ? t.rwp : '',
     rep,
     t.isBreadcrumb ? 'b' : '',
+    // objectifs : x:y:carte, separes par "/"
+    (t.obj || []).map(p => fmt(p[1]) + ':' + fmt(p[2]) + ':' + p[0]).join('/'),
   ];
   let any = false;
   for (const [map, pts] of Object.entries(t.coords)) {
@@ -145,8 +165,9 @@ out += '    CorpUI - module Leveling : quetes a prendre (fichier GENERE, ne pas 
 out += '    Genere par .github/scripts/att_quetes.js depuis la base de quetes\n';
 out += '    d AllTheThings pour Forever (db/Camelot), commit ' + sha.slice(0, 10) + '.\n';
 out += '    Par carte : "id,x,y,niv,camp,prealables,nb requis,exclusives,classes,\n';
-out += '    races,ajout,retrait,reputation,marques" ; quetes separees par ";",\n';
-out += '    listes par "/". Lu a la demande, carte par carte (Moteur.lua).\n\n';
+out += '    races,ajout,retrait,reputation,marques,objectifs" ; quetes separees par\n';
+out += '    ";", listes par "/", objectif = "x:y:carte". Lu a la demande, carte\n';
+out += '    par carte (Moteur.lua).\n\n';
 out += '    Donnees d AllTheThings :\n\n';
 for (const l of license) out += (l ? '    ' + l : '') + '\n';
 out += '----------------------------------------------------------------------------]]\n\n';
