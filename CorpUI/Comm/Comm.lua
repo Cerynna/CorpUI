@@ -282,20 +282,36 @@ local function isNewer(a, b)
 end
 Comm.IsNewer = isNewer
 
+-- version la plus recente vue, et un joueur qui l a
 local function newestKnown()
-    local best
+    local best, by
     local mine = Comm.Version()
-    for _, u in pairs(users) do
-        if isNewer(u.v, mine) and (not best or isNewer(u.v, best)) then best = u.v end
+    for who, u in pairs(users) do
+        if isNewer(u.v, mine) and (not best or isNewer(u.v, best)) then best, by = u.v, who end
     end
-    return best
+    return best, by
 end
+
+-- Notre version est depassee : avertissement bien visible dans le chat
+-- (en orange, avec le joueur qui a la nouvelle version et le lien de
+-- telechargement). Une fois par session et par version : une version
+-- encore plus recente vue plus tard previent de nouveau. Aussi a la
+-- connexion, d apres les joueurs vus les 30 derniers jours.
+local RELEASES = "https://github.com/Cerynna/CorpUI/releases/latest"
+local warnedVersion
+local function warnOutdated(version, who)
+    local mine = Comm.Version()
+    if not version or not isNewer(version, mine) then return end
+    if warnedVersion and not isNewer(version, warnedVersion) then return end
+    warnedVersion = version
+    ns.Say(string.format(L.COMM_OUTDATED, version, who and shortName(who) or "?", mine))
+    ns.Chat("    " .. string.format(L.COMM_UPDATE_HINT, RELEASES))
+end
+Comm.WarnOutdated = warnOutdated
 
 ---------------------------------------------------------------------------
 -- Joueurs connus
 ---------------------------------------------------------------------------
-
-local warnedNewer = false
 
 -- un CorpUI s est annonce (HELLO ou reponse)
 local function note(who, version, channel, ctx)
@@ -316,10 +332,7 @@ local function note(who, version, channel, ctx)
     end
     if p and groupChannel() then sessionGroup[who] = true end
     if fresh or before ~= version or g or p then changed() end
-    if not warnedNewer and isNewer(version, Comm.Version()) then
-        warnedNewer = true
-        ns.Say(string.format(L.COMM_NEWER, version))
-    end
+    warnOutdated(version, who)
 end
 
 function Comm.Users()
@@ -891,6 +904,8 @@ table.insert(ns.inits, function()
     groupSet = groupChannel() and readGroup() or {}
     wasGrouped = groupChannel() ~= nil
     scheduleHello("all", 8)
+    -- version depassee d apres les joueurs deja vus (apres les premieres reponses)
+    C_Timer.After(15, function() warnOutdated(newestKnown()) end)
     -- inscrit a la connexion : le module Buffs reste le premier de la liste
     -- (clic droit de la minicarte)
     ns.RegisterModule({
