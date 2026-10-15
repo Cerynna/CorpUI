@@ -4,6 +4,7 @@ if CorpUI and next(ns) == nil then ns = CorpUI end   -- espace de noms du noyau 
 -- Memes %d / %s dans toutes les langues.
 ns.AddStrings({
     enUS = {
+        LVL_QUEST_ID = "Quest #%d", LVL_MINLVL = "Required level: %d",
         MOD_LEVELING = "Leveling",
         LVL_DESC = "next step to level up: quests, arrow, waypoint",
         LVL_K_ACCEPT = "Pick up", LVL_K_TURNIN = "Turn in", LVL_K_OBJECTIVE = "Do", LVL_K_TRAVEL = "Go",
@@ -24,6 +25,7 @@ ns.AddStrings({
         LVL_DIAG = "leveling: map %s, position %s, log %d quests (%d placed on this map, %d through a waypoint), %d to pick up, facing %s, waypoint %s",
     },
     frFR = {
+        LVL_QUEST_ID = "Quête n° %d", LVL_MINLVL = "Niveau requis : %d",
         MOD_LEVELING = "Leveling",
         LVL_DESC = "prochaine étape pour monter de niveau : quêtes, flèche, repère",
         LVL_K_ACCEPT = "Prendre", LVL_K_TURNIN = "Rendre", LVL_K_OBJECTIVE = "Faire", LVL_K_TRAVEL = "Aller",
@@ -44,6 +46,7 @@ ns.AddStrings({
         LVL_DIAG = "leveling : carte %s, position %s, journal %d quêtes (%d placées sur cette carte, %d par un repère), %d à prendre, orientation %s, repère %s",
     },
     deDE = {
+        LVL_QUEST_ID = "Quest Nr. %d", LVL_MINLVL = "Benötigte Stufe: %d",
         MOD_LEVELING = "Leveln",
         LVL_DESC = "nächster Schritt zum Leveln: Quests, Pfeil, Wegpunkt",
         LVL_K_ACCEPT = "Annehmen", LVL_K_TURNIN = "Abgeben", LVL_K_OBJECTIVE = "Erledigen", LVL_K_TRAVEL = "Reisen",
@@ -64,6 +67,7 @@ ns.AddStrings({
         LVL_DIAG = "Leveln: Karte %s, Position %s, Log %d Quests (%d auf dieser Karte, %d über einen Wegpunkt), %d annehmbar, Blickrichtung %s, Wegpunkt %s",
     },
     esES = {
+        LVL_QUEST_ID = "Misión n.º %d", LVL_MINLVL = "Nivel requerido: %d",
         MOD_LEVELING = "Subir de nivel",
         LVL_DESC = "siguiente paso para subir de nivel: misiones, flecha, punto de ruta",
         LVL_K_ACCEPT = "Aceptar", LVL_K_TURNIN = "Entregar", LVL_K_OBJECTIVE = "Hacer", LVL_K_TRAVEL = "Ir",
@@ -84,6 +88,7 @@ ns.AddStrings({
         LVL_DIAG = "nivel: mapa %s, posición %s, registro %d misiones (%d en este mapa, %d por un punto de ruta), %d para aceptar, orientación %s, punto de ruta %s",
     },
     ptBR = {
+        LVL_QUEST_ID = "Missão nº %d", LVL_MINLVL = "Nível exigido: %d",
         MOD_LEVELING = "Subir de nível",
         LVL_DESC = "próximo passo para subir de nível: missões, seta, ponto de referência",
         LVL_K_ACCEPT = "Aceitar", LVL_K_TURNIN = "Entregar", LVL_K_OBJECTIVE = "Fazer", LVL_K_TRAVEL = "Ir",
@@ -104,6 +109,7 @@ ns.AddStrings({
         LVL_DIAG = "nível: mapa %s, posição %s, registro %d missões (%d neste mapa, %d por um ponto de referência), %d para aceitar, direção %s, ponto de referência %s",
     },
     itIT = {
+        LVL_QUEST_ID = "Missione n. %d", LVL_MINLVL = "Livello richiesto: %d",
         MOD_LEVELING = "Livellamento",
         LVL_DESC = "prossimo passo per salire di livello: missioni, freccia, punto di riferimento",
         LVL_K_ACCEPT = "Accetta", LVL_K_TURNIN = "Consegna", LVL_K_OBJECTIVE = "Fai", LVL_K_TRAVEL = "Vai",
@@ -124,6 +130,7 @@ ns.AddStrings({
         LVL_DIAG = "livellamento: mappa %s, posizione %s, registro %d missioni (%d su questa mappa, %d tramite un punto di riferimento), %d da accettare, direzione %s, punto di riferimento %s",
     },
     ruRU = {
+        LVL_QUEST_ID = "Задание № %d", LVL_MINLVL = "Требуемый уровень: %d",
         MOD_LEVELING = "Прокачка",
         LVL_DESC = "следующий шаг прокачки: задания, стрелка, путевая точка",
         LVL_K_ACCEPT = "Взять", LVL_K_TURNIN = "Сдать", LVL_K_OBJECTIVE = "Выполнить", LVL_K_TRAVEL = "Идти",
@@ -144,6 +151,7 @@ ns.AddStrings({
         LVL_DIAG = "прокачка: карта %s, позиция %s, журнал %d заданий (%d на этой карте, %d через путевую точку), %d можно взять, направление %s, путевая точка %s",
     },
     zhCN = {
+        LVL_QUEST_ID = "任务 #%d", LVL_MINLVL = "需要等级：%d",
         MOD_LEVELING = "升级",
         LVL_DESC = "升级的下一步：任务、箭头、路径点",
         LVL_K_ACCEPT = "接取", LVL_K_TURNIN = "交付", LVL_K_OBJECTIVE = "完成", LVL_K_TRAVEL = "前往",
@@ -164,6 +172,7 @@ ns.AddStrings({
         LVL_DIAG = "升级：地图 %s，位置 %s，日志 %d 个任务（本地图 %d 个，经路径点 %d 个），可接 %d 个，朝向 %s，路径点 %s",
     },
     zhTW = {
+        LVL_QUEST_ID = "任務 #%d", LVL_MINLVL = "需要等級：%d",
         MOD_LEVELING = "升級",
         LVL_DESC = "升級的下一步：任務、箭頭、路徑點",
         LVL_K_ACCEPT = "接取", LVL_K_TURNIN = "交付", LVL_K_OBJECTIVE = "完成", LVL_K_TRAVEL = "前往",
@@ -184,6 +193,7 @@ ns.AddStrings({
         LVL_DIAG = "升級：地圖 %s，位置 %s，日誌 %d 個任務（本地圖 %d 個，經路徑點 %d 個），可接 %d 個，朝向 %s，路徑點 %s",
     },
     koKR = {
+        LVL_QUEST_ID = "퀘스트 #%d", LVL_MINLVL = "필요 레벨: %d",
         MOD_LEVELING = "레벨업",
         LVL_DESC = "레벨업 다음 단계: 퀘스트, 화살표, 경유지",
         LVL_K_ACCEPT = "수락", LVL_K_TURNIN = "완료", LVL_K_OBJECTIVE = "진행", LVL_K_TRAVEL = "이동",

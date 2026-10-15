@@ -104,6 +104,7 @@ local function tooltip(self)
     end
     if a.viaText then t:AddLine(a.viaText, 0.6, 0.8, 1, true) end
     if a.xp and a.xp > 0 then t:AddLine(string.format(L.LVL_XP, a.xp), 0.75, 0.6, 1) end
+    if a.minLevel then t:AddLine(string.format(L.LVL_MINLVL, a.minLevel), 0.8, 0.8, 0.8) end
     if a.trivial then t:AddLine(L.LVL_GRAY, 0.6, 0.6, 0.6) end
     if a.pinned then t:AddLine(L.LVL_PINNED, 1, 0.82, 0) end
     t:AddLine(" ")
@@ -353,6 +354,18 @@ function LV.Diag()
             count(TQ.GetQuestsOnMap or TQ.GetQuestsForPlayerByMapID, map), count(AP.GetQuestHubsForMap, map), starts,
             count(AP.GetAreaPOIForMap, map))
     end
+    -- base d AllTheThings (Donnees.lua) : quetes de ces cartes, et celles a prendre maintenant
+    local inLog = {}
+    for _, q in ipairs(LV.LogQuests()) do inLog[q.id] = true end
+    local who = LV.WhoAmI()
+    for _, map in ipairs(me and LV.MapsAround(me.map) or {}) do
+        local all, ok = LV.Offers(map), 0
+        for _, q in ipairs(all) do
+            if LV.CanTake(q, who, inLog) then ok = ok + 1 end
+        end
+        lines[#lines + 1] = string.format("  base, carte %d : %d quetes, %d a prendre (niveau %s, camp %s, race %s, classe %s)",
+            map, #all, ok, tostring(who.level), tostring(who.side), tostring(who.race), tostring(who.class))
+    end
     lines[#lines + 1] = string.format("  suivi des quetes cachees (minicarte) : %s",
         tostring(C_Minimap and call(C_Minimap.IsTrackingHiddenQuests)))
     for i = 2, #lines do ns.Say(lines[i]) end
@@ -457,6 +470,7 @@ ev:SetScript("OnEvent", function(_, event, arg)
         return
     end
     if not db then return end
+    if event == "QUEST_TURNED_IN" then LV.ForgetCompleted() end
     if event == "QUEST_TURNED_IN" or event == "QUEST_REMOVED" then
         -- quete rendue (ou abandonnee) : ses etapes ignorees n ont plus lieu d etre
         local id = num(arg)
@@ -470,7 +484,7 @@ ev:SetScript("OnEvent", function(_, event, arg)
 end)
 for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "QUEST_LOG_UPDATE", "QUEST_ACCEPTED", "QUEST_REMOVED",
                      "QUEST_TURNED_IN", "QUEST_POI_UPDATE", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS",
-                     "ZONE_CHANGED_NEW_AREA", "PLAYER_LEVEL_UP", "PLAYER_XP_UPDATE" }) do
+                     "ZONE_CHANGED_NEW_AREA", "PLAYER_LEVEL_UP", "PLAYER_XP_UPDATE", "QUEST_DATA_LOAD_RESULT" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
 

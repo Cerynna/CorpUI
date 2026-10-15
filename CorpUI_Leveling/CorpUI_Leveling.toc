@@ -28,6 +28,7 @@
 ## Group: CorpUI
 
 Leveling\Strings.lua
+Leveling\Donnees.lua
 Leveling\Moteur.lua
 Leveling\Fleche.lua
 Leveling\Leveling.lua

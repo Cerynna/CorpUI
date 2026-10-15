@@ -193,38 +193,189 @@ local function questPoints(maps)
     return out
 end
 
--- quetes a prendre affichees sur la carte (lignes de quetes du jeu)
+-- Quetes a prendre. Deux sources :
+--   1. le jeu (lignes de quetes, comme les "!" de la carte de Blizzard) :
+--      vide sur Forever (verifie le 15/10 sur l Ile de Zephras) ;
+--   2. la base d AllTheThings (Donnees.lua) : donneur et position par carte,
+--      filtree ici par camp, race, classe, niveau minimum, quetes
+--      prealables et exclusives, version du jeu (ajout / retrait).
+
+-- quetes rendues : liste du jeu, relue apres une quete rendue et chaque minute
+local completed, completedAt
+function LV.ForgetCompleted() completed = nil end
+local function done(id)
+    if not completed then
+        local all = C_QuestLog and call(C_QuestLog.GetAllCompletedQuestIDs)
+        if type(all) == "table" then
+            completed = {}
+            for _, q in ipairs(all) do
+                if num(q) then completed[q] = true end
+            end
+        end
+        completedAt = GetTime and GetTime() or 0
+    end
+    if completed then return completed[id] == true end
+    return yes(call(C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted, id))
+end
+LV.Done = done
+
+-- version du jeu au format de la base : 1.60.1 -> 16001
+local gameVersion
+local function version()
+    if gameVersion == nil then
+        local v = str(call(GetBuildInfo)) or ""
+        local a, b, c = v:match("^(%d+)%.(%d+)%.?(%d*)")
+        gameVersion = a and (tonumber(a) * 10000 + tonumber(b) * 100 + (tonumber(c) or 0)) or false
+    end
+    return gameVersion or nil
+end
+
+local function idList(s)
+    if not s or s == "" then return nil end
+    local t = {}
+    for v in s:gmatch("[^/]+") do t[#t + 1] = tonumber(v) end
+    return #t > 0 and t or nil
+end
+local function idSet(s)
+    local list = idList(s)
+    if not list then return nil end
+    local t = {}
+    for _, v in ipairs(list) do t[v] = true end
+    return t
+end
+
+-- quetes de la base pour une carte, decodees a la premiere demande
+local decoded = {}
+function LV.Offers(map)
+    local d = decoded[map]
+    if d then return d end
+    d = {}
+    local raw = ns.LevelingOffers and ns.LevelingOffers[map]
+    if type(raw) == "string" then
+        for entry in raw:gmatch("[^;]+") do
+            local f, i = {}, 1
+            for v in (entry .. ","):gmatch("([^,]*),") do
+                f[i] = v
+                i = i + 1
+            end
+            local id, x, y = tonumber(f[1]), tonumber(f[2]), tonumber(f[3])
+            if id and x and y then
+                d[#d + 1] = { id = id, x = x / 100, y = y / 100, lvl = tonumber(f[4] or ""), side = tonumber(f[5] or ""),
+                              pre = idList(f[6]), need = tonumber(f[7] or ""), alt = idList(f[8]),
+                              classes = idSet(f[9]), races = idSet(f[10]), added = tonumber(f[11] or ""),
+                              removed = tonumber(f[12] or ""), rep = (f[13] and f[13] ~= "") and f[13] or nil,
+                              breadcrumb = f[14] == "b" }
+            end
+        end
+    end
+    decoded[map] = d
+    return d
+end
+
+-- le personnage : niveau, camp (1 Horde, 2 Alliance, nil : pas encore choisi), race, classe
+local function whoAmI()
+    local who = { level = num(call(UnitLevel, "player")) or 1 }
+    local fac = str(call(UnitFactionGroup, "player"))
+    who.side = (fac == "Horde" and 1) or (fac == "Alliance" and 2) or nil
+    local _, _, race = call(UnitRace, "player")
+    local _, _, class = call(UnitClass, "player")
+    who.race, who.class = num(race), num(class)
+    return who
+end
+LV.WhoAmI = whoAmI
+
+local function repOk(rep)
+    local fid, need = rep:match("^(%d+):(%-?%d+)$")
+    fid, need = tonumber(fid), tonumber(need)
+    if not fid then return false end
+    if C_Reputation and C_Reputation.GetFactionDataByID then
+        local d = call(C_Reputation.GetFactionDataByID, fid)
+        local v = type(d) == "table" and num(d.currentStanding)
+        if v then return v >= need end
+    end
+    return false
+end
+
+-- quete de la base que ce personnage peut prendre maintenant ?
+function LV.CanTake(q, who, inLog)
+    if inLog[q.id] or done(q.id) then return false end
+    local ver = version()
+    if ver and q.added and q.added > ver then return false end
+    if ver and q.removed and q.removed <= ver then return false end
+    if q.side and who.side and q.side ~= who.side then return false end
+    if q.classes and who.class and not q.classes[who.class] then return false end
+    if q.races and who.race and not q.races[who.race] then return false end
+    if q.lvl and who.level < q.lvl then return false end
+    if q.pre then
+        local n = 0
+        for _, p in ipairs(q.pre) do
+            if done(p) then n = n + 1 end
+        end
+        if n < (q.need or #q.pre) then return false end
+    end
+    if q.alt then
+        for _, a in ipairs(q.alt) do
+            if done(a) or inLog[a] then return false end
+        end
+    end
+    if q.rep and not repOk(q.rep) then return false end
+    return true
+end
+
 local asked = {}
 function LV.ResetOffers() asked = {} end
 local function offers(maps, inLog)
-    local out = {}
+    local out, seen = {}, {}
     local QL = C_QuestLine
-    if not (QL and QL.GetAvailableQuestLines) then return out end
-    local seen = {}
     local now = GetTime and GetTime() or 0
+    if completedAt and now - completedAt > 60 then completed = nil end
+    local who = whoAmI()
     for _, map in ipairs(maps) do
-        -- le jeu charge ces lignes a la demande : redemande de temps en temps
-        if not asked[map] or now - asked[map] > 30 then
-            asked[map] = now
-            call(QL.RequestQuestLinesForMap, map)
+        if QL and QL.GetAvailableQuestLines then
+            -- le jeu charge ces lignes a la demande : redemande de temps en temps
+            if not asked[map] or now - asked[map] > 30 then
+                asked[map] = now
+                call(QL.RequestQuestLinesForMap, map)
+            end
+            local function add(q)
+                if type(q) ~= "table" then return end
+                local id, x, y = num(q.questID), num(q.x), num(q.y)
+                if not (id and x and y) or inLog[id] or seen[id] or done(id) then return end
+                seen[id] = true
+                out[#out + 1] = { id = id, title = str(q.questName), map = map, x = x, y = y,
+                                  trivial = yes(q.isHidden) or yes(call(C_QuestLog and C_QuestLog.IsQuestTrivial, id)) }
+            end
+            local list = call(QL.GetAvailableQuestLines, map)
+            for _, q in ipairs(type(list) == "table" and list or {}) do add(q) end
+            local forced = QL.GetForceVisibleQuests and call(QL.GetForceVisibleQuests, map)
+            for _, id in ipairs(type(forced) == "table" and forced or {}) do
+                if num(id) then add(call(QL.GetQuestLineInfo, id, map)) end
+            end
         end
-        local function add(q)
-            if type(q) ~= "table" then return end
-            local id, x, y = num(q.questID), num(q.x), num(q.y)
-            if not (id and x and y) or inLog[id] or seen[id] then return end
-            if yes(call(C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted, id)) then return end
-            seen[id] = true
-            out[#out + 1] = { id = id, title = str(q.questName), map = map, x = x, y = y,
-                              trivial = yes(q.isHidden) or yes(call(C_QuestLog and C_QuestLog.IsQuestTrivial, id)) }
-        end
-        local list = call(QL.GetAvailableQuestLines, map)
-        for _, q in ipairs(type(list) == "table" and list or {}) do add(q) end
-        local forced = QL.GetForceVisibleQuests and call(QL.GetForceVisibleQuests, map)
-        for _, id in ipairs(type(forced) == "table" and forced or {}) do
-            if num(id) then add(call(QL.GetQuestLineInfo, id, map)) end
+        for _, q in ipairs(LV.Offers(map)) do
+            if not seen[q.id] and LV.CanTake(q, who, inLog) then
+                seen[q.id] = true
+                -- grise : d apres le jeu, sinon niveau minimum 10 sous le notre
+                local trivial = yes(call(C_QuestLog and C_QuestLog.IsQuestTrivial, q.id))
+                    or (q.lvl ~= nil and who.level - q.lvl >= 10)
+                out[#out + 1] = { id = q.id, map = map, x = q.x, y = q.y, trivial = trivial, minLevel = q.lvl,
+                                  breadcrumb = q.breadcrumb, fromBase = true }
+            end
         end
     end
     return out
+end
+
+-- titre d une quete (le jeu le charge a la demande : QUEST_DATA_LOAD_RESULT)
+local requested = {}
+function LV.Title(id)
+    local t = str(call(C_QuestLog and C_QuestLog.GetTitleForQuestID, id))
+    if t then return t end
+    if not requested[id] and C_QuestLog and C_QuestLog.RequestLoadQuestByID then
+        requested[id] = true
+        call(C_QuestLog.RequestLoadQuestByID, id)
+    end
+    return nil
 end
 
 ---------------------------------------------------------------------------
@@ -319,6 +470,11 @@ function LV.Plan(opts)
                 break
             end
         end
+    end
+    -- titres des quetes a prendre de la base : seulement celles qui s affichent
+    for i = 1, math.min(12, #list) do
+        local a = list[i]
+        if not a.title then a.title = LV.Title(a.id) or string.format(ns.L.LVL_QUEST_ID, a.id) end
     end
     return list, me, stats
 end

@@ -136,3 +136,11 @@ Plus tard (v2), selon tes retours :
 - fichiers : `Leveling/Moteur.lua` (choix des étapes), `Leveling/Fleche.lua` (flèche et repère), `Leveling/Leveling.lua` (fenêtre, réglages, événements), et la texture `Media/fleche.tga`, dessinée par un script et non par Nano Banana ;
 - branchements : `ADDON_OF`, `PAGES` (outils), `LIST` (page Modules), et `Profils` (`leveling.ignored` reste par personnage) ;
 - banc fengari `t_leveling.lua` : ordre des étapes, maintien de l'étape en cours, flèche (angle, couleur, arrivée), choix à la main, étapes ignorées, quêtes grises, valeurs secrètes, niveau maximum, réglages, déverrouillage.
+
+**Quêtes à prendre (15/10)** :
+- Le diagnostic en jeu sur l'Île de Zéphras (carte 2521) donne 0 partout : lignes de quêtes, quêtes forcées, tâches, pôles et débuts de quête. Le client Forever ne donne pas les quêtes disponibles, et la carte (M) n'affiche aucun « ! ».
+- Choix de l'utilisateur : reprendre la base d'AllTheThings, version compilée pour Forever (`db/Camelot/Categories/Zones|Instances|Professions.lua`, licence MIT).
+- Le script `.github/scripts/att_quetes.js` la **lit sans l'exécuter** (luaparse) et génère `Leveling/Donnees.lua` : 3 116 quêtes sur 47 cartes, 83 Ko, décodées carte par carte à la demande.
+- L'avis MIT est gardé en tête de `Donnees.lua`, et seulement là : c'est la seule condition de la licence. L'utilisateur ne veut ni crédit dans le README ni mention visible.
+- Filtres appliqués en jeu : camp, race, classe, niveau minimum, quêtes préalables (toutes, ou le nombre requis), quêtes exclusives, réputation, version du jeu (ajout et retrait, 1.60.1 = 16001), et quêtes déjà rendues (`GetAllCompletedQuestIDs`).
+- Les titres viennent du jeu (`RequestLoadQuestByID`) ; en attendant, la ligne affiche « Quête n° X ».
