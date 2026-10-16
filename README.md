@@ -42,14 +42,14 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Barres de sort** | Barres d'incantation du joueur, de la cible et de la focalisation ; sort non interruptible, interruption prête. | `/corp incantations` |
 | **Auras** | Buffs et débuffs du joueur et de la cible, filtres par listes. | `/corp auras` |
 | **Expérience** | Barre d'XP : quêtes, repos, XP par heure, temps avant le niveau. | `/corp xp` |
-| **Minicarte** | Minicarte carrée avec zone, coordonnées et heure ; icônes rangées dans une boîte. Points de vol sur la carte du monde : bleu pour l'Alliance, rouge pour la Horde, vert pour les deux factions. | `/corp minicarte` |
+| **Minicarte** | Minicarte carrée avec zone, coordonnées et heure ; icônes rangées dans une boîte. Points de vol sur la carte du monde : bleu pour l'Alliance, rouge pour la Horde, vert pour les deux factions. Icône de la plante, du minerai ou du coffre à la place du point jaune des recherches. Boutons des addons dans un tiroir à chevron, du côté du bord de l'écran. | `/corp minicarte` |
 | **Barres d'infos** | Jusqu'à dix bandeaux : or, sacs, durabilité, FPS, latence, heure, coordonnées, amis, guilde. | `/corp infos` |
 | **Suivi de quêtes** | Quêtes suivies et leurs objectifs, couleur de difficulté, progression du groupe dans l'infobulle, menu au clic droit. | `/corp quetes` |
 | **Plaques de nom** | Plaques des unités : sort en cours, tes débuffs, points de combo, cible actuelle, icône de raid. | `/corp plaques` |
-| **Infobulles** | Infobulles au style CorpUI, prix de l'hôtel des ventes et objets possédés par tes personnages. | `/corp infobulles` |
+| **Infobulles** | Infobulles au style CorpUI, prix de l'hôtel des ventes, objets possédés par tes personnages et ID de l'objet. | `/corp infobulles` |
 | **Chat** | Fenêtres de discussion au style CorpUI : onglets détachés, colonne d'icônes, champ de saisie encadré, onglets par défaut, historique, copie du texte et des liens. | `/corp chat` |
 | **Compteur** | Fenêtres façon Details : dégâts, soins, absorptions, interruptions, dissipations, morts, et la menace du groupe sur ta cible avec alerte avant l'aggro. | `/corp compteur` |
-| **Sacs** | Tous les sacs en un seul, recherche et tri ; banque. | `/corp sacs` |
+| **Sacs** | Tous les sacs en un seul, recherche et tri ; banque. Maj + clic pour partager une pile ; double clic pour copier l'ID d'un objet (aussi dans AtlasLoot). | `/corp sacs` |
 | **Butin** | Fenêtre de butin et jets de groupe (Besoin, Cupidité, Passer). | `/corp butin` |
 | **Éclats du butin** | Les objets de quête scintillent toujours ; herbes et filons scintillent à l'approche (plus vifs à portée, gris si la récolte est impossible). | `/corp eclats` |
 | **Marchand** | Réparation et vente des objets gris automatiques, rachat des réactifs. | `/corp marchand` |
@@ -74,13 +74,14 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | Module | Ce qu'il fait | Commande |
 | --- | --- | --- |
 | **Persos** | Tous tes personnages : niveau, or, métiers, objets, raids verrouillés. | `/corp persos` |
-| **Métiers** | File de fabrication et liste de courses façon Skillet, bénéfice par recette. | `/corp metiers` |
+| **Métiers** | File de fabrication et liste de courses façon Skillet, bénéfice par recette ; chance de montée et coût par point de compétence (onglet Montée). | `/corp metiers` |
 | **Désenchanteur** | Une icône pour désenchanter un par un les objets des sacs. | `/corp dez` |
 | **Hôtel des ventes** | Scan, valeur marché et historique, aide à la vente, mes enchères, listes d'achats, bonnes affaires, façon TSM. | `/corp hv` |
 | **Comptabilité** | Ventes, achats, frais de l'hôtel des ventes, or de tous les personnages. | `/corp compta` |
 | **Talents** | Export et import des talents. | `/corp talents` |
 | **Sorts à venir** | Les prochains sorts et le niveau pour les apprendre. | `/corp sorts` |
 | **Leveling** | Guide pas à pas pour monter de niveau : route de la zone (prendre, faire, rendre), étapes au même endroit regroupées, quêtes à prendre autour de toi, flèche. | `/corp leveling` |
+| **Voyage** | Trajet le plus rapide vers un point : marche sur le vrai terrain (cols, tunnels, ponts, tirés du jeu installé), vols, bateaux, tram des profondeurs, portail de Darnassus, pierre de foyer. Destination par Maj + clic sur la carte du monde, par « Y aller » dans le menu du suivi des quêtes, ou l'étape du Leveling quand elle est loin. Fenêtre des étapes et flèche ; la durée des vols s'apprend en volant. | `/corp voyage` |
 | **Profils** | Réglages par personnage, copie, partage. | `/corp profils` |
 
 ### Mini-jeux
@@ -145,7 +146,7 @@ Depuis le dépôt, dans Git Bash : `.github/scripts/release.sh 1.2.0`. Le script
 - **Polices** : [Saira](https://github.com/Omnibus-Type/Saira) et [Archivo Black](https://github.com/Omnibus-Type/ArchivoBlack) (Omnibus-Type), [Roboto](https://fonts.google.com/specimen/Roboto) (Google), toutes sous licence SIL Open Font License 1.1 (fichiers `OFL.txt` dans `Media`).
 - **Sons** : Kenney et Robin Lamb (CC0), Joe Lamb et dobroide (CC BY 3.0), AntumDeluge (CC0). Détail dans [`Media/Sons/CREDITS.txt`](Media/Sons/CREDITS.txt).
 - **Images** des mini-jeux et icônes : générées pour CorpUI avec Nano Banana Pro. Détail dans [`Media/Jeux/CREDITS.txt`](Media/Jeux/CREDITS.txt) et [`Media/Podometre/CREDITS.txt`](Media/Podometre/CREDITS.txt).
-- **Inspirations** : ElvUI, Details!, TradeSkillMaster, Method Raid Tools, Skillet, NaowhForever et ForeverLootSparkles, pour les idées ; le code de CorpUI est écrit pour lui.
+- **Inspirations** : ElvUI, Details!, TradeSkillMaster, Method Raid Tools, Skillet, NaowhForever, ForeverLootSparkles et NodeSight, pour les idées ; le code de CorpUI est écrit pour lui.
 
 ---
 
