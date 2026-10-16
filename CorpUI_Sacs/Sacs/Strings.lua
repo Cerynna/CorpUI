@@ -3,6 +3,8 @@ if CorpUI and next(ns) == nil then ns = CorpUI end   -- espace de noms du noyau 
 
 ns.AddStrings({
     enUS = {
+        BAGS_SPLIT = "Split the stack",
+        BAGS_SPLIT_HALF = "Half",
         BAGS_KEYS = "Key ring", BAGS_OPT_KEYS = "Key ring",
         BAGS_KEYS_ALL = "All slots", BAGS_KEYS_USED = "Keys only",
         BAGS_KEYS_TOGGLE = "Show / hide the key ring",
@@ -48,6 +50,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Show the game's bank window instead (until the bank is closed)",
     },
     frFR = {
+        BAGS_SPLIT = "Diviser la pile",
+        BAGS_SPLIT_HALF = "Moitié",
         BAGS_KEYS = "Trousseau de clés", BAGS_OPT_KEYS = "Trousseau de clés",
         BAGS_KEYS_ALL = "Toutes les cases", BAGS_KEYS_USED = "Seulement les clés",
         BAGS_KEYS_TOGGLE = "Afficher / cacher le trousseau de clés",
@@ -93,6 +97,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Afficher plutôt la fenêtre de banque du jeu (jusqu'à la fermeture de la banque)",
     },
     deDE = {
+        BAGS_SPLIT = "Stapel teilen",
+        BAGS_SPLIT_HALF = "Hälfte",
         BAGS_KEYS = "Schlüsselbund", BAGS_OPT_KEYS = "Schlüsselbund",
         BAGS_KEYS_ALL = "Alle Plätze", BAGS_KEYS_USED = "Nur Schlüssel",
         BAGS_KEYS_TOGGLE = "Schlüsselbund anzeigen / ausblenden",
@@ -138,6 +144,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Stattdessen das Bankfenster des Spiels zeigen (bis die Bank geschlossen wird)",
     },
     esES = {
+        BAGS_SPLIT = "Dividir la pila",
+        BAGS_SPLIT_HALF = "Mitad",
         BAGS_KEYS = "Llavero", BAGS_OPT_KEYS = "Llavero",
         BAGS_KEYS_ALL = "Todas las casillas", BAGS_KEYS_USED = "Solo las llaves",
         BAGS_KEYS_TOGGLE = "Mostrar / ocultar el llavero",
@@ -183,6 +191,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Mostrar en su lugar la ventana de banco del juego (hasta cerrar el banco)",
     },
     ptBR = {
+        BAGS_SPLIT = "Dividir a pilha",
+        BAGS_SPLIT_HALF = "Metade",
         BAGS_KEYS = "Chaveiro", BAGS_OPT_KEYS = "Chaveiro",
         BAGS_KEYS_ALL = "Todos os espaços", BAGS_KEYS_USED = "Só as chaves",
         BAGS_KEYS_TOGGLE = "Mostrar / ocultar o chaveiro",
@@ -228,6 +238,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Mostrar a janela de banco do jogo no lugar (até fechar o banco)",
     },
     itIT = {
+        BAGS_SPLIT = "Dividi la pila",
+        BAGS_SPLIT_HALF = "Metà",
         BAGS_KEYS = "Portachiavi", BAGS_OPT_KEYS = "Portachiavi",
         BAGS_KEYS_ALL = "Tutti gli spazi", BAGS_KEYS_USED = "Solo le chiavi",
         BAGS_KEYS_TOGGLE = "Mostra / nascondi il portachiavi",
@@ -273,6 +285,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Mostra invece la finestra della banca del gioco (fino alla chiusura della banca)",
     },
     ruRU = {
+        BAGS_SPLIT = "Разделить стопку",
+        BAGS_SPLIT_HALF = "Половина",
         BAGS_KEYS = "Связка ключей", BAGS_OPT_KEYS = "Связка ключей",
         BAGS_KEYS_ALL = "Все ячейки", BAGS_KEYS_USED = "Только ключи",
         BAGS_KEYS_TOGGLE = "Показать / скрыть связку ключей",
@@ -318,6 +332,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "Показать окно банка игры (до закрытия банка)",
     },
     zhCN = {
+        BAGS_SPLIT = "拆分堆叠",
+        BAGS_SPLIT_HALF = "一半",
         BAGS_KEYS = "钥匙链", BAGS_OPT_KEYS = "钥匙链",
         BAGS_KEYS_ALL = "所有格子", BAGS_KEYS_USED = "仅钥匙",
         BAGS_KEYS_TOGGLE = "显示/隐藏钥匙链",
@@ -363,6 +379,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "改为显示游戏的银行窗口（直到关闭银行）",
     },
     zhTW = {
+        BAGS_SPLIT = "拆分堆疊",
+        BAGS_SPLIT_HALF = "一半",
         BAGS_KEYS = "鑰匙圈", BAGS_OPT_KEYS = "鑰匙圈",
         BAGS_KEYS_ALL = "所有格子", BAGS_KEYS_USED = "僅鑰匙",
         BAGS_KEYS_TOGGLE = "顯示/隱藏鑰匙圈",
@@ -408,6 +426,8 @@ ns.AddStrings({
         BANK_BLIZZ_TIP = "改為顯示遊戲的銀行視窗（直到關閉銀行）",
     },
     koKR = {
+        BAGS_SPLIT = "묶음 나누기",
+        BAGS_SPLIT_HALF = "절반",
         BAGS_KEYS = "열쇠고리", BAGS_OPT_KEYS = "열쇠고리",
         BAGS_KEYS_ALL = "모든 칸", BAGS_KEYS_USED = "열쇠만",
         BAGS_KEYS_TOGGLE = "열쇠고리 표시 / 숨기기",

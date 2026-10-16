@@ -327,6 +327,146 @@ local function blizzardItemButton(bag, slot)
     if ok and type(b) == "table" and b.Click then return b end
 end
 
+---------------------------------------------------------------------------
+-- Maj + clic (gauche ou droit), comme les sacs du jeu (OnModifiedClick de
+-- ContainerFrame.lua) : le lien de l objet si une saisie l accepte
+-- (discussion, macro, Communautes), sinon partager la pile. Fenetre de
+-- partage a nous (la StackSplitFrame de Blizzard garderait notre bouton
+-- dans ses donnees) : nombre a saisir, - / + (Maj : 5 par 5), +5, moitie,
+-- molette, Entree pour valider, Echap pour annuler ; la partie choisie passe au
+-- curseur (C_Container.SplitContainerItem), a poser ou l on veut.
+---------------------------------------------------------------------------
+
+local function insertLink(link)
+    if type(link) ~= "string" or issecret(link) then return false end
+    local U = ChatFrameUtil
+    local fn = (U and U.InsertLink) or ChatEdit_InsertLink
+    if type(fn) ~= "function" then return false end
+    local ok, r = pcall(fn, link)
+    return ok and not issecret(r) and r == true
+end
+
+local splitWin
+local function splitDialog()
+    if splitWin then return splitWin end
+    local f = CreateFrame("Frame", "CorpUIBagsSplit", UIParent, "BackdropTemplate")
+    f:SetSize(170, 104)
+    f:SetFrameStrata("DIALOG")
+    f:SetClampedToScreen(true)
+    f:EnableMouse(true)
+    f:EnableMouseWheel(true)
+    ns.UI.SetBackdrop(f, 0.96)
+    ns.UI.Shadow(f, 3)
+    f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    f.title:SetPoint("TOP", 0, -7)
+    f.title:SetText(L.BAGS_SPLIT)
+    local edit = CreateFrame("EditBox", nil, f, "BackdropTemplate")
+    edit:SetSize(56, 20)
+    edit:SetPoint("TOP", 0, -24)
+    edit:SetFontObject(ChatFontNormal)
+    edit:SetJustifyH("CENTER")
+    edit:SetNumeric(true)
+    edit:SetMaxLetters(4)
+    edit:SetAutoFocus(false)
+    ns.UI.SetBackdrop(edit, 0.9)
+    f.edit = edit
+    f.max = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    f.max:SetPoint("LEFT", edit, "RIGHT", 4, 0)
+    local function value() return tonumber(edit:GetText()) or 0 end
+    local function set(v)
+        v = math.max(1, math.min(f.count or 1, v))
+        edit:SetText(tostring(v))
+        edit:HighlightText()
+    end
+    function f:Add(d) set(value() + d * (IsShiftKeyDown() and 5 or 1)) end
+    local minus = ns.UI.Button(f, "-", 20, function() f:Add(-1) end)
+    minus:SetSize(20, 20)
+    minus:SetPoint("RIGHT", edit, "LEFT", -4, 0)
+    local plus = ns.UI.Button(f, "+", 20, function() f:Add(1) end)
+    plus:SetSize(20, 20)
+    plus:SetPoint("LEFT", f.max, "RIGHT", 4, 0)
+    function f:Confirm()
+        local n = value()
+        self:Hide()
+        if not (self.bag and self.slot) or n < 1 then return end
+        local ok, info = pcall(C_Container.GetContainerItemInfo, self.bag, self.slot)
+        local have = ok and type(info) == "table" and not issecret(info.stackCount) and info.stackCount or 0
+        if n > have or (CursorHasItem and CursorHasItem()) then return end
+        pcall(C_Container.SplitContainerItem, self.bag, self.slot, n)
+    end
+    -- raccourcis (demande du 15/10) : +5, moitie de la pile (arrondie en dessous)
+    local five = ns.UI.Button(f, "+5", 72, function() set(value() + 5) end)
+    five:SetPoint("TOPLEFT", 8, -50)
+    local half = ns.UI.Button(f, L.BAGS_SPLIT_HALF, 72, function() set(math.floor((f.count or 2) / 2)) end)
+    half:SetPoint("TOPRIGHT", -8, -50)
+    f.five, f.half = five, half
+    local okBtn = ns.UI.Button(f, rawget(_G, "OKAY") or "OK", 72, function() f:Confirm() end)
+    okBtn:SetPoint("BOTTOMLEFT", 8, 8)
+    local cancel = ns.UI.Button(f, rawget(_G, "CANCEL") or "Cancel", 72, function() f:Hide() end)
+    cancel:SetPoint("BOTTOMRIGHT", -8, 8)
+    edit:SetScript("OnEnterPressed", function() f:Confirm() end)
+    edit:SetScript("OnEscapePressed", function() f:Hide() end)
+    edit:SetScript("OnTextChanged", function(self, user)
+        if not user then return end
+        local v = tonumber(self:GetText())
+        if v and f.count and v > f.count then self:SetText(tostring(f.count)) end
+    end)
+    f:SetScript("OnMouseWheel", function(_, d) f:Add(d > 0 and 1 or -1) end)
+    f:SetScript("OnHide", function(self)
+        self.edit:ClearFocus()
+        self.bag, self.slot, self.count = nil, nil, nil
+    end)
+    -- ouvre au-dessus de la case, comme la fenetre du jeu
+    function f:Open(btn, count)
+        self.bag, self.slot, self.count = btn.bag, btn.slot, count
+        self.max:SetText("/ " .. count)
+        self:ClearAllPoints()
+        self:SetPoint("BOTTOMRIGHT", btn, "TOPRIGHT", 0, 2)
+        self:Show()
+        set(1)
+        self.edit:SetFocus()
+        self.edit:HighlightText()
+    end
+    f:Hide()
+    splitWin = f
+    return f
+end
+
+-- double clic sur une case : boite a copier de son objet
+local function copyItem(btn)
+    local link = btn.link
+    if not link then
+        local ok, l = pcall(C_Container.GetContainerItemLink, btn.bag, btn.slot)
+        if ok and type(l) == "string" and not issecret(l) then link = l end
+    end
+    local id = type(link) == "string" and link:match("item:(%d+)")
+    if not id then return false end
+    local name = link:match("%[(.-)%]")
+    local r, g, b
+    local color = link:match("|c(%x%x%x%x%x%x%x%x)")
+    if color then
+        r, g, b = tonumber(color:sub(3, 4), 16) / 255, tonumber(color:sub(5, 6), 16) / 255, tonumber(color:sub(7, 8), 16) / 255
+    end
+    if splitWin then splitWin:Hide() end
+    ns.HideTooltip()
+    ns.UI.CopyItem(btn, tonumber(id), name, btn.icon and btn.icon:GetTexture(), r, g, b)
+    return true
+end
+ns.BagsCopyItem = copyItem
+
+local function modifiedClick(self)
+    if splitWin then splitWin:Hide() end
+    -- contenu lu au moment du clic (la case peut ne pas etre encore a jour)
+    local ok, info = pcall(C_Container.GetContainerItemInfo, self.bag, self.slot)
+    if not ok or type(info) ~= "table" then return end
+    if insertLink(info.hyperlink or self.link) then return end
+    if CursorHasItem and CursorHasItem() then return end
+    local count, locked = info.stackCount, info.isLocked
+    if issecret(count) or issecret(locked) or type(count) ~= "number" then return end
+    if count > 1 and not locked then splitDialog():Open(self, count) end
+end
+ns.BagsModifiedClick = modifiedClick
+
 -- Bouton d objet commun aux sacs et a la banque.
 --   secure : bouton d action securise (sacs : clic droit "utiliser" en
 --            combat, sort qui attend une cible). Sinon bouton simple
@@ -342,6 +482,10 @@ local function createItemButton(parent, bag, slot, secure, name, size)
         -- clic droit securise "utiliser" (marche en combat), sauf chez un PNJ
         b:SetAttribute("type2", atNPC() and "" or "item")
         b:SetAttribute("item", bag .. " " .. slot)
+        -- Maj + clic : aucune action securisee (partager la pile, lien),
+        -- jamais "utiliser" (Maj + clic droit mangeait la nourriture)
+        b:SetAttribute("shift-type1", "")
+        b:SetAttribute("shift-type2", "")
     else
         b:RegisterForClicks("AnyUp")
     end
@@ -441,8 +585,16 @@ local function createItemButton(parent, bag, slot, secure, name, size)
         end)
     end
 
-    -- clic gauche (insecure, hors combat) : prendre/poser, lien
+    -- clic gauche (insecure, hors combat) : prendre/poser ; Maj : lien ou partage
     b:HookScript("OnClick", function(self, button, down)
+        if IsShiftKeyDown() and (button == "LeftButton" or button == "RightButton") then
+            -- une seule fois par clic (au relachement)
+            if not down then
+                self.targeting = nil
+                modifiedClick(self)
+            end
+            return
+        end
         -- le sort a deja ete applique a l objet par l action securisee
         if button == "LeftButton" and self.targeting then
             if not down then self.targeting = nil end
@@ -463,12 +615,13 @@ local function createItemButton(parent, bag, slot, secure, name, size)
             return
         end
         if button ~= "LeftButton" or down then return end
-        if IsShiftKeyDown() and self.link then
-            if ChatEdit_InsertLink then pcall(ChatEdit_InsertLink, self.link) end
-            return
-        end
-        if InCombatLockdown() then return end
-        pcall(C_Container.PickupContainerItem, self.bag, self.slot)
+        -- double clic : le 1er clic a pris l objet, le 2e le repose ; puis la
+        -- boite a copier (ID, nom). En combat, rien n est pris : seulement la boite.
+        local now = GetTime()
+        local double = self.lastLeft and now - self.lastLeft < 0.4
+        self.lastLeft = (not double) and now or nil
+        if not InCombatLockdown() then pcall(C_Container.PickupContainerItem, self.bag, self.slot) end
+        if double and not (CursorHasItem and CursorHasItem()) then copyItem(self) end
     end)
     b:SetScript("OnDragStart", function(self)
         if InCombatLockdown() then return end
@@ -881,6 +1034,7 @@ local function build()
 
     -- fermeture : les nouveaux objets ne le sont plus (comme les sacs du jeu)
     frame:SetScript("OnHide", function()
+        if splitWin then splitWin:Hide() end
         for _, b in pairs(buttons) do
             if b.isNew then clearNew(b) end
         end

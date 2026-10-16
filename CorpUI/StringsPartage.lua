@@ -1,8 +1,10 @@
 local _, ns = ...
 
--- Textes partages du noyau : sons (Sons.lua), raccourcis rapides (Raccourcis.lua)
+-- Textes partages du noyau : sons (Sons.lua), raccourcis rapides (Raccourcis.lua),
+-- boite a copier (Partage.lua)
 ns.AddStrings({
     enUS = {
+        COPY_ID = "ID", COPY_NAME = "Name", COPY_HINT = "Ctrl+C to copy · Esc to close",
         DSP_SOUND_NONE = "None",
         DSP_SOUND_SOFT = "Soft",
         DSP_SOUND_BELL = "Bell",
@@ -54,6 +56,7 @@ ns.AddStrings({
         KB_CANCELED = "Key binding changes cancelled.",
     },
     frFR = {
+        COPY_ID = "ID", COPY_NAME = "Nom", COPY_HINT = "Ctrl+C pour copier · Échap pour fermer",
         DSP_SOUND_NONE = "Aucun",
         DSP_SOUND_SOFT = "Discret",
         DSP_SOUND_BELL = "Cloche",
@@ -105,6 +108,7 @@ ns.AddStrings({
         KB_CANCELED = "Changements de raccourcis annulés.",
     },
     deDE = {
+        COPY_ID = "ID", COPY_NAME = "Name", COPY_HINT = "Strg+C zum Kopieren · Esc zum Schließen",
         DSP_SOUND_NONE = "Keiner",
         DSP_SOUND_SOFT = "Leise",
         DSP_SOUND_BELL = "Glocke",
@@ -156,6 +160,7 @@ ns.AddStrings({
         KB_CANCELED = "Änderungen verworfen.",
     },
     esES = {
+        COPY_ID = "ID", COPY_NAME = "Nombre", COPY_HINT = "Ctrl+C para copiar · Esc para cerrar",
         DSP_SOUND_NONE = "Ninguno",
         DSP_SOUND_SOFT = "Discreto",
         DSP_SOUND_BELL = "Campana",
@@ -207,6 +212,7 @@ ns.AddStrings({
         KB_CANCELED = "Cambios de atajos cancelados.",
     },
     ptBR = {
+        COPY_ID = "ID", COPY_NAME = "Nome", COPY_HINT = "Ctrl+C para copiar · Esc para fechar",
         DSP_SOUND_NONE = "Nenhum",
         DSP_SOUND_SOFT = "Discreto",
         DSP_SOUND_BELL = "Sino",
@@ -258,6 +264,7 @@ ns.AddStrings({
         KB_CANCELED = "Alterações de atalhos canceladas.",
     },
     itIT = {
+        COPY_ID = "ID", COPY_NAME = "Nome", COPY_HINT = "Ctrl+C per copiare · Esc per chiudere",
         DSP_SOUND_NONE = "Nessuno",
         DSP_SOUND_SOFT = "Discreto",
         DSP_SOUND_BELL = "Campana",
@@ -309,6 +316,7 @@ ns.AddStrings({
         KB_CANCELED = "Modifiche annullate.",
     },
     ruRU = {
+        COPY_ID = "ID", COPY_NAME = "Название", COPY_HINT = "Ctrl+C — копировать · Esc — закрыть",
         DSP_SOUND_NONE = "Нет",
         DSP_SOUND_SOFT = "Тихий",
         DSP_SOUND_BELL = "Колокол",
@@ -360,6 +368,7 @@ ns.AddStrings({
         KB_CANCELED = "Изменения отменены.",
     },
     zhCN = {
+        COPY_ID = "ID", COPY_NAME = "名称", COPY_HINT = "Ctrl+C 复制 · Esc 关闭",
         DSP_SOUND_NONE = "无",
         DSP_SOUND_SOFT = "轻柔",
         DSP_SOUND_BELL = "铃声",
@@ -411,6 +420,7 @@ ns.AddStrings({
         KB_CANCELED = "已取消绑定更改。",
     },
     zhTW = {
+        COPY_ID = "ID", COPY_NAME = "名稱", COPY_HINT = "Ctrl+C 複製 · Esc 關閉",
         DSP_SOUND_NONE = "無",
         DSP_SOUND_SOFT = "輕柔",
         DSP_SOUND_BELL = "鈴聲",
@@ -462,6 +472,7 @@ ns.AddStrings({
         KB_CANCELED = "已取消綁定變更。",
     },
     koKR = {
+        COPY_ID = "ID", COPY_NAME = "이름", COPY_HINT = "Ctrl+C 복사 · Esc 닫기",
         DSP_SOUND_NONE = "없음",
         DSP_SOUND_SOFT = "조용히",
         DSP_SOUND_BELL = "종소리",
