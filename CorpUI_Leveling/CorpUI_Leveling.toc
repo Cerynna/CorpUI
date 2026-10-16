@@ -22,7 +22,7 @@
 ## Notes-esMX: siguiente paso para subir de nivel: misiones, flecha, punto de ruta
 ## IconTexture: Interface\Icons\INV_Misc_Map_01
 ## Author: ceryn
-## Version: 2.0.2
+## Version: 2.0.3
 ## Dependencies: CorpUI
 ## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte, CorpUI_Experience, CorpUI_Clics, CorpUI_Plaques, CorpUI_Quetes, CorpUI_Infobulles, CorpUI_Compteur, CorpUI_Chat, CorpUI_Habillage, CorpUI_Talents, CorpUI_Butin, CorpUI_Eclats, CorpUI_HV, CorpUI_Jeux, CorpUI_Raid, CorpUI_Invitations, CorpUI_Notes, CorpUI_Recharges, CorpUI_Dissipation
 ## Group: CorpUI

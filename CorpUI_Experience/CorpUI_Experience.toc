@@ -22,7 +22,7 @@
 ## Notes-esMX: barra de PX: misiones, descanso, PX/hora, tiempo hasta el nivel
 ## IconTexture: Interface\Icons\INV_Misc_Book_11
 ## Author: ceryn
-## Version: 2.0.2
+## Version: 2.0.3
 ## Dependencies: CorpUI
 ## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte
 ## Group: CorpUI

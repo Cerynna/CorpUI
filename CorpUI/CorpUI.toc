@@ -13,7 +13,7 @@
 ## Notes-koKR: 모듈식 도구 모음: 강화 효과, 캐릭터, 재료, 상인, 알림, 배울 주문. /corp 입력
 ## IconTexture: Interface\AddOns\CorpUI\Media\logo64
 ## Author: ceryn
-## Version: 2.0.2
+## Version: 2.0.3
 ## SavedVariables: CorpUIDB, SpellsAheadDB
 
 Locales.lua
