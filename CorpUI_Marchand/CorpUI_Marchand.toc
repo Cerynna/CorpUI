@@ -13,7 +13,7 @@
 ## Notes-esMX: Módulo de CorpUI: Marchand. Requiere CorpUI.
 ## IconTexture: Interface\Icons\INV_Misc_Coin_02
 ## Author: ceryn
-## Version: 2.0.1
+## Version: 2.0.2
 ## Dependencies: CorpUI
 ## OptionalDeps: CorpUI_Buffs, CorpUI_Persos
 ## Group: CorpUI

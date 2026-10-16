@@ -13,7 +13,7 @@
 ## Notes-esMX: Módulo de CorpUI: Rappels. Requiere CorpUI.
 ## IconTexture: Interface\Icons\Spell_Frost_FrostArmor02
 ## Author: ceryn
-## Version: 2.0.1
+## Version: 2.0.2
 ## Dependencies: CorpUI
 ## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers
 ## Group: CorpUI

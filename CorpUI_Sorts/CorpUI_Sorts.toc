@@ -13,7 +13,7 @@
 ## Notes-esMX: Módulo de CorpUI: Sorts. Requiere CorpUI.
 ## IconTexture: Interface\Icons\INV_Misc_Book_09
 ## Author: ceryn
-## Version: 2.0.1
+## Version: 2.0.2
 ## Dependencies: CorpUI
 ## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels
 ## Group: CorpUI
