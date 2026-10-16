@@ -9,7 +9,7 @@
       - position : celle de Blizzard, au curseur ou sur une ancre deplacable ;
       - masquage en combat (unites ou tout), Maj pour la voir quand meme ;
       - bandeau d infos en plus sous l infobulle : cible de l unite, guilde
-        et rang, niveau d objet, identifiants (sort, objet, PNJ), lignes des
+        et rang, niveau d objet, ID de l objet, ID des sorts et PNJ, lignes des
         autres modules (ns.tipItemProviders : prix de l HV) ;
       - taille du texte des infobulles.
 
@@ -350,7 +350,7 @@ local function itemLines(tip, link, out)
             end
         end
     end
-    if db.showIds then
+    if db.showItemId then
         local id = link:match("item:(%d+)")
         if id then table.insert(out, L.TIPS_ITEM_ID .. " |cffffffff" .. id .. "|r") end
     end
@@ -590,6 +590,8 @@ ev:SetScript("OnEvent", function()
     if db.showGuild == nil then db.showGuild = true end
     if db.showIlvl == nil then db.showIlvl = true end
     if db.showIds == nil then db.showIds = false end
+    -- 16/10 : l ID de l objet a sa propre case, allumee (avant : avec les ID des sorts et PNJ)
+    if db.showItemId == nil then db.showItemId = true end
     if db.barHeight == nil then db.barHeight = 6 end
     if db.barText == nil then db.barText = true end
     if db.fontCustom == nil then db.fontCustom = false end
@@ -647,6 +649,7 @@ local function toggle()
         check("showTarget", L.TIPS_OPT_TARGET)
         check("showGuild", L.TIPS_OPT_GUILD)
         check("showIlvl", L.TIPS_OPT_ILVL)
+        check("showItemId", L.TIPS_OPT_ITEM_ID)
         check("showIds", L.TIPS_OPT_IDS)
         form:EndColumns()
         -- texte
