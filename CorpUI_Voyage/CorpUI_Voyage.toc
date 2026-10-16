@@ -1,0 +1,39 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Travel]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Voyage]|r
+## Title-deDE: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Reise]|r
+## Title-esES: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Viaje]|r
+## Title-esMX: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Viaje]|r
+## Title-ptBR: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Viagem]|r
+## Title-itIT: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Viaggio]|r
+## Title-ruRU: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Путешествие]|r
+## Title-zhCN: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[旅行]|r
+## Title-zhTW: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[旅行]|r
+## Title-koKR: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[여행]|r
+## Notes: fastest way to a destination: walking, flights, boats, hearthstone
+## Notes-frFR: le trajet le plus rapide : marche, vols, bateaux, pierre de foyer
+## Notes-deDE: schnellster Weg zu einem Ziel: zu Fuß, Flüge, Schiffe, Ruhestein
+## Notes-esES: el camino más rápido a un destino: a pie, vuelos, barcos, piedra de hogar
+## Notes-esMX: el camino más rápido a un destino: a pie, vuelos, barcos, piedra de hogar
+## Notes-ptBR: o caminho mais rápido até um destino: a pé, voos, barcos, pedra de regresso
+## Notes-itIT: la via più rapida verso una destinazione: a piedi, voli, navi, pietra del ritorno
+## Notes-ruRU: самый быстрый путь к цели: пешком, полёты, корабли, камень возвращения
+## Notes-zhCN: 前往目的地的最快路线：步行、飞行、船只、炉石
+## Notes-zhTW: 前往目的地的最快路線：步行、飛行、船隻、爐石
+## Notes-koKR: 목적지까지 가장 빠른 길: 도보, 비행, 배, 귀환석
+## IconTexture: Interface\Icons\Ability_Hunter_Pathfinding
+## Author: ceryn
+## Version: 2.0.1
+## Dependencies: CorpUI
+## OptionalDeps: CorpUI_Buffs, CorpUI_Persos, CorpUI_Marchand, CorpUI_Metiers, CorpUI_Rappels, CorpUI_Sorts, CorpUI_Cadres, CorpUI_Chasseur, CorpUI_Sacs, CorpUI_Barres, CorpUI_Infos, CorpUI_Minicarte, CorpUI_Experience, CorpUI_Clics, CorpUI_Plaques, CorpUI_Quetes, CorpUI_Infobulles, CorpUI_Compteur, CorpUI_Chat, CorpUI_Habillage, CorpUI_Talents, CorpUI_Butin, CorpUI_Eclats, CorpUI_HV, CorpUI_Jeux, CorpUI_Raid, CorpUI_Invitations, CorpUI_Notes, CorpUI_Recharges, CorpUI_Dissipation, CorpUI_Leveling
+## Group: CorpUI
+
+Voyage\Strings.lua
+Voyage\Donnees.lua
+Voyage\Planif.lua
+Voyage\Marche.lua
+Voyage\Chemins.lua
+Voyage\Releves.lua
+Voyage\Fleche.lua
+Voyage\Voyage.lua
+Voyage\Carte.lua

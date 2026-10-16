@@ -386,6 +386,11 @@ local function questMenu()
     if canUntrack() then
         table.insert(list, { value = "untrack", text = gstr("OBJECTIVES_STOP_TRACKING", L.QUESTS_MENU_UNTRACK) })
     end
+    -- entrees ajoutees par d autres modules (Voyage : "Y aller")
+    for _, h in ipairs(ns.QuestMenuHooks or {}) do
+        local text = h.text(id)
+        if text then table.insert(list, { value = h.value, text = text }) end
+    end
     if yes(safe(C_QuestLog.CanAbandonQuest, id)) then
         table.insert(list, { value = "abandon", text = "|cffff6b6b" .. L.QUESTS_MENU_ABANDON .. "|r" })
     end
@@ -407,6 +412,10 @@ local function onMenu(v)
         untrack(id)
     elseif v == "abandon" then
         askAbandon(id)
+    else
+        for _, h in ipairs(ns.QuestMenuHooks or {}) do
+            if h.value == v then h.run(id) end
+        end
     end
 end
 

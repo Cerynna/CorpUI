@@ -51,6 +51,8 @@ local KEYS = {
     hunter = {},
     -- ajoutee le 15/10 : module Leveling (etapes ignorees : par personnage)
     leveling = { ignored = true, route = true },
+    -- ajoutee le 16/10 : module Voyage (releves du jeu, destination par personnage)
+    voyage = { names = true, known = true, times = true, flySpeed = true, binds = true, mount = true, dest = true, trace = true, knownV = true },
 }
 
 local function copy(v)

@@ -129,6 +129,11 @@ function LV.SetArrow(a, options)
     if not arrow then build() end
     LV.ArrowScale()
     target = a
+    -- voyage en cours (module Voyage) : sa fleche prend le relais
+    if ns.Voyage and ns.Voyage.Guiding and ns.Voyage.Guiding() then
+        arrow:Hide()
+        return
+    end
     local preview = ns.moversShown and not a
     if not db.arrow or (not a and not preview) then
         arrow:Hide()

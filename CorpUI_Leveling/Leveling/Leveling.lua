@@ -421,6 +421,7 @@ refresh = function(full)
     lastRun = GetTime()
     if not active() or maxLevel() then
         list, hist = {}, {}
+        LV.current = nil
         draw()
         LV.SetArrow(nil, db)
         LV.SetNative(nil, false)
@@ -451,6 +452,7 @@ refresh = function(full)
         end
     end
     current = target and target.key or nil
+    LV.current = target          -- lue par le module Voyage (trajet vers une etape lointaine)
     draw()
     LV.SetArrow(target, db)
     LV.SetNative(target, db.native)
