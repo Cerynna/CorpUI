@@ -104,15 +104,18 @@ local NAME_COLORS = { "auto", "class", "reaction", "white" }
 local function styleDefaults(key)
     -- la cible (et sa cible) ont le portrait a droite, les autres a gauche
     local side = (key == "target" or key == "targettarget") and "right" or "left"
+    -- icone de raid (16/10) : affichee, au milieu du bord du haut
     if key == "player" or key == "target" then
         return { width = W, top = H_TOP, hp = H_HP, power = H_PW, nameSize = 13, valueSize = 12,
                  hpText = "both", powerText = true, color = "class", portrait = "none", portraitSide = side,
-                 nameColor = "auto", nameLen = 12 }
+                 nameColor = "auto", nameLen = 12,
+                 mark = true, markSize = 22, markPos = "top", markX = 0, markY = 0, markAlpha = 100 }
     end
     local wide = key == "boss" or key == "arena"
     return { width = wide and WB or WS, top = HS_TOP, hp = wide and HB_HP or HS_HP, power = HS_PW,
              nameSize = 11, valueSize = 10, hpText = "pct", powerText = false, color = "class",
-             portrait = "none", portraitSide = side, nameColor = "auto", nameLen = 10 }
+             portrait = "none", portraitSide = side, nameColor = "auto", nameLen = 10,
+             mark = true, markSize = 16, markPos = "top", markX = 0, markY = 0, markAlpha = 100 }
 end
 
 -- textes par defaut d un cadre, tires des anciens reglages (meme rendu qu avant)
@@ -793,9 +796,37 @@ local function fakeUpdate(f)
     return true
 end
 
+-- Icone de raid (16/10) : celle de l unite (numero secret, pose par
+-- ns.RaidMark), un crane dans l apercu ; position, taille, decalage et
+-- opacite reglables par cadre
+local function updateMark(f, fake)
+    local m = f.mark
+    if not m then return end
+    local s = style(f)
+    local shown = false
+    if s.mark then
+        if fake then
+            shown = ns.RaidMark(m, nil, f.unit == "player" and 1 or 8)
+        elseif UnitExists(f.unit) then
+            shown = ns.RaidMark(m, f.unit)
+        end
+    end
+    m:SetShown(shown)
+end
+
+local function layoutMark(f)
+    if not f.mark then return end
+    local s = style(f)
+    ns.UI.PlaceRaidMark(f.mark, f, s.markPos, s.markSize, s.markX, s.markY, s.markAlpha)
+end
+
 local function updateAll(f)
     updateMood(f)
-    if not UnitExists(f.unit) and ns.PreviewOn("units") and fakeUpdate(f) then return end
+    if not UnitExists(f.unit) and ns.PreviewOn("units") and fakeUpdate(f) then
+        updateMark(f, true)
+        return
+    end
+    updateMark(f)
     if not UnitExists(f.unit) then
         -- apercu pour les placer (interface deverrouillee) : leur nom
         -- (dans le texte du nom, sinon a gauche du bandeau)
@@ -992,6 +1023,13 @@ local function build(u, store)
         f.portrait = p
     end
 
+    -- icone de raid : au-dessus des barres et des textes
+    f.markHost = CreateFrame("Frame", nil, f)
+    f.markHost:SetAllPoints(f)
+    f.markHost:SetFrameLevel(f:GetFrameLevel() + 12)
+    f.mark = f.markHost:CreateTexture(nil, "OVERLAY", nil, 7)
+    f.mark:Hide()
+
     if not u.below then makeMover(f, store, L[u.label]) end
 
     -- evenements de cette unite seulement
@@ -1086,6 +1124,7 @@ local function layoutFrame(f)
             p:SetPoint("TOPRIGHT", f, "TOPLEFT", -3, 0)
         end
     end
+    layoutMark(f)
     updateAll(f)
 end
 
@@ -1265,6 +1304,19 @@ function ns.FramesOpt.Style(parent, y, key)
     end
     num(L.FRAMES_NAME_LEN, "nameLen", 3, 30)
     form:EndColumns()
+    -- icone de raid (16/10) : un crane dans l apercu de la page
+    form:Header(L.FRAMES_MARK_HEAD)
+    form:Check(L.FRAMES_MARK_SHOW, function() return cur().mark end, function(v) cur().mark = v end)
+    form:Columns(2)
+    local posNames = {}
+    for _, p in ipairs(ns.RAID_MARK_POS) do posNames[p] = L["MARK_POS_" .. p:upper()] end
+    form:Cycle(L.FRAMES_MARK_POS, ns.RAID_MARK_POS, posNames,
+        function() return cur().markPos or "top" end, function(v) cur().markPos = v end)
+    num(L.FRAMES_MARK_SIZE, "markSize", 8, 48)
+    num(L.FRAMES_MARK_X, "markX", -100, 100)
+    num(L.FRAMES_MARK_Y, "markY", -100, 100)
+    num(L.FRAMES_MARK_ALPHA, "markAlpha", 10, 100, 5)
+    form:EndColumns()
     parent:HookScript("OnShow", function() form:Refresh() end)
     return form.y
 end
@@ -1335,6 +1387,10 @@ ev:SetScript("OnEvent", function(_, event)
         or event == "ARENA_OPPONENT_UPDATE" then
         -- boss / adversaires : l unite derriere boss1... a pu changer
         for _, f in pairs(frames) do if f.preview then updateAll(f) end end
+    elseif event == "RAID_TARGET_UPDATE" then
+        for _, f in pairs(frames) do
+            if UnitExists(f.unit) then updateMark(f) end
+        end
     elseif event == "PLAYER_UPDATE_RESTING" then
         if frames.player then updateRest(frames.player) end
     elseif event == "UNIT_HAPPINESS" or event == "PET_UI_UPDATE" then
@@ -1353,7 +1409,8 @@ end)
 for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_TARGET_CHANGED", "PLAYER_ENTERING_WORLD",
                      "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "UNIT_PET", "PLAYER_FOCUS_CHANGED",
                      "INSTANCE_ENCOUNTER_ENGAGE_UNIT", "UNIT_TARGETABLE_CHANGED", "ARENA_OPPONENT_UPDATE",
-                     "GROUP_ROSTER_UPDATE", "PLAYER_UPDATE_RESTING", "UNIT_HAPPINESS", "PET_UI_UPDATE" }) do
+                     "GROUP_ROSTER_UPDATE", "PLAYER_UPDATE_RESTING", "UNIT_HAPPINESS", "PET_UI_UPDATE",
+                     "RAID_TARGET_UPDATE" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
 pcall(ev.RegisterUnitEvent, ev, "UNIT_TARGET", "target")
@@ -1368,6 +1425,7 @@ ns.Every(0.25, function()
         updateInfo(f)
         updateHealth(f)
         updatePower(f)
+        updateMark(f)
         return
     end
     f.totGUID = (ok and g and not issecret(g)) and g or nil

@@ -288,3 +288,49 @@ end
 ns.Every(1, function()
     if atlasLoaded() then scanAtlas() end
 end, "AtlasLoot : double clic")
+
+---------------------------------------------------------------------------
+-- Marqueur de raid (crane, croix...) d une unite sur une texture (16/10).
+-- Sur ce client, GetRaidTargetIndex rend un numero secret : un addon ne
+-- peut ni le lire ni le comparer, mais Texture:SetSpriteSheetCell l accepte
+-- (documentation du client : "AllowedWhenTainted"), comme le fait Blizzard
+-- (SetRaidTargetIconTexture). On ne fait donc rien d autre avec le numero
+-- que le passer a SetSpriteSheetCell. fake : numero (1-8) d un apercu.
+-- -> vrai si le marqueur est pose (la texture reste a montrer ou cacher)
+---------------------------------------------------------------------------
+
+local MARK_TEX = "Interface\\TargetingFrame\\UI-RaidTargetingIcons"
+function ns.RaidMark(tex, unit, fake)
+    if not tex then return false end
+    local idx = fake
+    if not idx then
+        if not (unit and GetRaidTargetIndex) then return false end
+        local ok, i = pcall(GetRaidTargetIndex, unit)
+        if not ok then return false end
+        if issecret(i) then
+            idx = i
+        elseif type(i) == "number" and i >= 1 and i <= 8 then
+            idx = i
+        else
+            return false
+        end
+    end
+    tex:SetTexture(MARK_TEX)
+    return pcall(tex.SetSpriteSheetCell, tex, idx, 4, 4) and true or false
+end
+
+-- positions du marqueur autour d un cadre
+ns.RAID_MARK_POS = { "top", "center", "left", "right", "topleft", "topright", "bottom" }
+local MARK_ANCHOR = {
+    top = { "CENTER", "TOP", 0, 0 }, center = { "CENTER", "CENTER", 0, 0 },
+    left = { "RIGHT", "LEFT", -2, 0 }, right = { "LEFT", "RIGHT", 2, 0 },
+    topleft = { "CENTER", "TOPLEFT", 0, 0 }, topright = { "CENTER", "TOPRIGHT", 0, 0 },
+    bottom = { "CENTER", "BOTTOM", 0, 0 },
+}
+function ns.UI.PlaceRaidMark(tex, frame, pos, size, x, y, alpha)
+    local a = MARK_ANCHOR[pos or "top"] or MARK_ANCHOR.top
+    tex:ClearAllPoints()
+    tex:SetPoint(a[1], frame, a[2], a[3] + (x or 0), a[4] + (y or 0))
+    tex:SetSize(size or 16, size or 16)
+    tex:SetAlpha((alpha or 100) / 100)
+end

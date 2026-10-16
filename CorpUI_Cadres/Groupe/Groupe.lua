@@ -274,13 +274,6 @@ local function setRole(t, role)
     t:SetTexCoord(unpack(ROLE_COORDS[role]))
 end
 
--- marqueur de raid : grille de 4 x 4 de la texture des marqueurs
-local function setMarker(t, i)
-    i = i - 1
-    local l, tp = (i % 4) * 0.25, math.floor(i / 4) * 0.25
-    t:SetTexCoord(l, l + 0.25, tp, tp + 0.25)
-end
-
 local function updateIcons(b, unit, fake)
     local sz = b.big and 14 or 11
     local x = 3
@@ -317,19 +310,21 @@ local function updateIcons(b, unit, fake)
         b.leadIcon:SetTexture("Interface\\GroupFrame\\UI-Group-AssistantIcon")
     end
     place(b.leadIcon, lead or assist)
-    -- marqueur : au milieu du bord du haut
-    local idx
-    if fake then
-        idx = hs and hs.marker and fake.mark or nil
-    elseif hs and hs.marker and GetRaidTargetIndex then
-        local ok, i = pcall(GetRaidTargetIndex, unit)
-        if ok and not issecret(i) and type(i) == "number" and i >= 1 and i <= 8 then idx = i end
+    -- marqueur de raid : numero secret sur ce client, pose par
+    -- ns.RaidMark (SetSpriteSheetCell) ; position, taille, decalage et
+    -- opacite reglables (16/10)
+    local shown = false
+    if hs and hs.marker then
+        if fake then
+            shown = fake.mark and ns.RaidMark(b.markIcon, nil, fake.mark) or false
+        else
+            shown = ns.RaidMark(b.markIcon, unit)
+        end
     end
-    if idx then
-        setMarker(b.markIcon, idx)
-        b.markIcon:SetSize(sz + 3, sz + 3)
+    if shown then
+        ns.UI.PlaceRaidMark(b.markIcon, b, hs.markPos, hs.markSize, hs.markX, hs.markY, hs.markAlpha)
     end
-    b.markIcon:SetShown(idx ~= nil)
+    b.markIcon:SetShown(shown)
 end
 
 -- tout ce qui sert aux soigneurs, d un coup
@@ -1066,6 +1061,18 @@ function ns.FramesOpt.Healers(parent, y)
     hcheck(L.GROUP_HEAL_MARKER, "marker")
     heal:Number(L.GROUP_RANGE_ALPHA, function() return hs.rangeAlpha or 45 end, function(v) hs.rangeAlpha = v end, 0, 100, 5)
     heal:EndColumns()
+    -- marqueur de raid : place, taille, decalage, opacite (16/10)
+    heal:Header(L.FRAMES_MARK_HEAD)
+    heal:Columns(2)
+    local posNames = {}
+    for _, p in ipairs(ns.RAID_MARK_POS) do posNames[p] = L["MARK_POS_" .. p:upper()] end
+    heal:Cycle(L.FRAMES_MARK_POS, ns.RAID_MARK_POS, posNames,
+        function() return hs.markPos or "top" end, function(v) hs.markPos = v end)
+    heal:Number(L.FRAMES_MARK_SIZE, function() return hs.markSize end, function(v) hs.markSize = v end, 8, 40)
+    heal:Number(L.FRAMES_MARK_X, function() return hs.markX end, function(v) hs.markX = v end, -60, 60)
+    heal:Number(L.FRAMES_MARK_Y, function() return hs.markY end, function(v) hs.markY = v end, -60, 60)
+    heal:Number(L.FRAMES_MARK_ALPHA, function() return hs.markAlpha end, function(v) hs.markAlpha = v end, 10, 100, 5)
+    heal:EndColumns()
     heal:Header(L.GROUP_ICONS_HEAD)
     heal:Columns(2)
     hcheck(L.GROUP_HEAL_ICONS, "icons")
@@ -1129,7 +1136,8 @@ ev:SetScript("OnEvent", function(_, event, unit)
         hs = db.heal
         for k, v in pairs({ dispel = true, dispelAll = false, dispelStyle = "both", icons = true, iconsDispel = false,
                             iconMax = 3, iconSize = 14, heal = true, aggro = true, role = true, leader = true,
-                            marker = true, tintAlpha = 35 }) do
+                            marker = true, tintAlpha = 35,
+                            markPos = "top", markSize = 16, markX = 0, markY = 0, markAlpha = 100 }) do
             if hs[k] == nil then hs[k] = v end
         end
         -- demande du 06/10 : le cadre entier prend la couleur du debuff
