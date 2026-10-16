@@ -1317,8 +1317,10 @@ local function showTab(key)
         local c = (k == key) and C.gold or C.text
         t.cuiText:SetTextColor(c[1], c[2], c[3])
     end
-    queueView:SetShown(key ~= "shop")
+    if key == "skill" and not M.skillView then key = "queue" end
+    queueView:SetShown(key ~= "shop" and key ~= "skill")
     if M.shopView then M.shopView.frame:SetShown(key == "shop") end
+    if M.skillView then M.skillView.frame:SetShown(key == "skill") end
     M.Changed()
 end
 
@@ -1459,9 +1461,9 @@ local function buildPane()
     ns.UI.Skin(pane, 0.95, true)
     pane:EnableMouse(true)
 
-    -- onglets File / Courses et bouton pour replier
+    -- onglets File / Courses / Montee et bouton pour replier
     local function tabButton(key, label, x)
-        local b = ns.UI.Button(pane, label, 90, function() showTab(key) end)
+        local b = ns.UI.Button(pane, label, 70, function() showTab(key) end)
         b:SetPoint("TOPLEFT", x, -6)
         b.line = b:CreateTexture(nil, "OVERLAY")
         b.line:SetHeight(2)
@@ -1472,9 +1474,14 @@ local function buildPane()
         return b
     end
     local tq = tabButton("queue", string.format(L.CRAFT_TAB_QUEUE, 0), 6)
-    tq:SetWidth(100)
-    local ts = tabButton("shop", L.CRAFT_TAB_SHOP, 110)
-    ts:SetWidth(100)
+    tq:SetWidth(72)
+    local ts = tabButton("shop", L.CRAFT_TAB_SHOP, 80)
+    ts:SetWidth(72)
+    -- montee de la competence (Montee.lua)
+    if M.BuildSkillView then
+        local tk = tabButton("skill", L.CRAFT_TAB_SKILL, 154)
+        tk:SetWidth(72)
+    end
     local fold = iconButton(pane, nil, L.CRAFT_HIDE, function()
         db.pane.collapsed = true
         pane:Hide()
@@ -1534,6 +1541,12 @@ local function buildPane()
         M.shopView = M.BuildShopView(pane)
         M.shopView.frame:SetPoint("TOPLEFT", 6, -HEAD - 4)
         M.shopView.frame:SetPoint("BOTTOMRIGHT", -6, 8)
+    end
+
+    if M.BuildSkillView then
+        M.skillView = M.BuildSkillView(pane)
+        M.skillView.frame:SetPoint("TOPLEFT", 6, -HEAD - 4)
+        M.skillView.frame:SetPoint("BOTTOMRIGHT", -6, 8)
     end
 
     pane:SetScript("OnShow", function() M.Changed() end)

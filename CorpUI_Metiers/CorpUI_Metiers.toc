@@ -21,3 +21,6 @@
 Metiers\Strings.lua
 Metiers\File.lua
 Metiers\Courses.lua
+Metiers\Donnees.lua
+Metiers\StringsMontee.lua
+Metiers\Montee.lua

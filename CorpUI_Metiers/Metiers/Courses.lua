@@ -1066,7 +1066,7 @@ table.insert(M.listeners, function() if panel and panel:IsVisible() then refresh
 
 local function buildPanel()
     local db = M.DB()
-    panel = ns.UI.Window("CorpUICrafting", ns.TITLE .. " - " .. L.MOD_CRAFT, {}, 440, 260)
+    panel = ns.UI.Window("CorpUICrafting", ns.TITLE .. " - " .. L.MOD_CRAFT, {}, 440, 316)
     local form = ns.UI.Form(panel, -34, function() M.Changed() end)
     local depth = form:Cycle(L.CRAFT_OPT_DEPTH, { "none", "one", "all" },
         { none = L.CRAFT_DEPTH_NONE, one = L.CRAFT_DEPTH_ONE, all = L.CRAFT_DEPTH_ALL },
@@ -1088,6 +1088,8 @@ local function buildPanel()
     if type(ns.AHCost) == "function" then
         form:Check(L.CRAFT_OPT_CHOICE, function() return db.ahChoice end, function(v) db.ahChoice = v end)
     end
+    -- reglages des autres fichiers du module (montee : Montee.lua)
+    for _, fn in ipairs(M.optionHooks or {}) do fn(form, db) end
     local hint = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, form.y - 6)
     hint:SetWidth(420)
