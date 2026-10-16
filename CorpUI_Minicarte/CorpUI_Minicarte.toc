@@ -31,3 +31,5 @@ Minicarte\Strings.lua
 Minicarte\Minicarte.lua
 Minicarte\StringsVols.lua
 Minicarte\Vols.lua
+Minicarte\StringsRecolte.lua
+Minicarte\Recolte.lua

@@ -6,7 +6,10 @@
     En plus (facon ElvUI) : taille reglable, retour automatique au zoom 0,
     icones CorpUI (courrier, suivi, difficulte) alimentees par l API, et
     collecteur des boutons d addons (LibDBIcon...) dans une barre CorpUI :
-    toujours visible, en tiroir (bouton +) ou au survol de la carte.
+    en tiroir (chevron dans le coin de la carte : un clic ouvre, un clic
+    ferme ; par defaut), toujours visible, ou au survol de la carte. Les
+    boutons se rangent du cote du bord de l ecran le plus proche de la carte
+    (ou a gauche / a droite, au choix).
     Style Moderne (maquette) : zone au-dessus de la carte, alignee a droite,
     icones a sa gauche ; coordonnees et heure sur une ligne sous la carte ;
     boite des boutons sans fond.
@@ -447,6 +450,7 @@ local ROUND_TEX = { [136430] = true, [136467] = true }
 
 local bar, toggleBtn
 local slots = {}
+local lastSide            -- cote ou les boutons sont ranges ("LEFT" / "RIGHT")
 local collected = {}     -- bouton -> etat d origine
 local drawerOpen = false
 local hoverAlpha = 1     -- mode "au survol" : opacite actuelle de la boite
@@ -590,8 +594,20 @@ local function shownList()
     return list
 end
 
+local function barSide()
+    local a = db.collectAlign or "auto"
+    if a == "left" then return "LEFT" elseif a == "right" then return "RIGHT" end
+    local ok, x = pcall(Minimap.GetCenter, Minimap)
+    local w = UIParent:GetWidth()
+    if not ok or type(x) ~= "number" or issecret(x) or type(w) ~= "number" or issecret(w) then return "RIGHT" end
+    local scale = (Minimap:GetEffectiveScale() or 1) / (UIParent:GetEffectiveScale() or 1)
+    return (x * scale > w / 2) and "RIGHT" or "LEFT"
+end
+
 layoutBar = function()
     if not bar then return end
+    local side = barSide()
+    lastSide = side
     local list = shownList()
     local on = db.enabled and db.collect and #list > 0
     local size, gap, pad = db.btnSize or 22, 3, 3
@@ -608,7 +624,11 @@ layoutBar = function()
         slot:SetSize(size, size)
         slot:ClearAllPoints()
         local r, c = math.floor((i - 1) / per), (i - 1) % per
-        slot:SetPoint("TOPLEFT", bar, "TOPLEFT", pad + c * (size + gap), -pad - r * (size + gap))
+        if side == "RIGHT" then
+            slot:SetPoint("TOPRIGHT", bar, "TOPRIGHT", -(pad + c * (size + gap)), -pad - r * (size + gap))
+        else
+            slot:SetPoint("TOPLEFT", bar, "TOPLEFT", pad + c * (size + gap), -pad - r * (size + gap))
+        end
         slot:Show()
         local ok, err = pcall(place, f, slot, size)
         if not ok then geterrorhandler()(err) end
@@ -620,7 +640,14 @@ layoutBar = function()
     end
     local drawer = db.collectMode == "drawer"
     toggleBtn:SetShown(on and drawer)
-    toggleBtn.text:SetText(drawerOpen and "-" or "+")
+    toggleBtn.chev:SetDir(drawerOpen and "UP" or "DOWN")
+    -- chevron dans le coin bas de la carte, du cote des boutons
+    toggleBtn:ClearAllPoints()
+    if side == "RIGHT" then
+        toggleBtn:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", -3, 3)
+    else
+        toggleBtn:SetPoint("BOTTOMLEFT", Minimap, "BOTTOMLEFT", 3, 3)
+    end
     bar:SetShown(on and (not drawer or drawerOpen))
     if db.collectMode ~= "hover" then
         hoverAlpha = 1
@@ -651,7 +678,8 @@ local function collectorTick()
         return
     end
     local found = scanButtons()
-    if found or misplaced() then layoutBar() end
+    -- (carte deplacee dans le mode Edition : les boutons changent de cote)
+    if found or misplaced() or barSide() ~= lastSide then layoutBar() end
 end
 
 local function buildCollector()
@@ -659,14 +687,15 @@ local function buildCollector()
     bar:SetFrameLevel(Minimap:GetFrameLevel() + 4)
     bar:Hide()
 
-    -- tiroir : petit bouton dans le coin bas-droit de la carte
+    -- tiroir : chevron dans un coin bas de la carte (du cote des boutons) :
+    -- vers le bas tiroir ferme, vers le haut ouvert ; blanc au survol
     toggleBtn = CreateFrame("Button", nil, Minimap)
     toggleBtn:SetSize(16, 16)
     toggleBtn:SetFrameLevel(Minimap:GetFrameLevel() + 6)
     toggleBtn:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", -3, 3)
     ns.UI.Skin(toggleBtn, 0.9)
-    toggleBtn.text = toggleBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    toggleBtn.text:SetPoint("CENTER", 1, 0)
+    toggleBtn.chev = ns.UI.Chevron(toggleBtn, 12, "DOWN")
+    toggleBtn.chev:SetPoint("CENTER", 0, 0)
     local hl = toggleBtn:CreateTexture(nil, "HIGHLIGHT")
     hl:SetAllPoints()
     hl:SetColorTexture(ns.COLORS.violet[1], ns.COLORS.violet[2], ns.COLORS.violet[3], 0.3)
@@ -675,11 +704,16 @@ local function buildCollector()
         layoutBar()
     end)
     toggleBtn:SetScript("OnEnter", function(self)
+        self.chev:SetVertexColor(1, 1, 1, 1)
         local t = ns.Tooltip(self, "ANCHOR_BOTTOMLEFT")
         t:AddLine(string.format(L.MAP_DRAWER_TIP, #shownList()))
         t:Show()
     end)
-    toggleBtn:SetScript("OnLeave", ns.HideTooltip)
+    toggleBtn:SetScript("OnLeave", function(self)
+        local C = ns.COLORS
+        self.chev:SetVertexColor(C.gold[1], C.gold[2], C.gold[3], 1)
+        ns.HideTooltip()
+    end)
     toggleBtn:Hide()
 
     -- mode "au survol" : la boite apparait quand la souris est sur la carte,
@@ -977,6 +1011,9 @@ local function buildWindow()
     form:Cycle(L.MAP_OPT_MODE, { "bar", "drawer", "hover" },
         { bar = L.MAP_MODE_BAR, drawer = L.MAP_MODE_DRAWER, hover = L.MAP_MODE_HOVER },
         function() return db.collectMode end, function(v) db.collectMode = v end)
+    form:Cycle(L.MAP_OPT_ALIGN, { "auto", "left", "right" },
+        { auto = L.MAP_ALIGN_AUTO, left = L.MAP_ALIGN_LEFT, right = L.MAP_ALIGN_RIGHT },
+        function() return db.collectAlign or "auto" end, function(v) db.collectAlign = v end)
     form:Number(L.MAP_OPT_BTNSIZE, function() return db.btnSize or 22 end, function(v)
         db.btnSize = v
     end, 14, 36, 1)
@@ -1005,7 +1042,9 @@ local DEFAULTS = {
     enabled = true, hideBlizzard = true, info = true, coords = true, clock = true, corner = true,
     -- ajouts du 05/10 (zoom, icones, collecteur) ; size = nil : taille de Blizzard
     zoomReset = 0, iconMail = true, iconTrack = true, iconDiff = true,
-    collect = true, collectMode = "bar", btnSize = 22,
+    collect = true, collectMode = "drawer", btnSize = 22,
+    -- 16/10 : cote des boutons (auto : bord de l ecran le plus proche)
+    collectAlign = "auto",
 }
 
 local ev = CreateFrame("Frame")
@@ -1020,6 +1059,11 @@ ev:SetScript("OnEvent", function(_, event)
     end
     -- ancienne tentative de deplacement par addon : abandonnee
     db.placed, db.pos = nil, nil
+    -- 16/10 : le tiroir a chevron remplace l affichage au survol (demande)
+    if db.collectModeV ~= 2 then
+        if db.collectMode == "hover" then db.collectMode = "drawer" end
+        db.collectModeV = 2
+    end
     build()
     apply()
 
@@ -1072,6 +1116,8 @@ ns.RegisterModule({
     Slash = function(input)
         -- /corp minicarte vols : diagnostic des points de vol de la carte
         if strlower(strtrim(input or "")) == "vols" and ns.FlightDiag then ns.FlightDiag() return end
+        -- /corp minicarte recolte : plantes, minerais et coffres vus sur la minicarte
+        if strlower(strtrim(input or "")) == "recolte" and ns.MapNodesDiag then ns.MapNodesDiag() return end
         toggle()
     end,
     Open = toggle,
