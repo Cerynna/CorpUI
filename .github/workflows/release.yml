@@ -37,8 +37,8 @@ jobs:
         run: |
           # tous les dossiers d addons, cote a cote (CorpUI, CorpUI_Cadres...),
           # sauf ceux gardes dans le depot mais retires du paquet :
-          # CorpUI_Voyage (20/10, trop casse)
-          HORS_PAQUET='CorpUI_Voyage'
+          # CorpUI_Voyage (20/10) et CorpUI_Leveling (05/11), trop casses
+          HORS_PAQUET='CorpUI_Voyage|CorpUI_Leveling'
           ADDONS=$(git ls-tree -d --name-only "$GITHUB_REF_NAME" | grep -E '^CorpUI(_[A-Za-z]+)?$' | grep -v -x -E "$HORS_PAQUET")
           git archive --format=zip -o "CorpUI-${{ steps.ver.outputs.ver }}.zip" "$GITHUB_REF_NAME" $ADDONS
 

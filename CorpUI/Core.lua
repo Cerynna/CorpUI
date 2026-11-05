@@ -2473,7 +2473,7 @@ local ADDON_OF = {
     note = "CorpUI_Notes", raid = "CorpUI_Raid", inv = "CorpUI_Invitations", clics = "CorpUI_Clics",
     persos = "CorpUI_Persos", metiers = "CorpUI_Metiers", hv = "CorpUI_HV", compta = "CorpUI_HV", dez = "CorpUI_HV",
     talents = "CorpUI_Talents", sorts = "CorpUI_Sorts", jeux = "CorpUI_Jeux", murloc = "CorpUI_Jeux",
-    minerais = "CorpUI_Jeux", podometre = "CorpUI_Jeux", leveling = "CorpUI_Leveling",
+    minerais = "CorpUI_Jeux", podometre = "CorpUI_Jeux",
 }
 function ns.ModuleAddon(key) return ADDON_OF[key] end
 
@@ -2723,7 +2723,6 @@ local PAGES = {
     { key = "hv", cmds = { "hv", "compta" } },
     { key = "talents", cmds = { "talents" } },
     { key = "sorts", cmds = { "sorts" } },
-    { key = "leveling", cmds = { "leveling" } },
     { key = "erreurs", cmds = { "erreurs" } },
     { key = "jeux", label = "PAGE_GAMES", cmds = { "murloc", "minerais", "podometre" } },
 }
@@ -3877,13 +3876,14 @@ local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event, arg)
     if event == "ADDON_LOADED" and arg == ADDON_NAME then
         ns.InitRoot()
-        -- Voyage retire du paquet (20/10, trop casse) : un ancien dossier
-        -- CorpUI_Voyage reste inerte (module coupe des cette session) et
-        -- desactive dans la liste des addons (au prochain rechargement)
+        -- Modules retires du paquet, trop casses : Voyage (20/10) et
+        -- Leveling (05/11). Un ancien dossier reste inerte (module coupe des
+        -- cette session) et desactive dans la liste des addons (au prochain
+        -- rechargement).
         if type(ns.root.modules) ~= "table" then ns.root.modules = {} end
-        ns.root.modules.voyage = false
-        if ns.AddonPresent("CorpUI_Voyage") and ns.AddonEnabled("CorpUI_Voyage") then
-            ns.SetAddonEnabled("CorpUI_Voyage", false)
+        for key, a in pairs({ voyage = "CorpUI_Voyage", leveling = "CorpUI_Leveling" }) do
+            ns.root.modules[key] = false
+            if ns.AddonPresent(a) and ns.AddonEnabled(a) then ns.SetAddonEnabled(a, false) end
         end
         -- langue choisie connue (sauvegarde chargee) : textes relus
         ns.ResetLocale()

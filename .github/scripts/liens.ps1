@@ -12,8 +12,8 @@ param([string]$AddOns = (Join-Path $PSScriptRoot "..\..\..\Interface\AddOns"))
 
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $AddOns = (Resolve-Path $AddOns).Path
-# retires du paquet : CorpUI_Voyage (20/10, trop casse)
-$horsPaquet = @("CorpUI_Voyage")
+# retires du paquet, trop casses : CorpUI_Voyage (20/10), CorpUI_Leveling (05/11)
+$horsPaquet = @("CorpUI_Voyage", "CorpUI_Leveling")
 
 $dossiers = Get-ChildItem $repo -Directory | Where-Object {
     $_.Name -match '^CorpUI(_[A-Za-z]+)?$' -and (Test-Path (Join-Path $_.FullName ($_.Name + ".toc"))) -and

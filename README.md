@@ -80,7 +80,6 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Comptabilité** | Ventes, achats, frais de l'hôtel des ventes, or de tous les personnages. | `/corp compta` |
 | **Talents** | Export et import des talents. | `/corp talents` |
 | **Sorts à venir** | Les prochains sorts et le niveau pour les apprendre. | `/corp sorts` |
-| **Leveling** | Guide pas à pas pour monter de niveau : route de la zone (prendre, faire, rendre), étapes au même endroit regroupées, quêtes à prendre autour de toi, flèche. | `/corp leveling` |
 | **Profils** | Réglages par personnage, copie, partage. | `/corp profils` |
 
 ### Mini-jeux
