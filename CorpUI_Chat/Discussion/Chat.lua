@@ -1120,6 +1120,40 @@ end
 local HISTORY_MAX = 50
 local historyBoxes = {}
 
+-- Commandes securisees (/cible, /lancer, /utiliser, /focus, /assister...) :
+-- jamais gardees ni rappelees par l historique de CorpUI (16/10). Une ligne
+-- posee dans la zone de saisie par un addon (SetText, AddHistoryLine) est
+-- "souillee" : a l envoi, le jeu refuse ses actions protegees ("CorpUI_Chat a
+-- tente une action interdite : TargetUnit()"). Elles restent dans
+-- l historique du jeu (Alt + fleches), qui les rejoue sans souci.
+-- Liste du jeu (SecureCmdList : SLASH_<CLE>1, 2...), sinon les plus courantes.
+local FALLBACK_SECURE = { "/target", "/tar", "/cible", "/cast", "/lancer", "/use", "/utiliser", "/focus",
+                          "/assist", "/assister", "/startattack", "/cleartarget", "/castsequence", "/click",
+                          "/petattack", "/targetenemy", "/targetfriend", "/equip", "/equipslot" }
+local secureCmds
+local function isSecureLine(line)
+    local cmd = type(line) == "string" and line:match("^(/%S+)")
+    if not cmd then return false end
+    if not secureCmds then
+        secureCmds = {}
+        for _, c in ipairs(FALLBACK_SECURE) do secureCmds[c] = true end
+        local list = rawget(_G, "SecureCmdList")
+        if type(list) == "table" then
+            for key in pairs(list) do
+                if type(key) == "string" then
+                    for i = 1, 20 do
+                        local c = rawget(_G, "SLASH_" .. key .. i)
+                        if type(c) ~= "string" then break end
+                        secureCmds[c:lower()] = true
+                    end
+                end
+            end
+        end
+    end
+    return secureCmds[cmd:lower()] == true
+end
+ns.ChatIsSecureLine = isSecureLine
+
 local function historyStore()
     local key = ns.CharKey()
     db.history = db.history or {}
@@ -1194,7 +1228,9 @@ local function hookHistory(eb)
     eb:HookScript("OnEditFocusLost", function() releaseArrows() end)
     eb:HookScript("OnKeyDown", onKey)
     if db.keepHistory then
-        for _, line in ipairs(historyStore()) do pcall(eb.AddHistoryLine, eb, line) end
+        for _, line in ipairs(historyStore()) do
+            if not isSecureLine(line) then pcall(eb.AddHistoryLine, eb, line) end
+        end
     end
     eb:HookScript("OnTextChanged", function(self)
         local ok, t = pcall(self.GetText, self)
@@ -1204,7 +1240,7 @@ local function hookHistory(eb)
     eb:HookScript("OnEnterPressed", function(self)
         local line = state.last
         state.last = nil
-        if not line then return end
+        if not line or isSecureLine(line) then return end
         local h = historyStore()
         if h[#h] ~= line then table.insert(h, line) end
         while #h > HISTORY_MAX do table.remove(h, 1) end
@@ -1691,6 +1727,14 @@ ev:SetScript("OnEvent", function(_, event)
         -- historique non garde : on repart d une liste vide (elle sert quand
         -- meme pendant la session, pour les fleches)
         if not db.keepHistory and db.history then db.history[ns.CharKey()] = nil end
+        -- commandes securisees gardees avant le 16/10 : retirees de l historique
+        for _, h in pairs(db.history or {}) do
+            if type(h) == "table" then
+                for i = #h, 1, -1 do
+                    if isSecureLine(h[i]) then table.remove(h, i) end
+                end
+            end
+        end
         C_Timer.After(4, combatName)
         -- historique des fenetres : remis derriere les messages de la connexion
         C_Timer.After(1, restoreScrollback)
