@@ -39,42 +39,7 @@ jobs:
           # sauf ceux gardes dans le depot mais retires du paquet :
           # CorpUI_Voyage (20/10, trop casse)
           HORS_PAQUET='CorpUI_Voyage'
-          ADDONS=$(git ls-tree -d --name-only "$GITHUB_REF_NAME" | grep -E '^CorpUI(_[A-Za-z]+)?
-          git archive --format=zip -o "CorpUI-${{ steps.ver.outputs.ver }}.zip" "$GITHUB_REF_NAME" $ADDONS
-
-      - name: Notes de version
-        run: |
-          VER="${{ steps.ver.outputs.ver }}"
-          PREV=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)
-          cat > notes.md <<'EOF'
-          ## Installation
-
-          1. Télécharge **CorpUI-@VER@.zip** ci-dessous (pas « Source code »).
-          2. Décompresse-le dans `World of Warcraft\_forever_\Interface\AddOns\` : tu obtiens le dossier `CorpUI` (le noyau) et un dossier `CorpUI_Xxx` par module.
-          3. Pour une mise à jour, supprime d'abord les anciens dossiers `CorpUI` et `CorpUI_Xxx` (tes réglages sont gardés : ils sont dans `WTF`), décompresse, puis relance le jeu.
-
-          ## Changements
-
-          EOF
-          sed -i "s/@VER@/$VER/g; s/^          //" notes.md
-          # notes redigees (accents, phrases) : .github/notes/vX.Y.Z.md si present,
-          # sinon la liste des commits depuis la version precedente
-          if [ -f ".github/notes/$GITHUB_REF_NAME.md" ]; then
-            sed -i '/^## Changements$/,$d' notes.md
-            cat ".github/notes/$GITHUB_REF_NAME.md" >> notes.md
-          elif [ -n "$PREV" ]; then
-            git log --no-merges --pretty='- %s' "$PREV..$GITHUB_REF_NAME" | grep -v -E '^- Version [0-9]' >> notes.md || true
-          else
-            echo "- Première version publiée." >> notes.md
-          fi
-
-      - name: Release GitHub
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" "CorpUI-${{ steps.ver.outputs.ver }}.zip" \
-            --title "CorpUI ${{ steps.ver.outputs.ver }}" --notes-file notes.md
- | grep -v -x -E "$HORS_PAQUET")
+          ADDONS=$(git ls-tree -d --name-only "$GITHUB_REF_NAME" | grep -E '^CorpUI(_[A-Za-z]+)?$' | grep -v -x -E "$HORS_PAQUET")
           git archive --format=zip -o "CorpUI-${{ steps.ver.outputs.ver }}.zip" "$GITHUB_REF_NAME" $ADDONS
 
       - name: Notes de version
