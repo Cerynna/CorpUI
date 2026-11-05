@@ -386,13 +386,14 @@ local function splitDialog()
     plus:SetSize(20, 20)
     plus:SetPoint("LEFT", f.max, "RIGHT", 4, 0)
     function f:Confirm()
-        local n = value()
+        -- sac et case lus AVANT de fermer : la fermeture (OnHide) les efface
+        local n, bag, slot = value(), self.bag, self.slot
         self:Hide()
-        if not (self.bag and self.slot) or n < 1 then return end
-        local ok, info = pcall(C_Container.GetContainerItemInfo, self.bag, self.slot)
+        if not (bag and slot) or n < 1 then return end
+        local ok, info = pcall(C_Container.GetContainerItemInfo, bag, slot)
         local have = ok and type(info) == "table" and not issecret(info.stackCount) and info.stackCount or 0
         if n > have or (CursorHasItem and CursorHasItem()) then return end
-        pcall(C_Container.SplitContainerItem, self.bag, self.slot, n)
+        pcall(C_Container.SplitContainerItem, bag, slot, n)
     end
     -- raccourcis (demande du 15/10) : +5, moitie de la pile (arrondie en dessous)
     local five = ns.UI.Button(f, "+5", 72, function() set(value() + 5) end)
