@@ -1,7 +1,7 @@
 // Lecture du stockage local du jeu (CASC, dossier Data de l installation) :
 // rien n est telecharge, on lit les fichiers du client deja installe.
 //
-//   .build.info       -> cle de la build du produit (wow_classic_beta, wowf...)
+//   .build.info       -> cle de la build du produit (wowf pour Forever, wow_classic_era...)
 //   Data/config       -> fichier de build : cles de l encodage et de la racine
 //   Data/data/*.idx   -> index locaux (16 seaux) : cle encodee -> archive, position, taille
 //   Data/data/data.N  -> archives : en-tete de 30 octets puis bloc BLTE

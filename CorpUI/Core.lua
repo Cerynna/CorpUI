@@ -2474,7 +2474,6 @@ local ADDON_OF = {
     persos = "CorpUI_Persos", metiers = "CorpUI_Metiers", hv = "CorpUI_HV", compta = "CorpUI_HV", dez = "CorpUI_HV",
     talents = "CorpUI_Talents", sorts = "CorpUI_Sorts", jeux = "CorpUI_Jeux", murloc = "CorpUI_Jeux",
     minerais = "CorpUI_Jeux", podometre = "CorpUI_Jeux", leveling = "CorpUI_Leveling",
-    voyage = "CorpUI_Voyage",
 }
 function ns.ModuleAddon(key) return ADDON_OF[key] end
 
@@ -2725,7 +2724,6 @@ local PAGES = {
     { key = "talents", cmds = { "talents" } },
     { key = "sorts", cmds = { "sorts" } },
     { key = "leveling", cmds = { "leveling" } },
-    { key = "voyage", cmds = { "voyage" } },
     { key = "erreurs", cmds = { "erreurs" } },
     { key = "jeux", label = "PAGE_GAMES", cmds = { "murloc", "minerais", "podometre" } },
 }
@@ -3879,6 +3877,14 @@ local ev = CreateFrame("Frame")
 ev:SetScript("OnEvent", function(_, event, arg)
     if event == "ADDON_LOADED" and arg == ADDON_NAME then
         ns.InitRoot()
+        -- Voyage retire du paquet (20/10, trop casse) : un ancien dossier
+        -- CorpUI_Voyage reste inerte (module coupe des cette session) et
+        -- desactive dans la liste des addons (au prochain rechargement)
+        if type(ns.root.modules) ~= "table" then ns.root.modules = {} end
+        ns.root.modules.voyage = false
+        if ns.AddonPresent("CorpUI_Voyage") and ns.AddonEnabled("CorpUI_Voyage") then
+            ns.SetAddonEnabled("CorpUI_Voyage", false)
+        end
         -- langue choisie connue (sauvegarde chargee) : textes relus
         ns.ResetLocale()
     elseif event == "PLAYER_LOGIN" then

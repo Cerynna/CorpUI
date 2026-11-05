@@ -36,7 +36,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | Module | Ce qu'il fait | Commande |
 | --- | --- | --- |
 | **Cadres d'unité** | Joueur, cible, cible de la cible, focalisation, familier, boss, arène ; barres de sort, auras, ressources, totems actifs du chaman, minuteur de coups blancs, icône de raid réglable. Un seul éditeur pour tous les cadres. | `/corp cadres` |
-| **Groupe et raid** | Cadres de groupe et de raid à nous : débuffs, dissipation, soins entrants, aggro, icône de raid, réglages pour les soigneurs. | `/corp groupe` |
+| **Groupe et raid** | Cadres de groupe et de raid à nous : débuffs, dissipation, soins entrants, tes soins sur la durée (HoT, boucliers) avec leur temps restant, aggro, icône de raid, réglages pour les soigneurs. | `/corp groupe` |
 | **Barres d'action** | Neuf barres, barre du familier, barre des totems, bouton de sortie de véhicule ; taille, espacement, fond, visibilité par condition, fondu au survol ou hors combat, raccourcis rapides façon ElvUI. | `/corp barres` |
 | **Menus** | Barre des postures et formes, micro-menu et barre des sacs, réglables comme les barres d'action. | `/corp menus` |
 | **Barres de sort** | Barres d'incantation du joueur, de la cible et de la focalisation ; sort non interruptible, interruption prête. | `/corp incantations` |
@@ -81,7 +81,6 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Talents** | Export et import des talents. | `/corp talents` |
 | **Sorts à venir** | Les prochains sorts et le niveau pour les apprendre. | `/corp sorts` |
 | **Leveling** | Guide pas à pas pour monter de niveau : route de la zone (prendre, faire, rendre), étapes au même endroit regroupées, quêtes à prendre autour de toi, flèche. | `/corp leveling` |
-| **Voyage** | Trajet le plus rapide vers un point : marche sur le vrai terrain (cols, tunnels, ponts, tirés du jeu installé), vols, bateaux, tram des profondeurs, portail de Darnassus, pierre de foyer. Destination par Maj + clic sur la carte du monde, par « Y aller » dans le menu du suivi des quêtes, ou l'étape du Leveling quand elle est loin. Fenêtre des étapes et flèche ; la durée des vols s'apprend en volant. | `/corp voyage` |
 | **Profils** | Réglages par personnage, copie, partage. | `/corp profils` |
 
 ### Mini-jeux
@@ -97,7 +96,7 @@ Les mini-jeux peuvent s'ouvrir tout seuls pendant les trajets en griffon.
 ## Installation
 
 1. Ouvre la [dernière version](https://github.com/Cerynna/CorpUI/releases/latest) (rubrique **Releases** du dépôt) et télécharge **CorpUI-X.Y.Z.zip**, pas « Source code ».
-2. Décompresse-le dans `World of Warcraft\_classic_beta_\Interface\AddOns\` : tu obtiens le dossier `CorpUI` (le noyau) et un dossier `CorpUI_Xxx` par module (`CorpUI_Cadres`, `CorpUI_Barres`…).
+2. Décompresse-le dans `World of Warcraft\_forever_\Interface\AddOns\` : tu obtiens le dossier `CorpUI` (le noyau) et un dossier `CorpUI_Xxx` par module (`CorpUI_Cadres`, `CorpUI_Barres`…).
 3. Lance le jeu, active CorpUI dans la liste des addons (les modules sont rangés dessous), puis tape `/corp`.
 
 Chaque module est un addon : un module coupé (page **Modules** de `/corp`, ou liste des addons du jeu) n'est pas chargé du tout.

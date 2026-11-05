@@ -4,7 +4,7 @@
 //
 // Usage :
 //   node apercu.js <dossier WoW> <produit> <carte: Azeroth|Kalimdor> <nord max> <nord min> <ouest max> <ouest min> <sortie.png>
-//   ex. node apercu.js "D:/Games/World of Warcraft" wow_classic_beta Azeroth -4300 -6700 1000 -3800 dun_morogh.png
+//   ex. node apercu.js "D:/Games/World of Warcraft" wowf Azeroth -4300 -6700 1000 -3800 dun_morogh.png
 const fs = require('fs');
 const path = require('path');
 const { Casc } = require('./casc.js');
