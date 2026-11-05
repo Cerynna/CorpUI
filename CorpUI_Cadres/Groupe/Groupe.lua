@@ -34,11 +34,23 @@ local party, raid
 local buttons = {}      -- unite -> bouton
 local layoutPending = false
 local hs                -- reglages "pour les soigneurs" (db.heal)
-local iconSpec, nativeStyle   -- conteneurs d auras du client (plus bas)
+local iconSpec, hotSpec, nativeStyle   -- conteneurs d auras du client (plus bas)
 local ICON_MAX = 6      -- icones de debuffs creees par cadre (au plus)
+local HOT_MAX = 6       -- icones de mes soins sur la duree (au plus)
+local HOT_CORNERS = { "topright", "topleft", "bottomright", "bottomleft" }
 
 -- reglage d un bouton : celui du groupe ou celui du raid
 local function styleOf(b) return b.big and db.partyStyle or db.raidStyle end
+
+-- mes soins sur la duree : taille et coin de la barre de vie (reglables)
+local function hotGeom(b)
+    local s = b and styleOf(b)
+    local sz = 12
+    if hs and s then sz = math.max(6, math.min(hs.hotSize or 12, s.hp - 2)) end
+    local pos = (hs and hs.hotPos) or "topright"
+    local top, right = pos:find("top", 1, true) ~= nil, pos:find("right", 1, true) ~= nil
+    return sz, top, right, (top and "TOP" or "BOTTOM") .. (right and "RIGHT" or "LEFT")
+end
 
 ---------------------------------------------------------------------------
 -- Pour les soigneurs : debuffs, soins entrants, aggro, icones
@@ -190,6 +202,7 @@ local function updateNative(b, unit)
     if b.nUnit ~= unit then
         b.nUnit = unit
         if b.nIcons then b.nIcons:SetUnit(unit) end
+        if b.nHots then b.nHots:SetUnit(unit) end
         if b.nDispel then b.nDispel:SetUnit(unit) end
     end
     -- appele a chaque changement d aura (souvent en combat) : on ne touche
@@ -197,15 +210,18 @@ local function updateNative(b, unit)
     -- combat (ils peuvent y etre proteges)
     local on = not b.down
     local icons, disp = (hs and hs.icons and on) and true or false, (hs and hs.dispel and on) and true or false
+    local hots = (hs and hs.hots and on) and true or false
     local filter, style, alpha = dispelFilter(), hs and hs.dispelStyle, hs and hs.tintAlpha
     local st = b.nSt
     if st and st.icons == icons and st.disp == disp and st.filter == filter and st.style == style
-        and st.alpha == alpha and st.mine == b.dispelMine then return end
+        and st.alpha == alpha and st.mine == b.dispelMine and st.hots == hots then return end
     if InCombatLockdown() then return end
     if not st then st = {} b.nSt = st end
     st.icons, st.disp, st.filter, st.style, st.alpha, st.mine = icons, disp, filter, style, alpha, b.dispelMine
+    st.hots = hots
     b.nState = true
     if b.nIcons then pcall(b.nIcons.frame.SetShown, b.nIcons.frame, (hs and hs.icons and on) and true or false) end
+    if b.nHots then pcall(b.nHots.frame.SetShown, b.nHots.frame, hots) end
     if b.nDispel then
         pcall(b.nDispel.frame.SetShown, b.nDispel.frame, (hs and hs.dispel and on) and true or false)
         b.nDispel:SetFilter(dispelFilter())
@@ -214,17 +230,21 @@ local function updateNative(b, unit)
 end
 
 local function updateAuras(b, unit)
-    if b.nIcons or b.nDispel then
-        -- elements de l ancien chemin : caches une fois (l apercu les remontre)
+    if b.nIcons or b.nDispel or b.nHots then
+        -- elements de l ancien chemin et cases de l apercu : caches une fois
+        -- (l apercu les remontre)
         if not b.legacyHidden then
             b.dispel.Show(false)
             b.tint:Hide()
             for i = 1, ICON_MAX do b.icons[i]:Hide() end
+            for i = 1, HOT_MAX do b.hotIcons[i]:Hide() end
             b.legacyHidden = true
         end
         updateNative(b, unit)
         return
     end
+    -- mes soins sur la duree : seul le client les montre (aucun ancien chemin)
+    for i = 1, HOT_MAX do b.hotIcons[i]:Hide() end
     -- surbrillance : couleur du type du premier debuff a dissiper
     local edgeOn, tintOn = false, false
     b.legacyDispel = false
@@ -339,15 +359,26 @@ end
 local function layoutIcons(b)
     if not hs then return end
     if b.nIcons then b.nIcons:Apply(iconSpec(b)) end
+    if b.nHots then b.nHots:Apply(hotSpec(b)) end
     local s = styleOf(b)
     local sz = math.max(6, math.min(hs.iconSize, s.hp - 2))
+    local reg = (ns.FontFile and ns.FontFile("regular")) or STANDARD_TEXT_FONT
     for i = 1, ICON_MAX do
         local f = b.icons[i]
         f:ClearAllPoints()
         f:SetSize(sz, sz)
         f:SetPoint("BOTTOMLEFT", b.hp, "BOTTOMLEFT", 1 + (i - 1) * (sz + 1), 1)
-        local reg = (ns.FontFile and ns.FontFile("regular")) or STANDARD_TEXT_FONT
         pcall(f.count.SetFont, f.count, reg, math.max(7, math.floor(sz * 0.6)), "OUTLINE")
+    end
+    -- mes soins sur la duree (apercu) : memes place et taille que le client
+    local hz, top, right, corner = hotGeom(b)
+    for i = 1, HOT_MAX do
+        local f = b.hotIcons[i]
+        local dx = 1 + (i - 1) * (hz + 1)
+        f:ClearAllPoints()
+        f:SetSize(hz, hz)
+        f:SetPoint(corner, b.hp, corner, right and -dx or dx, top and -1 or 1)
+        pcall(f.time.SetFont, f.time, reg, math.max(7, math.floor(hz * 0.45)), "OUTLINE")
     end
 end
 
@@ -434,6 +465,12 @@ local PV_ICON = { Magic = "Interface\\Icons\\Spell_Frost_FrostNova", Curse = "In
     Disease = "Interface\\Icons\\Spell_Shadow_CreepingPlague", Poison = "Interface\\Icons\\Spell_Nature_CorrosiveBreath",
     none = "Interface\\Icons\\Ability_Gouge" }
 local PV_HEALERS = { PRIEST = true, DRUID = true, PALADIN = true, SHAMAN = true }
+local PV_HOTS = {
+    renew = { icon = "Interface\\Icons\\Spell_Holy_Renew", dur = 15, left = 11 },
+    rejuv = { icon = "Interface\\Icons\\Spell_Nature_Rejuvenation", dur = 12, left = 7 },
+    regrowth = { icon = "Interface\\Icons\\Spell_Nature_ResistNature", dur = 21, left = 16 },
+    shield = { icon = "Interface\\Icons\\Spell_Holy_PowerWordShield", dur = 30, left = 24 },
+}
 local PV_POWER = { WARRIOR = { 0.78, 0.15, 0.15 }, ROGUE = { 1, 0.85, 0.1 } }
 
 local function fakeOf(n)
@@ -451,6 +488,15 @@ local function fakeOf(n)
     if d.dispel then d.debuffs[#d.debuffs + 1] = { type = d.dispel, icon = PV_ICON[d.dispel], count = n == 5 and 3 or nil } end
     if n % 4 == 0 then d.debuffs[#d.debuffs + 1] = { icon = PV_ICON.none } end
     if n == 3 then d.debuffs[#d.debuffs + 1] = { type = "Magic", icon = PV_ICON.Magic } end
+    d.hots = {}
+    if not (d.dead or d.offline) then
+        if n % 3 == 1 then d.hots[#d.hots + 1] = PV_HOTS.renew end
+        if n % 4 == 2 then
+            d.hots[#d.hots + 1] = PV_HOTS.rejuv
+            d.hots[#d.hots + 1] = PV_HOTS.regrowth
+        end
+        if n % 5 == 4 then d.hots[#d.hots + 1] = PV_HOTS.shield end
+    end
     d.pw = class == "WARRIOR" and 35 or class == "ROGUE" and 80 or 70
     d.pwMax = 100
     return d
@@ -474,6 +520,7 @@ local function fakeAuras(b, d)
     -- updateNative (nState oublie) a la fin de l apercu
     if not InCombatLockdown() then
         if b.nIcons then pcall(b.nIcons.frame.SetShown, b.nIcons.frame, false) end
+        if b.nHots then pcall(b.nHots.frame.SetShown, b.nHots.frame, false) end
         if b.nDispel then pcall(b.nDispel.frame.SetShown, b.nDispel.frame, false) end
         b.nState, b.nSt = nil, nil
     end
@@ -505,6 +552,22 @@ local function fakeAuras(b, d)
         end
     end
     for i = n + 1, ICON_MAX do b.icons[i]:Hide() end
+    -- mes soins sur la duree
+    local h = 0
+    if hs and hs.hots and not b.down then
+        local max = math.min(HOT_MAX, hs.hotMax or 3)
+        for _, a in ipairs(d.hots) do
+            if h >= max then break end
+            if a.dur <= (hs.hotDur or 60) then
+                h = h + 1
+                local f = b.hotIcons[h]
+                f.tex:SetTexture(a.icon)
+                f.time:SetText(hs.hotTime ~= false and tostring(a.left) or "")
+                f:Show()
+            end
+        end
+    end
+    for i = h + 1, HOT_MAX do b.hotIcons[i]:Hide() end
 end
 
 local function fakeButton(b)
@@ -574,6 +637,23 @@ iconSpec = function(b)
     }
 end
 
+-- mes soins sur la duree (19/10) : les auras utiles que j ai posees sur le
+-- membre (HELPFUL|PLAYER) et qui durent au plus hotDur secondes (soins sur
+-- la duree, boucliers, benedictions courtes ; le client ecarte aussi les
+-- permanentes). Lues et rangees par le client, meme en combat.
+hotSpec = function(b)
+    local sz, top, right, corner = hotGeom(b)
+    local max = hs and math.min(HOT_MAX, hs.hotMax or 3) or 3
+    return {
+        width = sz, height = sz, spacing = 1, perRow = max, max = max,
+        grow = top and "down" or "up", fromRight = right,
+        time = (hs and hs.hotTime == false) and "none" or "native",
+        countSize = math.max(7, math.floor(sz * 0.6)), noMouse = true,
+        anchor = { b and b.hp, corner, right and -1 or 1, top and -1 or 1 },
+        groups = { { key = "hots", filter = "HELPFUL|PLAYER", candidate = { maxDuration = (hs and hs.hotDur) or 60 } } },
+    }
+end
+
 -- surbrillance de dissipation : liseré (4 bords) et teinte, teints par le
 -- client selon le type du premier debuff a dissiper
 local function buildDispelSlot(b, btn)
@@ -605,24 +685,29 @@ local function buildDispelSlot(b, btn)
     local tint = btn:CreateTexture(nil, "ARTWORK")
     tint:SetAllPoints(b.hp)
     tint:SetColorTexture(1, 1, 1, 1)
-    for i = 1, 4 do reg(e[i]) end
-    reg(tint)
     b.nEdges, b.nTint = e, tint
     -- son a l apparition : Groupe regarde si cette case devient visible
     b.nDispelBtn = btn
+    -- style pose avant l inscription (la teinte du client vient ensuite)
     nativeStyle(b)
+    for i = 1, 4 do reg(e[i]) end
+    reg(tint)
 end
 
--- style choisi (liseré / teinte / les deux) : par la transparence, que le
--- client ne touche pas (il montre et cache lui-meme les textures)
+-- style choisi (liseré / teinte / les deux) : par l opacite de la couleur
+-- de base de nos textures (SetColorTexture). Le client colore lui-meme les
+-- textures inscrites et rend secretes leur transparence et leur teinte
+-- (AddSecretAspect Alpha / VertexColor) : un SetAlpha de l addon y est
+-- refuse sans bruit (20/10 : teinte opaque, nom et vie caches). La couleur
+-- de base reste a nous ; le client la multiplie par la couleur du type.
 -- Le bouton du client (et nos textures posees dessus) peut etre interdit
 -- aux addons (11/10 : "Attempt to access forbidden object" sur raid9, au
--- passage du pilote d etat) : on n y touche pas ; la transparence voulue
--- est reprise au passage suivant.
+-- passage du pilote d etat) : on n y touche pas ; l opacite voulue est
+-- reprise au passage suivant.
 local function setAlphaSafe(t, a)
     local okF, forbidden = pcall(t.IsForbidden, t)
     if not okF or forbidden then return end
-    pcall(t.SetAlpha, t, a)
+    pcall(t.SetColorTexture, t, 1, 1, 1, a)
 end
 
 nativeStyle = function(b)
@@ -767,10 +852,29 @@ local function makeButton(parent, unit, big)
         f:Hide()
         b.icons[i] = f
     end
+    -- mes soins sur la duree : cases de l apercu (le vrai passe par le client)
+    b.hotIcons = {}
+    local bc = ns.COLORS.border
+    for i = 1, HOT_MAX do
+        local f = CreateFrame("Frame", nil, b.ov)
+        f:SetSize(12, 12)
+        f.border = f:CreateTexture(nil, "BACKGROUND")
+        f.border:SetPoint("TOPLEFT", -1, 1)
+        f.border:SetPoint("BOTTOMRIGHT", 1, -1)
+        f.border:SetColorTexture(bc[1], bc[2], bc[3], 1)
+        f.tex = f:CreateTexture(nil, "ARTWORK")
+        f.tex:SetAllPoints()
+        f.tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        f.time = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        f.time:SetPoint("CENTER", 0, 0)
+        f:Hide()
+        b.hotIcons[i] = f
+    end
     -- en combat, seul le client peut lire les auras : conteneurs a lui
     -- (icones + surbrillance de dissipation), habilles par nous
     if ns.NativeAuras then
         b.nIcons = ns.NativeAuras(b.ov, unit, iconSpec(b))
+        b.nHots = ns.NativeAuras(b.ov, unit, hotSpec(b))
         b.nDispel = ns.NativeAuraSlot(b.ov, unit, "HARMFUL|RAID", function(btn) buildDispelSlot(b, btn) end)
         b.nUnit = unit
     end
@@ -1080,6 +1184,25 @@ function ns.FramesOpt.Healers(parent, y)
     heal:Number(L.GROUP_HEAL_ICON_MAX, function() return hs.iconMax end, function(v) hs.iconMax = v end, 1, ICON_MAX)
     heal:Number(L.GROUP_HEAL_ICON_SIZE, function() return hs.iconSize end, function(v) hs.iconSize = v end, 8, 30)
     heal:EndColumns()
+    -- mes soins sur la duree (19/10)
+    heal:Header(L.GROUP_HOTS_HEAD)
+    heal:Columns(2)
+    hcheck(L.GROUP_HOTS, "hots")
+    hcheck(L.GROUP_HOTS_TIME, "hotTime")
+    local cornerNames = {}
+    for _, p in ipairs(HOT_CORNERS) do cornerNames[p] = L["GROUP_CORNER_" .. p:upper()] end
+    heal:Cycle(L.GROUP_HOTS_POS, HOT_CORNERS, cornerNames,
+        function() return hs.hotPos or "topright" end, function(v) hs.hotPos = v end)
+    heal:Number(L.GROUP_HOTS_MAX, function() return hs.hotMax end, function(v) hs.hotMax = v end, 1, HOT_MAX)
+    heal:Number(L.GROUP_HEAL_ICON_SIZE, function() return hs.hotSize end, function(v) hs.hotSize = v end, 8, 30)
+    heal:Number(L.GROUP_HOTS_DUR, function() return hs.hotDur end, function(v) hs.hotDur = v end, 5, 300, 5)
+    heal:EndColumns()
+    local hotTip = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    hotTip:SetPoint("TOPLEFT", parent, "TOPLEFT", 8, heal.y - 4)
+    hotTip:SetWidth(420)
+    hotTip:SetJustifyH("LEFT")
+    hotTip:SetText(L.GROUP_HOTS_HINT)
+    heal:Gap(30)
     local note = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     note:SetPoint("TOPLEFT", parent, "TOPLEFT", 8, heal.y - 4)
     note:SetWidth(420)
@@ -1137,7 +1260,9 @@ ev:SetScript("OnEvent", function(_, event, unit)
         for k, v in pairs({ dispel = true, dispelAll = false, dispelStyle = "both", icons = true, iconsDispel = false,
                             iconMax = 3, iconSize = 14, heal = true, aggro = true, role = true, leader = true,
                             marker = true, tintAlpha = 35,
-                            markPos = "top", markSize = 16, markX = 0, markY = 0, markAlpha = 100 }) do
+                            markPos = "top", markSize = 16, markX = 0, markY = 0, markAlpha = 100,
+                            hots = true, hotTime = true, hotMax = 3, hotSize = 12, hotPos = "topright",
+                            hotDur = 60 }) do
             if hs[k] == nil then hs[k] = v end
         end
         -- demande du 06/10 : le cadre entier prend la couleur du debuff
