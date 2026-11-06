@@ -436,18 +436,80 @@ end
 -- Quetes automatiques (Maj enfoncee = pause, pour lire)
 ---------------------------------------------------------------------------
 
+-- Un PNJ a plusieurs quetes : une seule a la fois (en choisir plusieurs d un
+-- coup n en ouvre qu une), d abord une quete finie a rendre, puis une quete
+-- a prendre (pas les grises) ; jamais une quete en cours pas finie (son
+-- panneau d avancement bloquait la suite, la quete finie n etait pas rendue).
+-- Apres chaque prise ou rendu, le serveur rouvre la liste (on enchaine) ou
+-- ferme la fenetre : un addon ne peut pas reparler au PNJ (protege), on
+-- previent alors qu il en reste.
+
+-- quetes a traiter chez le PNJ : une fonction qui la choisit, dans l ordre
+local function greetingTodo()
+    local list = {}
+    for i = 1, GetNumActiveQuests() do
+        local _, done = GetActiveTitle(i)
+        if done then list[#list + 1] = function() SelectActiveQuest(i) end end
+    end
+    for i = 1, GetNumAvailableQuests() do
+        local trivial = GetAvailableQuestInfo and GetAvailableQuestInfo(i)
+        if not trivial then list[#list + 1] = function() SelectAvailableQuest(i) end end
+    end
+    return list
+end
+
+local function gossipTodo()
+    local list = {}
+    for _, q in ipairs(C_GossipInfo.GetActiveQuests() or {}) do
+        if q.isComplete then list[#list + 1] = function() C_GossipInfo.SelectActiveQuest(q.questID) end end
+    end
+    for _, q in ipairs(C_GossipInfo.GetAvailableQuests() or {}) do
+        if not q.isTrivial then list[#list + 1] = function() C_GossipInfo.SelectAvailableQuest(q.questID) end end
+    end
+    return list
+end
+
+local questLeft = 0      -- quetes encore a traiter chez le PNJ en cours
+local questStep = 0      -- change a chaque fenetre de quete (fermeture : la derniere ?)
+
+local function pickNext(event)
+    local ok, todo = pcall(event == "QUEST_GREETING" and greetingTodo or gossipTodo)
+    if not ok or #todo == 0 then questLeft = 0 return end
+    questLeft = #todo - 1
+    pcall(todo[1])
+end
+
+-- fenetres de dialogue avec un PNJ (le journal de quetes passe aussi ici)
+local DIALOG = { QUEST_GREETING = true, GOSSIP_SHOW = true, QUEST_DETAIL = true, QUEST_ACCEPT_CONFIRM = true,
+                 QUEST_PROGRESS = true, QUEST_COMPLETE = true, QUEST_FINISHED = true }
+
 local function autoQuest(event)
-    if not db.autoQuest or IsShiftKeyDown() then return end
+    if not db.autoQuest or not DIALOG[event] then return end
+    questStep = questStep + 1
+    -- fenetre fermee : s il restait des quetes et que rien ne s est rouvert
+    -- (le serveur rouvre la liste juste apres), on le dit
+    if event == "QUEST_FINISHED" then
+        local step, left = questStep, questLeft
+        if left > 0 and C_Timer then
+            C_Timer.After(0.6, function()
+                if questStep == step and questLeft == left then
+                    questLeft = 0
+                    ns.Say(string.format(L.XP_QUEST_MORE, left))
+                end
+            end)
+        end
+        return
+    end
+    -- Maj : pause, pour lire (rien a annoncer ensuite)
+    if IsShiftKeyDown() then questLeft = 0 return end
     pcall(function()
-        if event == "QUEST_GREETING" then
-            for i = 1, GetNumActiveQuests() do SelectActiveQuest(i) end
-            for i = 1, GetNumAvailableQuests() do SelectAvailableQuest(i) end
-        elseif event == "GOSSIP_SHOW" and C_GossipInfo then
-            for _, q in ipairs(C_GossipInfo.GetActiveQuests() or {}) do
-                if q.isComplete then C_GossipInfo.SelectActiveQuest(q.questID) return end
-            end
-            for _, q in ipairs(C_GossipInfo.GetAvailableQuests() or {}) do
-                if not q.isTrivial then C_GossipInfo.SelectAvailableQuest(q.questID) return end
+        if event == "QUEST_GREETING" or (event == "GOSSIP_SHOW" and C_GossipInfo) then
+            -- au cadre suivant : la liste rouverte juste apres une prise ou un
+            -- rendu n est pas toujours prete au meme instant
+            if C_Timer then
+                C_Timer.After(0, function() if not IsShiftKeyDown() then pickNext(event) end end)
+            else
+                pickNext(event)
             end
         elseif event == "QUEST_DETAIL" then
             AcceptQuest()
@@ -613,7 +675,7 @@ end)
 for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "PLAYER_XP_UPDATE", "PLAYER_LEVEL_UP",
                      "UPDATE_EXHAUSTION", "QUEST_LOG_UPDATE", "QUEST_TURNED_IN", "ENABLE_XP_GAIN",
                      "DISABLE_XP_GAIN", "TIME_PLAYED_MSG", "QUEST_GREETING", "GOSSIP_SHOW", "QUEST_DETAIL",
-                     "QUEST_ACCEPT_CONFIRM", "QUEST_PROGRESS", "QUEST_COMPLETE" }) do
+                     "QUEST_ACCEPT_CONFIRM", "QUEST_PROGRESS", "QUEST_COMPLETE", "QUEST_FINISHED" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
 
