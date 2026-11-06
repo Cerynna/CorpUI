@@ -3096,10 +3096,46 @@ local function showPage(page, focus)
     end
 end
 
+-- Combat : la fenetre contient des boutons securises (Recharger, profils),
+-- le jeu refuse de la montrer ou de la cacher en combat. Elle se ferme a
+-- l entree en combat (juste avant le verrouillage, comme les movers) et se
+-- rouvre a la sortie ; demandee pendant le combat, elle attend la fin.
+local reopen    -- a rouvrir apres le combat : true (telle quelle) ou un panneau
+
+local function openLater(what)
+    if not reopen then ns.Say(L.MAIN_AFTER_COMBAT) end
+    reopen = what
+end
+
+do
+    local ev = CreateFrame("Frame")
+    ev:RegisterEvent("PLAYER_REGEN_DISABLED")
+    ev:RegisterEvent("PLAYER_REGEN_ENABLED")
+    ev:SetScript("OnEvent", function(_, event)
+        if event == "PLAYER_REGEN_DISABLED" then
+            if main and main:IsShown() then
+                reopen = true
+                main:Hide()
+            end
+        elseif reopen then
+            local what = reopen
+            reopen = nil
+            if what ~= true then
+                ns.ShowPanel(what)
+            elseif not main then
+                ns.ToggleMain()
+            else
+                main:Show()
+            end
+        end
+    end)
+end
+
 -- Les modules affichent leur panneau ainsi : on montre la page qui le
 -- contient, defilee jusqu a lui
 function ns.ShowPanel(panel)
     if building then return end
+    if InCombatLockdown() then openLater(panel) return end
     if not main then buildMain() end
     ns.BuildTabs()
     local page = pageOf[panel:GetName() or ""]
@@ -3782,6 +3818,11 @@ end
 ns.BuildTabs = buildTabs
 
 function ns.ToggleMain()
+    if InCombatLockdown() then
+        -- deja attendue : la commande l annule
+        if reopen then reopen = nil else openLater(true) end
+        return
+    end
     if not main then buildMain() end
     buildTabs()
     if main:IsShown() then
