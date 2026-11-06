@@ -1,8 +1,11 @@
 --[[--------------------------------------------------------------------------
     CorpUI - podometre : le classeur (fenetre a quatre onglets) et l annonce
-      - Classeur : pages de 4 x 2 cartes, filtres serie / rarete, carte en
-        grand a droite (fabrication avec les eclats) ; classeur d un joueur
-        de la guilde en lecture seule ;
+      - Classeur : albums a gauche (tout, chaque serie, chaque donjon, chaque
+        raid, les elites de chaque zone : avancement), pages de 6 x 3 cartes,
+        filtre de rarete ; clic sur une carte : la carte en grand par-dessus
+        (fabrication avec les eclats, carte precedente / suivante) ; carte
+        manquante : une case vide, et la silhouette noire d une creature ;
+        classeur d un joueur de la guilde en lecture seule ;
       - Boosters : boosters en attente, ouverture animee (cartes retournees
         une a une, son selon la rarete, "Nouveau !" ou eclats du doublon) ;
       - Statistiques : jour, semaine, mois, annee, total (prochain palier),
@@ -50,9 +53,13 @@ local INK = { 0.25, 0.17, 0.09 }   -- encre du parchemin
 -- camera des modeles 3D : recul (1 = cadrage du jeu), rotation (radians)
 local MODEL_DIST, MODEL_FACING = 1.05, 0.35
 
-local WIN_W, WIN_H = 780, 540
-local GRID_COLS, GRID_ROWS = 4, 2
+local WIN_W, WIN_H = 1000, 640
+local GRID_COLS, GRID_ROWS = 6, 3
 local PER_PAGE = GRID_COLS * GRID_ROWS
+local CARD_W, GAP_X, GAP_Y = 112, 10, 12
+local CARD_H = math.floor(CARD_W * RATIO + 0.5)
+local SIDE_W, ROW_H = 222, 22                     -- albums
+local SIDE_ROWS = math.floor((WIN_H - 62 - 18 - 8) / ROW_H)
 local SOUND_OF = { "coin", "f_ding", "f_ding", "quest", "f_carillon" }
 
 local win, tabs, pages = nil, {}, {}
@@ -213,19 +220,30 @@ local function newCard(parent, w)
     c.shadow:SetTexCoord(0, 1, 0, HALO.tex)
     c.shadow:SetVertexColor(0, 0, 0)
     c.shadow:SetAlpha(0.7)
-    -- carte manquante : une case vide, son numero et ou la trouver
+    -- carte manquante : une case vide ; dans la fenetre de l image, la
+    -- silhouette noire d une creature (son modele sans lumiere, dans un
+    -- brouillard noir), sinon un « ? » ; dessous son numero et ou la trouver
     c.slot = c:CreateTexture(nil, "BORDER")
     c.slot:SetAllPoints()
     c.slot:SetTexture(MEDIA .. "case")
     c.slot:SetTexCoord(0, 1, 0, TEX_FRAME)
-    c.slotNum = text(c, "GameFontNormalHuge", math.max(10, math.floor(w / 6 + 0.5)))
-    c.slotNum:SetPoint("CENTER", c, "TOP", 0, -h * 0.38)
-    c.slotNum:SetTextColor(0.62, 0.5, 0.3, 0.55)
+    c.sil = CreateFrame("PlayerModel", nil, c)
+    c.sil:SetAllPoints(c.artBg)
+    c.sil:SetFrameLevel(c:GetFrameLevel() + 1)
+    pcall(c.sil.SetKeepModelOnHide, c.sil, true)
+    c.sil:Hide()
+    c.slotQ = text(c, "GameFontNormalHuge", math.floor(aw * 0.45 + 0.5), "OUTLINE")
+    c.slotQ:SetPoint("CENTER", c.artBg, "CENTER", 0, 0)
+    c.slotQ:SetText("?")
+    c.slotQ:SetTextColor(C.text[1], C.text[2], C.text[3], 0.35)
+    c.slotNum = text(c, "GameFontNormalHuge", math.max(10, math.floor(w / 7 + 0.5)))
+    c.slotNum:SetPoint("CENTER", c, "TOP", 0, -h * 0.64)
+    c.slotNum:SetTextColor(C.text[1], C.text[2], C.text[3], 0.5)
     c.slotHint = text(c, "GameFontNormalSmall", math.max(7, math.floor(w / 12 + 0.5)))
-    c.slotHint:SetPoint("TOP", c.slotNum, "BOTTOM", 0, -math.floor(h * 0.06 + 0.5))
+    c.slotHint:SetPoint("TOP", c.slotNum, "BOTTOM", 0, -math.floor(h * 0.03 + 0.5))
     c.slotHint:SetWidth(w - 18)
-    c.slotHint:SetTextColor(0.6, 0.53, 0.42, 0.75)
-    c.empty = { c.slot, c.slotNum, c.slotHint }
+    c.slotHint:SetTextColor(C.text[1], C.text[2], C.text[3], 0.6)
+    c.empty = { c.slot, c.slotQ, c.slotNum, c.slotHint }
     -- face d une carte possedee
     c.face = { c.artBg, c.parch, c.frame, c.gem, c.lvl, c.name, c.sub, c.rar, c.num, c.shadow }
     -- dos (boosters) : un cadre au-dessus de la carte, pas une texture de
@@ -255,6 +273,33 @@ local function showModel(m, disp)
     pcall(m.SetRotation, m, MODEL_FACING)
 end
 
+-- silhouette : le modele sans lumiere (nouvelle forme de SetLight, sinon
+-- l ancienne), noye dans un brouillard noir, sans particules (le feu de
+-- Ragnaros brillerait)
+local function darken(m)
+    pcall(m.SetParticlesEnabled, m, false)
+    pcall(m.SetFogColor, m, 0, 0, 0, 1)
+    pcall(m.SetFogNear, m, 0)
+    pcall(m.SetFogFar, m, 0.01)
+    local ok = CreateColor and CreateVector3D and pcall(m.SetLight, m, true, {
+        omnidirectional = false, point = CreateVector3D(0, 0, -1),
+        ambientIntensity = 0, ambientColor = CreateColor(0, 0, 0, 1),
+        diffuseIntensity = 0, diffuseColor = CreateColor(0, 0, 0, 1) })
+    if not ok then pcall(m.SetLight, m, true, false, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0) end
+end
+
+local function showSilhouette(m, disp)
+    m:Show()
+    if m.disp == disp then return end
+    m.disp = disp
+    pcall(m.ClearModel, m)
+    pcall(m.SetDisplayInfo, m, disp)
+    pcall(m.SetPortraitZoom, m, 0)
+    pcall(m.SetCamDistanceScale, m, MODEL_DIST)
+    pcall(m.SetRotation, m, MODEL_FACING)
+    darken(m)
+end
+
 -- face ou case vide
 local function setFace(card, on)
     for _, r in ipairs(card.face) do r:SetShown(on) end
@@ -278,19 +323,24 @@ local function clearArt(card)
     card.icon:Hide()
     card.scene:Hide()
     card.model:Hide()
+    card.sil:Hide()
     card.glow:Hide()
     card.dim:Hide()
     card.qmark:Hide()
     card.new:Hide()
 end
 
--- carte manquante : une case vide, son numero, et ou la trouver (le lieu
--- d une creature, sinon la serie)
+-- carte manquante : une case vide, la silhouette d une creature (sinon un
+-- « ? »), son numero, et ou la trouver (le lieu d une creature, sinon la serie)
 local function paintEmpty(card, c)
     clearArt(card)
     setFace(card, false)
     card.slotNum:SetText("#" .. (c.num or c.index))
     card.slotHint:SetText(c.disp and P.CardPlace(c) or (L["PEDO_SERIES_" .. string.upper(c.s)] or ""))
+    if c.disp then
+        card.slotQ:Hide()
+        showSilhouette(card.sil, c.disp)
+    end
 end
 
 -- remplit une carte ; owned : la carte est-elle dans le classeur montre
@@ -398,71 +448,10 @@ end
 
 local refreshPage
 
--- habillage propre au classeur (pas le cadre commun de CorpUI) : fond chaud,
--- filets dores a losanges, titres dans la police des quetes du jeu
-local GOLD = { 0.86, 0.69, 0.38 }
-local TAB_ON, TAB_OFF, TAB_HOVER = { 1, 0.84, 0.5 }, { 0.62, 0.56, 0.46 }, { 0.92, 0.85, 0.7 }
-local LATIN = { enUS = true, enGB = true, frFR = true, deDE = true, esES = true, esMX = true, ptBR = true, itIT = true }
-
--- titre : Morpheus (police des quetes) ; elle n a que l alphabet latin
-local function titleFont(fs, size)
-    local ok, set = false, nil
-    if LATIN[GetLocale()] then ok, set = pcall(fs.SetFont, fs, "Fonts\\MORPHEUS.TTF", size, "") end
-    if not ok or set == false then ns.UI.HeadFont(fs, size - 4) end
-end
-
-local function diamond(parent, size, a)
-    local t = parent:CreateTexture(nil, "ARTWORK")
-    t:SetSize(size, size)
-    t:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], a or 1)
-    pcall(t.SetRotation, t, math.pi / 4)
-    return t
-end
-
--- filet dore horizontal, plus vif au milieu (losange), qui s eteint aux bouts
-local function fadeLine(parent, y, x0, x1)
-    local half = (x1 - x0) / 2 - 7
-    for side = 0, 1 do
-        local l = parent:CreateTexture(nil, "BORDER")
-        l:SetColorTexture(1, 1, 1, 1)
-        l:SetSize(half, 1)
-        l:SetPoint("TOPLEFT", parent, "TOPLEFT", side == 0 and x0 or (x1 - half), y)
-        local dim, lit = CreateColor and CreateColor(GOLD[1], GOLD[2], GOLD[3], 0), CreateColor and CreateColor(GOLD[1], GOLD[2], GOLD[3], 0.75)
-        if not (dim and pcall(l.SetGradient, l, "HORIZONTAL", side == 0 and dim or lit, side == 0 and lit or dim)) then
-            l:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.4)
-        end
-    end
-    diamond(parent, 6, 0.9):SetPoint("CENTER", parent, "TOPLEFT", (x0 + x1) / 2, y - 0.5)
-end
-
--- fond et liseré de la fenetre
-local function dress(f)
-    local bg = f:CreateTexture(nil, "BACKGROUND", nil, -8)
-    bg:SetAllPoints()
-    bg:SetTexture(MEDIA .. "fond")
-    local function edge(x0, y0, x1, y1, r, g, b, a)
-        local t = f:CreateTexture(nil, "BORDER")
-        t:SetColorTexture(r, g, b, a)
-        t:SetPoint("TOPLEFT", f, "TOPLEFT", x0, -y0)
-        t:SetPoint("BOTTOMRIGHT", f, "TOPLEFT", x1, -y1)
-    end
-    local w, h = f:GetWidth(), f:GetHeight()
-    -- bord noir, puis filet dore en retrait
-    edge(0, 0, w, 1, 0, 0, 0, 1) edge(0, h - 1, w, h, 0, 0, 0, 1)
-    edge(0, 0, 1, h, 0, 0, 0, 1) edge(w - 1, 0, w, h, 0, 0, 0, 1)
-    local i = 5
-    edge(i, i, w - i, i + 1, GOLD[1], GOLD[2], GOLD[3], 0.7) edge(i, h - i - 1, w - i, h - i, GOLD[1], GOLD[2], GOLD[3], 0.7)
-    edge(i, i, i + 1, h - i, GOLD[1], GOLD[2], GOLD[3], 0.7) edge(w - i - 1, i, w - i, h - i, GOLD[1], GOLD[2], GOLD[3], 0.7)
-    for _, p in ipairs({ { i, i }, { w - i, i }, { i, h - i }, { w - i, h - i } }) do
-        diamond(f, 7):SetPoint("CENTER", f, "TOPLEFT", p[1] + 0.5, -p[2] - 0.5)
-    end
-end
-
-local function paintTab(t, hover)
+-- onglet choisi : lisere d or (le bouton CorpUI le remet au survol)
+local function paintTab(t)
     local on = t.key == current
-    local c = on and TAB_ON or (hover and TAB_HOVER or TAB_OFF)
-    t.label:SetTextColor(c[1], c[2], c[3])
-    t.line:SetShown(on)
+    t:SetBackdropBorderColor((on and C.gold or C.border)[1], (on and C.gold or C.border)[2], (on and C.gold or C.border)[3], 1)
 end
 
 local function selectTab(key)
@@ -481,10 +470,10 @@ local function tabLabel(key)
 end
 
 ---------------------------------------------------------------------------
--- Onglet Classeur
+-- Onglet Classeur : albums a gauche, 6 x 3 cartes, une carte en grand
 ---------------------------------------------------------------------------
 
-local B = { series = "all", rarity = 0, page = 1, sel = nil }
+local B = { album = "all", rarity = 0, page = 1, scroll = 0 }
 local view            -- classeur d un autre joueur : { name, set }
 local shownNew = {}   -- cartes "Nouveau" montrees : vues au changement de page
 local shownKey
@@ -501,109 +490,384 @@ local function forgetNew()
     shownNew = {}
 end
 
-local function buildBinder(page)
-    local p = page
-    p.series = ns.UI.Select(p, 160, function()
-        local list = { { value = "all", text = L.PEDO_ALL_SERIES } }
-        for _, s in ipairs(P.SERIES) do list[#list + 1] = { value = s, text = L["PEDO_SERIES_" .. string.upper(s)] } end
-        return list
-    end, function() return B.series end, function(v) B.series = v B.page = 1 B.sel = nil end, function() refreshPage() end)
-    p.series:SetPoint("TOPLEFT", 12, -6)
-    p.rarity = ns.UI.Select(p, 140, function()
-        local list = { { value = 0, text = L.PEDO_ALL_RARITIES } }
-        for r = 1, 5 do list[#list + 1] = { value = r, text = L["PEDO_R" .. r] } end
-        return list
-    end, function() return B.rarity end, function(v) B.rarity = v B.page = 1 B.sel = nil end, function() refreshPage() end)
-    p.rarity:SetPoint("LEFT", p.series, "RIGHT", 8, 0)
-    p.count = text(p, "GameFontNormal")
-    p.count:SetPoint("LEFT", p.rarity, "RIGHT", 14, 3)
-    p.count:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
-    -- avancement de la collection (filtres en cours) : un filet dore
-    p.progress = CreateFrame("StatusBar", nil, p)
-    p.progress:SetSize(150, 3)
-    p.progress:SetPoint("TOPLEFT", p.count, "BOTTOMLEFT", 0, -3)
-    p.progress:SetStatusBarTexture(ns.BAR_TEXTURE)
-    p.progress:SetStatusBarColor(GOLD[1], GOLD[2], GOLD[3])
-    p.progress:SetMinMaxValues(0, 1)
-    local pbg = p.progress:CreateTexture(nil, "BACKGROUND")
-    pbg:SetAllPoints()
-    pbg:SetColorTexture(0, 0, 0, 0.6)
-    -- classeur d un autre joueur : bandeau
-    p.viewing = text(p, "GameFontNormal")
-    p.viewing:SetPoint("TOPRIGHT", p, "TOPRIGHT", -150, -10)
-    p.back = ns.UI.Button(p, L.PEDO_MY_BINDER, 130, function() view = nil B.page = 1 B.sel = nil refreshPage() end)
-    p.back:SetPoint("TOPRIGHT", p, "TOPRIGHT", -12, -6)
-    -- grille
-    p.cards = {}
-    for i = 1, PER_PAGE do
-        local card = newCard(p, 112)
-        local col, row = (i - 1) % GRID_COLS, math.floor((i - 1) / GRID_COLS)
-        card:SetPoint("TOPLEFT", p, "TOPLEFT", 18 + col * 128, -44 - row * 168)
-        card:SetScript("OnEnter", cardTooltip)
-        card:SetScript("OnLeave", ns.HideTooltip)
-        card:SetScript("OnClick", function(self)
-            B.sel = self.card and self.card.id
+-- albums : { key, text, head (entete de groupe), test(carte) } ; une entete
+-- de serie est aussi un album (toute la serie), "Collections" non
+local albums, albumByKey
+local function buildAlbums()
+    albums, albumByKey = {}, {}
+    local function add(a) albums[#albums + 1] = a albumByKey[a.key] = a end
+    add({ key = "h:col", head = true, text = L.PEDO_ALB_COLLECTIONS })
+    add({ key = "all", text = L.PEDO_ALB_ALL, test = function() return true end })
+    for _, s in ipairs({ "zones", "objets", "montures", "trophees" }) do
+        add({ key = s, text = L["PEDO_SERIES_" .. string.upper(s)], test = function(c) return c.s == s end })
+    end
+    -- chaque instance, chaque zone : dans l ordre du catalogue
+    for _, s in ipairs({ "donjons", "raids", "elites" }) do
+        add({ key = s, head = true, text = L["PEDO_SERIES_" .. string.upper(s)], test = function(c) return c.s == s end })
+        local seen = {}
+        for _, c in ipairs(P.Cards(s)) do
+            if c.at and not seen[c.at] then
+                seen[c.at] = true
+                local at = c.at
+                add({ key = s .. ":" .. at, text = P.CardPlace(c), series = s,
+                      test = function(x) return x.s == s and x.at == at end })
+            end
+        end
+    end
+end
+
+-- possedees / total de chaque album (un seul passage sur les cartes)
+local function albumCounts()
+    local own, all = {}, {}
+    for _, c in ipairs(P.Cards()) do
+        local o = ownedHere(c.id)
+        local keys = { "all", c.s, c.at and (c.s .. ":" .. c.at) or nil }
+        for _, k in ipairs(keys) do
+            all[k] = (all[k] or 0) + 1
+            if o then own[k] = (own[k] or 0) + 1 end
+        end
+    end
+    return own, all
+end
+
+-- cartes de l album choisi (filtre de rarete compris)
+local function albumCards()
+    local a = albumByKey[B.album] or albumByKey.all
+    local out = {}
+    for _, c in ipairs(P.Cards()) do
+        if a.test(c) and (B.rarity == 0 or c.r == B.rarity) then out[#out + 1] = c end
+    end
+    return out, a
+end
+
+local function buildSide(p)
+    local s = CreateFrame("Frame", nil, p)
+    s:SetPoint("TOPLEFT", 10, -8)
+    s:SetPoint("BOTTOMLEFT", 10, 10)
+    s:SetWidth(SIDE_W)
+    ns.UI.Skin(s, 0.6)
+    s:EnableMouseWheel(true)
+    s:SetScript("OnMouseWheel", function(_, delta) B.scroll = B.scroll - delta * 3 refreshPage() end)
+    s.rows = {}
+    for i = 1, SIDE_ROWS do
+        local r = CreateFrame("Button", nil, s)
+        r:SetHeight(ROW_H)
+        r:SetPoint("TOPLEFT", s, "TOPLEFT", 4, -4 - (i - 1) * ROW_H)
+        r:SetPoint("RIGHT", s, "RIGHT", -8, 0)
+        r.sel = r:CreateTexture(nil, "BACKGROUND")
+        r.sel:SetAllPoints()
+        ns.UI.Gradient(r.sel, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.3, C.violet[1], C.violet[2], C.violet[3], 0)
+        r.mark = r:CreateTexture(nil, "ARTWORK")
+        r.mark:SetPoint("TOPLEFT", 0, -2)
+        r.mark:SetPoint("BOTTOMLEFT", 0, 2)
+        r.mark:SetWidth(2)
+        r.mark:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 1)
+        r.label = text(r, "GameFontHighlightSmall", 11)
+        r.label:SetPoint("LEFT", 8, 1)
+        r.label:SetWidth(SIDE_W - 80)
+        r.label:SetJustifyH("LEFT")
+        pcall(r.label.SetWordWrap, r.label, false)
+        r.count = text(r, "GameFontDisableSmall", 10)
+        r.count:SetPoint("RIGHT", -2, 1)
+        r.barBg = r:CreateTexture(nil, "ARTWORK")
+        r.barBg:SetPoint("BOTTOMLEFT", 8, 1)
+        r.barBg:SetPoint("BOTTOMRIGHT", -2, 1)
+        r.barBg:SetHeight(1)
+        r.barBg:SetColorTexture(1, 1, 1, 0.08)
+        r.bar = r:CreateTexture(nil, "ARTWORK", nil, 1)
+        r.bar:SetPoint("BOTTOMLEFT", 8, 1)
+        r.bar:SetHeight(1)
+        r.bar:SetColorTexture(C.violet[1], C.violet[2], C.violet[3], 0.9)
+        local hl = r:CreateTexture(nil, "HIGHLIGHT")
+        hl:SetAllPoints()
+        hl:SetColorTexture(1, 1, 1, 0.05)
+        r:SetScript("OnClick", function(self)
+            local a = self.album
+            if not (a and a.test) then return end
+            B.album, B.page = a.key, 1
             refreshPage()
         end)
-        p.cards[i] = card
+        s.rows[i] = r
     end
-    p.prev = ns.UI.Button(p, "<", 30, function() B.page = B.page - 1 refreshPage() end)
-    p.prev:SetPoint("TOPLEFT", p, "TOPLEFT", 160, -384)
-    p.pageText = text(p, "GameFontHighlight")
-    p.pageText:SetPoint("LEFT", p.prev, "RIGHT", 10, 0)
-    p.pageText:SetWidth(110)
-    p.pageText:SetTextColor(TAB_HOVER[1], TAB_HOVER[2], TAB_HOVER[3])
-    p.next = ns.UI.Button(p, ">", 30, function() B.page = B.page + 1 refreshPage() end)
-    p.next:SetPoint("LEFT", p.pageText, "RIGHT", 10, 0)
-    -- carte en grand
-    p.big = newCard(p, 168)
-    p.big:SetPoint("TOPLEFT", p, "TOPLEFT", 556, -40)
-    p.big:SetScript("OnEnter", cardTooltip)
-    p.big:SetScript("OnLeave", ns.HideTooltip)
-    p.bigName = text(p, "GameFontNormalLarge")
-    titleFont(p.bigName, 18)
-    p.bigName:SetShadowOffset(1, -1)
-    p.bigName:SetPoint("TOP", p.big, "BOTTOM", 0, -10)
-    p.bigName:SetWidth(240)
-    p.bigInfo = text(p, "GameFontHighlightSmall")
-    p.bigInfo:SetPoint("TOP", p.bigName, "BOTTOM", 0, -4)
-    p.bigInfo:SetWidth(240)
-    p.bigInfo:SetTextColor(TAB_HOVER[1], TAB_HOVER[2], TAB_HOVER[3])
-    p.bigHint = text(p, "GameFontDisableSmall")
-    p.bigHint:SetPoint("TOP", p.bigInfo, "BOTTOM", 0, -4)
-    p.bigHint:SetWidth(240)
-    p.craft = ns.UI.Button(p, "", 200, function()
-        if B.sel and P.Craft(B.sel) then
+    -- position dans la liste
+    s.thumb = s:CreateTexture(nil, "OVERLAY")
+    s.thumb:SetWidth(2)
+    s.thumb:SetColorTexture(C.text[1], C.text[2], C.text[3], 0.3)
+    return s
+end
+
+local function refreshSide(s, own, all)
+    local n = #albums
+    B.scroll = math.max(0, math.min(B.scroll, n - #s.rows))
+    local barW = SIDE_W - 22
+    for i, r in ipairs(s.rows) do
+        local a = albums[B.scroll + i]
+        r.album = a
+        if a then
+            r:Show()
+            local o, t = own[a.key] or 0, all[a.key] or 0
+            local done = t > 0 and o == t
+            r.label:SetText(a.text or "?")
+            if a.head then
+                font(r.label, 10)
+                r.label:SetTextColor(C.gold[1], C.gold[2], C.gold[3], a.test and 1 or 0.8)
+            else
+                font(r.label, 11)
+                local col = done and C.gold or C.text
+                r.label:SetTextColor(col[1], col[2], col[3])
+            end
+            r.count:SetText(t > 0 and string.format("%d / %d", o, t) or "")
+            local on = a.key == B.album
+            r.sel:SetShown(on)
+            r.mark:SetShown(on)
+            r.barBg:SetShown(not a.head and t > 0)
+            r.bar:SetShown(not a.head and o > 0)
+            if t > 0 then r.bar:SetWidth(math.max(1, barW * o / t)) end
+        else
+            r:Hide()
+        end
+    end
+    local visible = #s.rows
+    s.thumb:SetShown(n > visible)
+    if n > visible then
+        local h = s:GetHeight() - 8
+        local th = math.max(16, h * visible / n)
+        s.thumb:SetHeight(th)
+        s.thumb:ClearAllPoints()
+        s.thumb:SetPoint("TOPRIGHT", s, "TOPRIGHT", -2, -4 - (h - th) * B.scroll / (n - visible))
+    end
+end
+
+-- carte en grand, par-dessus la page : la carte, son nom, son type, ou la
+-- trouver, sa rarete ; fabrication si elle manque ; precedente / suivante
+local openZoom, refreshZoom
+
+local function buildZoom(p)
+    local z = CreateFrame("Button", nil, p)
+    z:SetAllPoints(p)
+    z:SetFrameLevel(p:GetFrameLevel() + 40)
+    z.bg = z:CreateTexture(nil, "BACKGROUND")
+    z.bg:SetAllPoints()
+    z.bg:SetColorTexture(C.bg[1], C.bg[2], C.bg[3], 0.94)
+    z:SetScript("OnClick", function(self) self:Hide() end)
+    z:EnableMouseWheel(true)
+    z:SetScript("OnMouseWheel", function(self, delta) if self.list then openZoom(p, self.index - delta) end end)
+    z.card = newCard(z, 250)
+    z.card:SetPoint("TOPLEFT", z, "TOPLEFT", 90, -24)
+    z.card:SetScript("OnEnter", cardTooltip)
+    z.card:SetScript("OnLeave", ns.HideTooltip)
+    z.name = text(z, "GameFontNormalHuge")
+    ns.UI.HeadFont(z.name, 24)
+    z.name:SetPoint("TOPLEFT", z.card, "TOPRIGHT", 50, -14)
+    z.name:SetWidth(460)
+    z.name:SetJustifyH("LEFT")
+    z.sub = text(z, "GameFontNormal")
+    z.sub:SetPoint("TOPLEFT", z.name, "BOTTOMLEFT", 0, -8)
+    z.sub:SetWidth(460)
+    z.sub:SetJustifyH("LEFT")
+    z.sub:SetTextColor(C.text[1], C.text[2], C.text[3], 0.75)
+    z.rar = text(z, "GameFontNormalLarge")
+    z.rar:SetPoint("TOPLEFT", z.sub, "BOTTOMLEFT", 0, -14)
+    z.lines = text(z, "GameFontHighlight")
+    z.lines:SetPoint("TOPLEFT", z.rar, "BOTTOMLEFT", 0, -14)
+    z.lines:SetWidth(460)
+    z.lines:SetJustifyH("LEFT")
+    pcall(z.lines.SetSpacing, z.lines, 4)
+    z.hint = text(z, "GameFontDisable")
+    z.hint:SetPoint("TOPLEFT", z.lines, "BOTTOMLEFT", 0, -14)
+    z.hint:SetWidth(460)
+    z.hint:SetJustifyH("LEFT")
+    z.craft = ns.UI.Button(z, "", 220, function()
+        local c = z.list and z.list[z.index]
+        if c and P.Craft(c.id) then
             P.Sound("f_ding")
             refreshPage()
         end
     end)
-    p.craft:SetPoint("TOP", p.bigHint, "BOTTOM", 0, -8)
+    z.craft:SetPoint("TOPLEFT", z.hint, "BOTTOMLEFT", 0, -14)
+    z.prev = ns.UI.Button(z, "<", 30, function() openZoom(p, z.index - 1) end)
+    z.prev:SetPoint("TOPLEFT", z.card, "BOTTOMLEFT", 0, -14)
+    z.prevName = text(z, "GameFontDisableSmall")
+    z.prevName:SetPoint("LEFT", z.prev, "RIGHT", 6, 0)
+    z.next = ns.UI.Button(z, ">", 30, function() openZoom(p, z.index + 1) end)
+    z.next:SetPoint("TOPRIGHT", z.card, "BOTTOMRIGHT", 0, -14)
+    z.nextName = text(z, "GameFontDisableSmall")
+    z.nextName:SetPoint("RIGHT", z.next, "LEFT", -6, 0)
+    z.close = ns.UI.Button(z, "x", 22, function() z:Hide() end)
+    z.close:SetSize(22, 22)
+    z.close:SetPoint("TOPRIGHT", z, "TOPRIGHT", -12, -8)
+    z:Hide()
+    p.zoom = z
+end
+
+local function shortCardName(c)
+    if not c then return "" end
+    return ownedHere(c.id) and P.CardName(c) or "???"
+end
+
+refreshZoom = function(p)
+    local z = p.zoom
+    local c = z.list and z.list[z.index]
+    if not c then z:Hide() return end
+    local owned = ownedHere(c.id)
+    local col = rarityRGB(c.r)
+    local series = L["PEDO_SERIES_" .. string.upper(c.s)] or ""
+    z.card.owned = owned
+    paintCard(z.card, c, owned, false)
+    z.name:SetText(owned and P.CardName(c) or L.PEDO_MISSING)
+    z.name:SetTextColor(col[1], col[2], col[3])
+    if c.disp then
+        z.sub:SetText(owned and (P.CardTypeName(c) .. "  ·  " .. P.CardPlace(c)) or P.CardPlace(c))
+    else
+        z.sub:SetText(series)
+    end
+    z.rar:SetText(L["PEDO_R" .. c.r] or "")
+    z.rar:SetTextColor(col[1], col[2], col[3])
+    local lines = {}
+    if c.disp and owned then lines[#lines + 1] = string.format(L.PEDO_Z_LEVEL, (c.lvl or 0) >= 63 and "??" or tostring(c.lvl or "?")) end
+    lines[#lines + 1] = string.format(L.PEDO_Z_NUM, series, c.num or c.index, (P.seriesCount and P.seriesCount[c.s]) or 0)
+    z.lines:SetText(table.concat(lines, "\n"))
+    local hint = P.CardHint(c)
+    if not hint and not owned and c.s ~= "trophees" then hint = L.PEDO_MISSING_HINT end
+    z.hint:SetText(hint or "")
+    if not view and not owned and c.s ~= "trophees" then
+        z.craft:SetText(string.format(L.PEDO_CRAFT, P.CRAFT[c.r]))
+        z.craft:SetEnabled(P.CanCraft(c.id))
+        z.craft:Show()
+    else
+        z.craft:Hide()
+    end
+    local prev, nxt = z.list[z.index - 1], z.list[z.index + 1]
+    z.prev:SetEnabled(prev ~= nil)
+    z.next:SetEnabled(nxt ~= nil)
+    z.prevName:SetText(shortCardName(prev))
+    z.nextName:SetText(shortCardName(nxt))
+end
+
+openZoom = function(p, index)
+    local list = albumCards()
+    if not list[index] then return end
+    local z = p.zoom
+    z.list, z.index = list, index
+    z:Show()
+    refreshZoom(p)
+end
+
+local function buildBinder(page)
+    local p = page
+    buildAlbums()
+    p.side = buildSide(p)
+    local m = CreateFrame("Frame", nil, p)
+    m:SetPoint("TOPLEFT", p, "TOPLEFT", SIDE_W + 26, -8)
+    m:SetPoint("BOTTOMRIGHT", p, "BOTTOMRIGHT", -12, 10)
+    p.main = m
+    -- l album : nom, avancement
+    p.aname = text(m, "GameFontNormalLarge")
+    ns.UI.HeadFont(p.aname, 18)
+    p.aname:SetPoint("TOPLEFT", 2, -2)
+    p.aname:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
+    p.ainfo = text(m, "GameFontHighlightSmall")
+    p.ainfo:SetPoint("TOPLEFT", p.aname, "BOTTOMLEFT", 0, -5)
+    p.ainfo:SetTextColor(C.text[1], C.text[2], C.text[3], 0.75)
+    p.aprog = CreateFrame("StatusBar", nil, m)
+    p.aprog:SetSize(220, 3)
+    p.aprog:SetPoint("TOPLEFT", p.ainfo, "BOTTOMLEFT", 0, -6)
+    p.aprog:SetStatusBarTexture(ns.BAR_TEXTURE)
+    p.aprog:SetStatusBarColor(C.violet[1], C.violet[2], C.violet[3])
+    p.aprog:SetMinMaxValues(0, 1)
+    local pbg = p.aprog:CreateTexture(nil, "BACKGROUND")
+    pbg:SetAllPoints()
+    pbg:SetColorTexture(0, 0, 0, 0.6)
+    -- filtre de rarete : une pastille par rarete (un 2e clic l enleve)
+    p.pills = {}
+    local anchor
+    for r = 5, 1, -1 do
+        local b = ns.UI.Button(m, "", 40, function()
+            B.rarity = (B.rarity == r) and 0 or r
+            B.page = 1
+            refreshPage()
+        end)
+        b:SetHeight(20)
+        b:SetText("     " .. (L["PEDO_R" .. r] or ""))
+        b:SetWidth(b.cuiText:GetStringWidth() + 16)
+        local dot = b:CreateTexture(nil, "OVERLAY")
+        dot:SetSize(7, 7)
+        dot:SetPoint("LEFT", 8, 0)
+        local col = rarityRGB(r)
+        dot:SetColorTexture(col[1], col[2], col[3], 1)
+        b.rarity = r
+        b:HookScript("OnLeave", function(self)
+            if B.rarity == self.rarity then self:SetBackdropBorderColor(C.gold[1], C.gold[2], C.gold[3], 1) end
+        end)
+        if anchor then b:SetPoint("RIGHT", anchor, "LEFT", -4, 0) else b:SetPoint("TOPRIGHT", m, "TOPRIGHT", 0, -2) end
+        anchor = b
+        p.pills[r] = b
+    end
+    -- classeur d un autre joueur : bandeau
+    p.viewing = text(m, "GameFontNormal")
+    p.viewing:SetPoint("TOPRIGHT", m, "TOPRIGHT", -140, -32)
+    p.back = ns.UI.Button(m, L.PEDO_MY_BINDER, 130, function() view = nil B.page = 1 refreshPage() end)
+    p.back:SetPoint("TOPRIGHT", m, "TOPRIGHT", 0, -28)
+    -- grille ; la molette tourne les pages
+    p.cards = {}
+    for i = 1, PER_PAGE do
+        local card = newCard(m, CARD_W)
+        local col, row = (i - 1) % GRID_COLS, math.floor((i - 1) / GRID_COLS)
+        card:SetPoint("TOPLEFT", m, "TOPLEFT", col * (CARD_W + GAP_X), -62 - row * (CARD_H + GAP_Y))
+        card:SetScript("OnEnter", cardTooltip)
+        card:SetScript("OnLeave", ns.HideTooltip)
+        card:SetScript("OnClick", function(self)
+            if self.card then
+                ns.HideTooltip()
+                openZoom(p, self.listIndex)
+            end
+        end)
+        p.cards[i] = card
+    end
+    m:EnableMouseWheel(true)
+    m:SetScript("OnMouseWheel", function(_, delta) B.page = B.page - delta refreshPage() end)
+    p.pageText = text(m, "GameFontHighlight")
+    p.pageText:SetPoint("BOTTOM", m, "BOTTOM", 0, 6)
+    p.pageText:SetWidth(110)
+    p.prev = ns.UI.Button(m, "<", 30, function() B.page = B.page - 1 refreshPage() end)
+    p.prev:SetPoint("RIGHT", p.pageText, "LEFT", -10, 0)
+    p.next = ns.UI.Button(m, ">", 30, function() B.page = B.page + 1 refreshPage() end)
+    p.next:SetPoint("LEFT", p.pageText, "RIGHT", 10, 0)
+    buildZoom(p)
 end
 
 local function refreshBinder(p)
-    local list = P.Cards(B.series, B.rarity)
+    if not albumByKey[B.album] then B.album = "all" end
+    local own, all = albumCounts()
+    refreshSide(p.side, own, all)
+    local list, a = albumCards()
     local pagesN = math.max(1, math.ceil(#list / PER_PAGE))
     B.page = math.max(1, math.min(B.page, pagesN))
-    -- autre page (ou autre filtre) : les cartes nouvelles d avant sont vues
-    local key = B.series .. ":" .. B.rarity .. ":" .. B.page .. ":" .. (view and view.name or "")
+    -- autre page (ou autre album, filtre) : les cartes nouvelles d avant sont vues
+    local key = B.album .. ":" .. B.rarity .. ":" .. B.page .. ":" .. (view and view.name or "")
     if key ~= shownKey then forgetNew() shownKey = key end
-    -- listes deroulantes : le choix en cours s affiche a la demande
-    p.series:Refresh()
-    p.rarity:Refresh()
-    local own = 0
-    for _, c in ipairs(list) do if ownedHere(c.id) then own = own + 1 end end
-    p.count:SetText(string.format(L.PEDO_COUNT, own, #list, #list > 0 and math.floor(own / #list * 100 + 0.5) or 0))
-    p.progress:SetValue(#list > 0 and own / #list or 0)
+    -- l album
+    local o, t = own[a.key] or 0, all[a.key] or 0
+    p.aname:SetText(a.key == "all" and L.PEDO_ALB_ALL or a.text)
+    local info = string.format(L.PEDO_ALB_INFO, o, t, t > 0 and math.floor(o / t * 100 + 0.5) or 0)
+    if a.series then info = (L["PEDO_SERIES_" .. string.upper(a.series)] or "") .. "  ·  " .. info end
+    p.ainfo:SetText(info)
+    p.aprog:SetValue(t > 0 and o / t or 0)
+    for r, b in pairs(p.pills) do
+        local on = B.rarity == r
+        b:SetBackdropBorderColor((on and C.gold or C.border)[1], (on and C.gold or C.border)[2], (on and C.gold or C.border)[3], 1)
+    end
     p.viewing:SetShown(view ~= nil)
     p.back:SetShown(view ~= nil)
     if view then p.viewing:SetText(string.format(L.PEDO_VIEWING, shortName(view.name))) end
+    -- la page
     local first = (B.page - 1) * PER_PAGE
     local d = db()
     for i, card in ipairs(p.cards) do
         local c = list[first + i]
         local owned = c and ownedHere(c.id) or false
         card.owned = owned
+        card.listIndex = first + i
         local isNew = c and not view and d and d.newCards[c.id] or false
         if isNew then shownNew[c.id] = true end
         paintCard(card, c, owned, isNew)
@@ -611,34 +875,10 @@ local function refreshBinder(p)
     p.pageText:SetText(string.format(L.PEDO_PAGE, B.page, pagesN))
     p.prev:SetEnabled(B.page > 1)
     p.next:SetEnabled(B.page < pagesN)
-    -- carte en grand : la choisie, sinon la premiere de la page
-    local sel = B.sel and P.byId[B.sel]
-    if not sel or not P.IsValid(sel.id) then sel = list[first + 1] end
-    if not sel then
-        p.big:Hide() p.bigName:SetText("") p.bigInfo:SetText("") p.bigHint:SetText("") p.craft:Hide()
-        return
-    end
-    local owned = ownedHere(sel.id)
-    p.big.owned = owned
-    paintCard(p.big, sel, owned, false)
-    local col = rarityRGB(sel.r)
-    p.bigName:SetText(owned and P.CardName(sel) or L.PEDO_MISSING)
-    p.bigName:SetTextColor(col[1], col[2], col[3])
-    p.bigInfo:SetText(L["PEDO_SERIES_" .. string.upper(sel.s)] .. " · " .. L["PEDO_R" .. sel.r] ..
-        " · #" .. (sel.num or sel.index) .. "/" .. ((P.seriesCount and P.seriesCount[sel.s]) or "?"))
-    local hint = P.CardHint(sel)
-    if not hint and not owned and sel.s ~= "trophees" then hint = L.PEDO_MISSING_HINT end
-    -- creature : ou la trouver, puis (si on l a) niveau et type
-    if sel.disp then
-        hint = "|cffffd100" .. P.CardPlace(sel) .. "|r\n" .. (owned and P.CardCreatureInfo(sel) or hint or "")
-    end
-    p.bigHint:SetText(hint or "")
-    if not view and not owned and sel.s ~= "trophees" then
-        p.craft:SetText(string.format(L.PEDO_CRAFT, P.CRAFT[sel.r]))
-        p.craft:SetEnabled(P.CanCraft(sel.id))
-        p.craft:Show()
-    else
-        p.craft:Hide()
+    -- carte en grand ouverte : relue (fabrication, nouvelles cartes)
+    if p.zoom:IsShown() then
+        p.zoom.list = list
+        refreshZoom(p)
     end
 end
 
@@ -1096,7 +1336,7 @@ local function buildGuild(page)
             local e = self.entry
             if not e or not e.bits then return end
             view = { name = e.name, set = P.BitsToSet(e.bits) }
-            B.page, B.sel = 1, nil
+            B.album, B.page = "all", 1
             selectTab("binder")
         end)
         row.see:SetPoint("RIGHT", row, "RIGHT", -4, 0)
@@ -1147,6 +1387,10 @@ refreshPage = function()
     if not win or not win:IsShown() then return end
     for _, t in ipairs(tabs) do t:SetText(tabLabel(t.key)) end
     if win.shards then win.shards:SetText(string.format(L.PEDO_SHARDS, db() and db().shards or 0)) end
+    if win.total then
+        local own, all = P.OwnedCount()
+        win.total:SetText(string.format(L.PEDO_ALB_INFO, own, all, all > 0 and math.floor(own / all * 100 + 0.5) or 0))
+    end
     local p = pages[current]
     if current == "binder" then refreshBinder(p)
     elseif current == "packs" then refreshPacks(p)
@@ -1166,7 +1410,7 @@ local function build()
     win:SetClampedToScreen(true)
     win:EnableMouse(true)
     win:SetMovable(true)
-    dress(win)
+    ns.UI.Skin(win, 0.97, true)
     win:Hide()
     -- barre de titre (glisser pour deplacer)
     local bar = CreateFrame("Frame", nil, win)
@@ -1182,45 +1426,28 @@ local function build()
         d.opt.pos = { point = point or "CENTER", x = x or 0, y = y or 0 }
     end)
     local title = bar:CreateFontString(nil, "OVERLAY")
-    titleFont(title, 21)
-    title:SetPoint("LEFT", 18, -3)
-    title:SetTextColor(TAB_ON[1], TAB_ON[2], TAB_ON[3])
-    title:SetShadowOffset(1, -1)
+    ns.UI.HeadFont(title, 14)
+    title:SetPoint("LEFT", 10, 0)
+    title:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
     title:SetText(L.PEDO_BINDER)
+    -- avancement de tout le classeur, a cote du titre
+    win.total = text(bar, "GameFontDisableSmall")
+    win.total:SetPoint("LEFT", title, "RIGHT", 12, 0)
     local close = CreateFrame("Button", nil, bar)
     close:SetSize(22, 22)
-    close:SetPoint("RIGHT", -10, -2)
+    close:SetPoint("RIGHT", -4, 0)
     local x = close:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     x:SetPoint("CENTER")
     x:SetText("×")
-    x:SetTextColor(TAB_OFF[1], TAB_OFF[2], TAB_OFF[3])
-    close:SetScript("OnEnter", function() x:SetTextColor(TAB_ON[1], TAB_ON[2], TAB_ON[3]) end)
-    close:SetScript("OnLeave", function() x:SetTextColor(TAB_OFF[1], TAB_OFF[2], TAB_OFF[3]) end)
     close:SetScript("OnClick", function() win:Hide() end)
     win.shards = text(bar, "GameFontNormal")
     win.shards:SetPoint("RIGHT", close, "LEFT", -12, 0)
-    win.shards:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
-    -- onglets : du texte souligne d or quand il est choisi ; puis un filet
-    fadeLine(win, -61, 16, WIN_W - 16)
+    -- onglets
     for i, key in ipairs({ "binder", "packs", "stats", "guild" }) do
-        local t = CreateFrame("Button", nil, win)
-        t:SetSize(140, 26)
-        t:SetPoint("TOPLEFT", win, "TOPLEFT", 16 + (i - 1) * 146, -33)
-        t.label = t:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        font(t.label, 13)
-        t.label:SetPoint("CENTER", 0, 1)
-        t:SetFontString(t.label)
-        t.line = t:CreateTexture(nil, "ARTWORK")
-        t.line:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 1)
-        t.line:SetHeight(2)
-        t.line:SetPoint("BOTTOMLEFT", 24, 0)
-        t.line:SetPoint("BOTTOMRIGHT", -24, 0)
+        local t = ns.UI.Button(win, tabLabel(key), 130, function() selectTab(key) end)
+        t:SetPoint("TOPLEFT", win, "TOPLEFT", 12 + (i - 1) * 138, -32)
         t.key = key
-        t:SetText(tabLabel(key))
-        t:SetScript("OnClick", function() selectTab(key) end)
-        t:SetScript("OnEnter", function(self) paintTab(self, true) end)
-        t:SetScript("OnLeave", function(self) paintTab(self, false) end)
-        paintTab(t)
+        t:HookScript("OnLeave", paintTab)
         tabs[i] = t
         local page = CreateFrame("Frame", nil, win)
         page:SetPoint("TOPLEFT", win, "TOPLEFT", 0, -62)

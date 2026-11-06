@@ -11,8 +11,8 @@ rarete), parchemin.tga (cartouche)
   pour CorpUI, puis detourees (fond vert) et posees en haut de leur canevas.
 
 gemme.tga (chaton du niveau), halo.tga (lueur des cartes epiques et
-legendaires, ombre portee), fond.tga (fond de la fenetre du classeur),
-case.tga (case d une carte manquante) : dessinees par programme pour CorpUI.
+legendaires, ombre portee), case.tga (case d une carte manquante) :
+dessinees par programme pour CorpUI.
 
 Les noms et images des cartes (zones, objets, montures, ecrans de chargement
 des instances, modeles 3D des creatures) viennent du jeu lui-meme (World of
