@@ -48,8 +48,8 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Plaques de nom** | Plaques des unités : sort en cours, tes débuffs, points de combo, cible actuelle, icône de raid. | `/corp plaques` |
 | **Infobulles** | Infobulles au style CorpUI, prix de l'hôtel des ventes, objets possédés par tes personnages et ID de l'objet. | `/corp infobulles` |
 | **Chat** | Fenêtres de discussion au style CorpUI : onglets détachés, colonne d'icônes, champ de saisie encadré, onglets par défaut, historique, copie du texte et des liens. | `/corp chat` |
-| **Compteur** | Fenêtres façon Details : dégâts, soins, absorptions, interruptions, dissipations, morts, et la menace du groupe sur ta cible avec alerte avant l'aggro. | `/corp compteur` |
-| **Sacs** | Tous les sacs en un seul, recherche et tri ; banque. Maj + clic pour partager une pile ; double clic pour copier l'ID d'un objet (aussi dans AtlasLoot). | `/corp sacs` |
+| **Compteur** | Fenêtres façon Details : dégâts, soins, absorptions, interruptions, dissipations, morts, détail par sort et par rang de chaque joueur, même en combat, et la menace du groupe sur ta cible avec alerte avant l'aggro. | `/corp compteur` |
+| **Sacs** | Tous les sacs en un seul, recherche et tri ; banque. Maj + clic pour partager une pile ; Ctrl + clic pour essayer un objet ; double clic pour copier l'ID d'un objet (aussi dans AtlasLoot). | `/corp sacs` |
 | **Butin** | Fenêtre de butin et jets de groupe (Besoin, Cupidité, Passer). | `/corp butin` |
 | **Éclats du butin** | Les objets de quête scintillent toujours ; herbes et filons scintillent à l'approche (plus vifs à portée, gris si la récolte est impossible). | `/corp eclats` |
 | **Marchand** | Réparation et vente des objets gris automatiques, rachat des réactifs. | `/corp marchand` |
