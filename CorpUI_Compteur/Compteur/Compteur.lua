@@ -8,8 +8,10 @@
       - hors combat : tout (noms, montants, detail par sort et par cible) ;
       - en combat : la liste, son ordre, la classe, la specialisation, "c est
         moi" ; noms et montants sont secrets : on les donne tels quels aux
-        barres et aux textes (permis), sans calcul (pas de %) ; le detail
-        d un autre joueur est refuse (son identifiant est secret), le notre
+        barres et aux textes (permis), sans calcul (pas de %) ; l identifiant
+        d un autre joueur est secret et le jeu le refuse en argument : on le
+        retrouve par son unite de groupe (UnitTokenFromGUID accepte un
+        identifiant secret), sinon par sa classe (resolveSource) ; le notre
         passe par UnitGUID("player").
       - le journal de combat brut est interdit aux addons.
 
@@ -190,6 +192,60 @@ local function classColor(src)
     local c = readable(cls) and RAID_CLASS_COLORS and RAID_CLASS_COLORS[cls]
     if c and db.classColors then return c.r, c.g, c.b end
     return C.violet[1], C.violet[2], C.violet[3]
+end
+
+-- unites du groupe, soi exclu
+local function groupUnits()
+    local list = {}
+    if IsInRaid and IsInRaid() then
+        for i = 1, 40 do list[#list + 1] = "raid" .. i end
+    else
+        for i = 1, 4 do list[#list + 1] = "party" .. i end
+    end
+    return list
+end
+
+local function unitGUID(unit)
+    local ok, g = pcall(UnitGUID, unit)
+    if ok and readable(g) then return g end
+end
+
+-- qui est une source, en identifiants lisibles : en combat le jeu rend
+-- secret celui des autres joueurs et refuse un identifiant secret venant d un
+-- addon (detail impossible) ; on le retrouve :
+--   1. tel quel s il est lisible (hors combat) ;
+--   2. nous (isLocalPlayer n est jamais secret) ;
+--   3. par son unite de groupe : UnitTokenFromGUID accepte un identifiant
+--      secret, et l unite (raid7) donne un identifiant lisible ;
+--   4. a defaut, les membres du groupe de sa classe (jamais secrete) : un
+--      seul, c est lui ; plusieurs, on les propose tour a tour.
+-- Rend { { guid, unit } ... } et la facon (diagnostic).
+local function resolveSource(src)
+    local guid = field(src, "sourceGUID")
+    if readable(guid) then return { { guid = guid } }, "guid" end
+    local isMe = field(src, "isLocalPlayer")
+    if readable(isMe) and isMe then return { { guid = unitGUID("player"), unit = "player" } }, "player" end
+    if issecret(guid) and UnitTokenFromGUID then
+        local ok, token = pcall(UnitTokenFromGUID, guid)
+        if ok and readable(token) and type(token) == "string" then
+            local g = unitGUID(token)
+            if g then return { { guid = g, unit = token } }, "unit:" .. token end
+        end
+    end
+    -- une creature (ennemi) : son numero suffit, jamais un joueur de sa classe
+    local cid = field(src, "sourceCreatureID")
+    if readable(cid) and cid then return {}, "creature" end
+    local cls = field(src, "classFilename")
+    local list = {}
+    if readable(cls) then
+        local me = unitGUID("player")
+        for _, u in ipairs(groupUnits()) do
+            local okC, _, c = pcall(UnitClass, u)
+            local g = okC and readable(c) and c == cls and unitGUID(u)
+            if g and g ~= me then list[#list + 1] = { guid = g, unit = u } end
+        end
+    end
+    return list, #list == 1 and "class" or (#list > 1 and "class?" or nil)
 end
 
 ---------------------------------------------------------------------------
@@ -383,6 +439,23 @@ local function buildDetail()
     local close = ns.UI.Button(f, "x", 18, function() f:Hide() end)
     close:SetSize(18, 18)
     close:SetPoint("TOPRIGHT", -3, -2)
+    -- plusieurs joueurs possibles (meme classe, en combat) : on passe de l un
+    -- a l autre
+    local function pick(step)
+        local want = f.want
+        if not want or #want.cands < 2 then return end
+        want.pick = (want.pick - 1 + step) % #want.cands + 1
+        if f.Retitle then f.Retitle() end
+        if f.Refresh then f.Refresh() end
+    end
+    f.nextC = ns.UI.Button(f, ">", 18, function() pick(1) end)
+    f.nextC:SetSize(18, 18)
+    f.nextC:SetPoint("RIGHT", close, "LEFT", -3, 0)
+    f.prevC = ns.UI.Button(f, "<", 18, function() pick(-1) end)
+    f.prevC:SetSize(18, 18)
+    f.prevC:SetPoint("RIGHT", f.nextC, "LEFT", -2, 0)
+    f.nextC:Hide()
+    f.prevC:Hide()
     f.note = f:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     f.note:SetPoint("TOPLEFT", 8, -HEADER_H - 6)
     f.note:SetPoint("RIGHT", -8, 0)
@@ -392,6 +465,13 @@ local function buildDetail()
         local r = makeRow(f)
         r:SetPoint("TOPLEFT", 4, -HEADER_H - (i - 1) * 17)
         r:SetPoint("RIGHT", -4, 0)
+        -- rang du sort (« Rang 3 ») : un texte a part, gris, entre le nom et la
+        -- valeur ; vide, il ne prend pas de place (en combat il est secret : on
+        -- ne peut pas savoir s il est vide, d ou ce texte separe)
+        r.rank = r.bar:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+        r.rank:SetPoint("RIGHT", r.value, "LEFT", -6, 0)
+        r.rank:SetWordWrap(false)
+        r.text:SetPoint("RIGHT", r.rank, "LEFT", -4, 0)
         r:SetScript("OnEnter", function(self)
             if not self.spell then return end
             local t = GameTooltip
@@ -427,16 +507,17 @@ local function refreshDetail()
     if not detail or not detail:IsShown() or not detail.want then return end
     local want = detail.want
     local mode = MODE_BY_KEY[want.mode]
-    local guid = want.guid
-    -- en combat, seul notre propre detail est accessible
-    if want.isMe then guid = UnitGUID("player") end
-    local srcData = fetchSource(want.mode, want.session, guid, want.creatureID)
+    -- le joueur retrouve a l ouverture (resolveSource), ou une creature
+    local cand = want.cands[want.pick]
+    local guid = cand and cand.guid
+    local srcData = (guid or want.creatureID) and fetchSource(want.mode, want.session, guid, want.creatureID)
     local spells = srcData and field(srcData, "combatSpells")
     if type(spells) ~= "table" then spells = {} end
     local ok, n = pcall(function() return #spells end)
     n = ok and n or 0
     detail.note:SetShown(n == 0)
-    detail.note:SetText(n == 0 and (InCombatLockdown() and L.CM_DETAIL_COMBAT or L.CM_DETAIL_NONE) or "")
+    -- rien : personne de retrouve (en combat, hors du groupe), ou rien a montrer
+    detail.note:SetText(n == 0 and ((not guid and not want.creatureID) and L.CM_DETAIL_COMBAT or L.CM_DETAIL_NONE) or "")
     local total = srcData and field(srcData, "totalAmount")
     local max = srcData and field(srcData, "maxAmount")
     for i, r in ipairs(detail.rows) do
@@ -456,6 +537,15 @@ local function refreshDetail()
             if not (okName and pcall(r.text.SetFormattedText, r.text, "%s", name)) then r.text:SetText("?") end
             if readable(creature) and creature ~= "" then
                 pcall(r.text.SetFormattedText, r.text, "%s (%s)", name, creature)
+            end
+            -- rang : le jeu le rend meme pour un sort secret (en combat)
+            local okR, rank = false, nil
+            if C_Spell and C_Spell.GetSpellSubtext then okR, rank = pcall(C_Spell.GetSpellSubtext, id) end
+            pcall(r.rank.SetFont, r.rank, (ns.FontFile and ns.FontFile("regular")) or STANDARD_TEXT_FONT,
+                math.max(8, db.fontSize - 1), "OUTLINE")
+            r.rank:SetTextColor(0.62, 0.62, 0.68)
+            if not (okR and (issecret(rank) or type(rank) == "string") and pcall(r.rank.SetText, r.rank, rank)) then
+                r.rank:SetText("")
             end
             r.bar:SetStatusBarColor(C.violet[1], C.violet[2], C.violet[3], 0.8)
             local amount = field(sp, "totalAmount")
@@ -481,18 +571,32 @@ local function openDetail(w, row)
         return
     end
     detail = detail or buildDetail()
-    local isMe = field(src, "isLocalPlayer")
-    local guid = field(src, "sourceGUID")
+    local creatureID = field(src, "sourceCreatureID")
+    local cands, how = resolveSource(src)
     detail.want = {
-        mode = w.conf.mode, session = w.conf.session,
-        isMe = readable(isMe) and isMe or false,
-        guid = readable(guid) and guid or nil,
-        creatureID = readable(field(src, "sourceCreatureID")) and field(src, "sourceCreatureID") or nil,
+        mode = w.conf.mode, session = w.conf.session, cands = cands, pick = 1, how = how,
+        creatureID = readable(creatureID) and creatureID or nil,
+        name = field(src, "name"),
     }
-    local name = field(src, "name")
-    if not pcall(detail.title.SetFormattedText, detail.title, "%s - %s", name, modeName(mode)) then
-        detail.title:SetText(modeName(mode))
+    -- titre : le nom de la ligne ; entre plusieurs joueurs possibles, celui
+    -- de l unite proposee et sa place
+    detail.Retitle = function()
+        local want = detail.want
+        local many = #want.cands > 1
+        detail.prevC:SetShown(many)
+        detail.nextC:SetShown(many)
+        local ok
+        if many then
+            local okN, uname = pcall(UnitName, want.cands[want.pick].unit)
+            ok = okN and pcall(detail.title.SetFormattedText, detail.title, "%s - %s (%d/%d)", uname, modeName(mode),
+                want.pick, #want.cands)
+        else
+            ok = pcall(detail.title.SetFormattedText, detail.title, "%s - %s", want.name, modeName(mode))
+        end
+        if not ok then detail.title:SetText(modeName(mode)) end
     end
+    detail.Refresh = refreshDetail
+    detail.Retitle()
     detail:Show()
     refreshDetail()
 end
@@ -530,8 +634,9 @@ end
 local refreshWindow
 local rowTooltip
 
--- infobulle d une barre : nom, valeurs, et les 3 premiers sorts quand le
--- jeu les donne (hors combat ; en combat, seulement les notres)
+-- infobulle d une barre : nom, valeurs, et les 3 premiers sorts quand on
+-- sait de qui il s agit (en combat : un joueur du groupe retrouve, pas un
+-- de plusieurs possibles)
 rowTooltip = function(w, r)
     if not db.tooltip then return end
     -- mode Menace : nom, %, valeur, tank
@@ -558,9 +663,9 @@ rowTooltip = function(w, r)
         pcall(tip.AddDoubleLine, tip, L.CM_PER_SECOND, abbr(field(src, "amountPerSecond")), 1, 0.82, 0, 1, 1, 1)
     end
     if not mode.deaths then
-        local isMe = field(src, "isLocalPlayer")
-        local guid = (readable(isMe) and isMe) and UnitGUID("player") or field(src, "sourceGUID")
-        local data = readable(guid) and fetchSource(w.conf.mode, w.conf.session, guid) or nil
+        local cands = resolveSource(src)
+        local guid = #cands == 1 and cands[1].guid or nil
+        local data = guid and fetchSource(w.conf.mode, w.conf.session, guid) or nil
         local spells = data and field(data, "combatSpells")
         if type(spells) == "table" and spells[1] then
             tip:AddLine(" ")
@@ -572,8 +677,18 @@ rowTooltip = function(w, r)
                 local okT, tex = false, nil
                 if C_Spell and C_Spell.GetSpellTexture then okT, tex = pcall(C_Spell.GetSpellTexture, id) end
                 local icon = (okT and readable(tex)) and ("|T" .. tex .. ":14:14:0:0:64:64:5:59:5:59|t ") or ""
-                local label = (okN and readable(name)) and (icon .. name) or "?"
-                pcall(tip.AddDoubleLine, tip, label, abbr(field(sp, "totalAmount")), 1, 1, 1, 1, 1, 1)
+                local okR, rank = false, nil
+                if C_Spell and C_Spell.GetSpellSubtext then okR, rank = pcall(C_Spell.GetSpellSubtext, id) end
+                local amount = abbr(field(sp, "totalAmount"))
+                if okN and readable(name) then
+                    -- lisible (hors combat) : icone, nom, et le rang s il y en a un
+                    local label = icon .. name
+                    if okR and readable(rank) and rank ~= "" then label = label .. " (" .. rank .. ")" end
+                    pcall(tip.AddDoubleLine, tip, label, amount, 1, 1, 1, 1, 1, 1)
+                elseif not (okN and pcall(tip.AddDoubleLine, tip, name, amount, 1, 1, 1, 1, 1, 1)) then
+                    -- secret (en combat) : le nom tel quel, sans icone ni rang
+                    pcall(tip.AddDoubleLine, tip, "?", amount, 1, 1, 1, 1, 1, 1)
+                end
             end
         end
     end
@@ -1118,12 +1233,36 @@ end, "Compteur", "compteur")
 
 ns.Listen(function() if db then dirty = true styleVer = styleVer + 1 end end)
 
+-- /corp compteur diag : qui le detail retrouve pour chaque ligne de la
+-- premiere fenetre (a lancer en combat de groupe)
+local function diag()
+    local say = ns.Chat
+    local w = windows[1]
+    if not w then say("Compteur - diag : aucune fenetre") return end
+    local list = sources(fetch(w.conf.mode, w.conf.session))
+    local okN, n = pcall(count, list)
+    n = okN and n or 0
+    say(string.format("Compteur - diag : %s, %d ligne(s), combat %s, UnitTokenFromGUID %s", tostring(w.conf.mode), n,
+        tostring(InCombatLockdown()), tostring(UnitTokenFromGUID ~= nil)))
+    for i = 1, math.min(n, 12) do
+        local src = list[i]
+        local cands, how = resolveSource(src)
+        local data = cands[1] and fetchSource(w.conf.mode, w.conf.session, cands[1].guid)
+        local spells = data and field(data, "combatSpells")
+        local okS, ns2 = pcall(count, type(spells) == "table" and spells or {})
+        say(string.format("  %d. %s : %s, %d possible(s), %d sort(s)", i, tostring(field(src, "classFilename")),
+            how or "personne", #cands, okS and ns2 or 0))
+    end
+end
+
 ns.RegisterModule({
     command = "compteur",
     panelName = "CorpUIMeterOptions",
     icon = "Interface\\Icons\\Ability_DualWield",
     title = function() return L.MOD_METER end,
     desc = function() return L.CM_DESC end,
-    Slash = function() toggle() end,
+    Slash = function(rest)
+        if strlower(strtrim(rest or "")) == "diag" then diag() else toggle() end
+    end,
     Open = toggle,
 })
