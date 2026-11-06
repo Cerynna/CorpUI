@@ -57,6 +57,8 @@ local KEYS = {
     -- ajoutee le 15/10 : module Leveling (etapes ignorees : par personnage)
     leveling = { ignored = true, route = true },
     -- ajoutee le 16/10 : module Voyage (releves du jeu, destination par personnage)
+    -- ajoutee le 06/11 : module Couches (reglages et place de l affichage)
+    layer = {},
     voyage = { names = true, known = true, times = true, flySpeed = true, binds = true, mount = true, dest = true, trace = true, knownV = true },
 }
 

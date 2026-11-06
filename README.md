@@ -66,6 +66,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Notes de raid** | Notes partagées avec le groupe façon MRT : éditeur, fenêtre de note, marqueurs. | `/corp note` |
 | **Barre de raid** | Marqueurs de cible et au sol, appel, vérification des rôles, décompte de pull. | `/corp raid` |
 | **Invitations** | Invite automatiquement les joueurs qui envoient un mot clé (`+1`). | `/corp inv` |
+| **Couches** | Affiche ta couche (layer) et en change : un membre de la guilde qui a CorpUI t'invite, sinon une demande publique est prête à envoyer ; accueille aussi ceux qui changent de couche. | `/corp couches` |
 | **Sorts au clic** | Lancer un sort en cliquant sur un cadre CorpUI. | `/corp clics` |
 | **Qui a CorpUI** | Les joueurs de ta guilde et de ton groupe qui utilisent CorpUI. | `/corp qui` |
 

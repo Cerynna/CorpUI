@@ -31,7 +31,7 @@ local LIST = {
     { key = "marchand" }, { key = "habillage" },
     { cat = "CAT_RAID" },
     { key = "buffs" }, { key = "dissipation" }, { key = "rappels" }, { key = "cd" }, { key = "note" },
-    { key = "raid" }, { key = "inv" }, { key = "clics" },
+    { key = "raid" }, { key = "inv" }, { key = "couches" }, { key = "clics" },
     { cat = "CAT_TOOLS" },
     { key = "persos" }, { key = "metiers" }, { key = "hv" }, { key = "dez" }, { key = "talents" },
     { key = "sorts" }, { key = "erreurs" }, { key = "jeux", label = "PAGE_GAMES", desc = "MODULES_GAMES_DESC" }, { key = "podometre" },
