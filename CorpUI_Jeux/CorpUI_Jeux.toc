@@ -23,6 +23,7 @@ Jeux\Jeux.lua
 Jeux\Murloc.lua
 Jeux\Minerais.lua
 Podometre\Strings.lua
+Podometre\Creatures.lua
 Podometre\Cartes.lua
 Podometre\Podometre.lua
 Podometre\Classeur.lua

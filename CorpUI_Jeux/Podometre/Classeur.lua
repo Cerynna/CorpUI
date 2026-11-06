@@ -9,9 +9,12 @@
         facons de se deplacer, record, 30 derniers jours, personnages,
         equivalence reelle ;
       - Guilde : classement de la semaine des joueurs CorpUI.
-    Images (Media\Podometre, Nano Banana) : cadre argente teinte selon la
-    rarete, dos de carte, booster ; sans elles (jeu pas redemarre), les
-    cartes gardent un liseré de couleur.
+    Images (Media\Podometre, Nano Banana) : cadre argente a bandeau, passe en
+    gris et teinte selon la rarete, parchemin du cartouche, dos de carte,
+    booster ; chaton du niveau et halo dessines par make_cadre.js. Carte :
+    l image en haut (creature en 3D sur son decor), le nom sur le bandeau,
+    le type et la rarete sur le parchemin, le niveau dans le chaton. Une
+    carte legendaire retournee fait son entree en grand.
     Aucune action protegee : la fenetre s ouvre aussi en combat.
 ----------------------------------------------------------------------------]]
 
@@ -24,12 +27,28 @@ ns.Pedo = ns.Pedo or {}
 local P = ns.Pedo
 
 local MEDIA = ns.MEDIA .. "Podometre\\"
--- mesures des images (make_pedo.js) : fractions de la carte
-local RATIO = 1.3877                     -- hauteur / largeur d une carte
-local ART = { l = 0.2025, r = 0.7914, t = 0.1085, b = 0.6014 }
-local PLATE = { l = 0.1494, r = 0.8457, t = 0.7375, b = 0.8870 }
-local TEX_FRAME, TEX_BACK, TEX_PACK = 355 / 512, 363 / 512, 392 / 512
+-- mesures des images (make_cadre.js) : fractions de la carte
+local RATIO = 1.2977                     -- hauteur / largeur d une carte (rubans compris)
+local ART = { l = 0.1248, r = 0.8739, t = 0.0638, b = 0.5328 }      -- fenetre de l image
+local RIBBON = { l = 0.1248, r = 0.8739, t = 0.5328, b = 0.6494 }   -- bandeau du nom
+local PANEL = { l = 0.1248, r = 0.8739, t = 0.6494, b = 0.9149 }    -- cartouche (parchemin)
+local GEM = { x = 0.1717, y = 0.1064, d = 0.1369 }                  -- chaton du niveau
+local HALO = { pad = 0.15, tex = 0.6489 }   -- marge de chaque cote, hauteur utile de l image
+local TEX_FRAME, TEX_BACK, TEX_PACK, TEX_PARCH = 332 / 512, 363 / 512, 392 / 512, 191 / 256
 local PACK_RATIO = 1.5325
+local ART_ASPECT = (ART.r - ART.l) / ((ART.b - ART.t) * RATIO)       -- largeur / hauteur
+-- ecran de chargement (4:3) dans la fenetre : le milieu, sur toute la hauteur
+local SCENE_U = math.max(0, (1 - ART_ASPECT / (4 / 3)) / 2)
+-- tuiles de zone (2 x 2, un carre) : rognees en haut et en bas (fenetre plus
+-- large que haute), sinon sur les cotes
+local TILE_CUT_V = ART_ASPECT >= 1 and (1 - 1 / ART_ASPECT) or 0
+local TILE_CUT_U = ART_ASPECT < 1 and (1 - ART_ASPECT) or 0
+-- parchemin (1200 x 896) dans le cartouche, bien plus large : le milieu
+local PARCH_H = (1200 / 896) / ((PANEL.r - PANEL.l) / ((PANEL.b - PANEL.t) * RATIO))
+local PARCH_V0, PARCH_V1 = (1 - PARCH_H) / 2 * TEX_PARCH, (1 + PARCH_H) / 2 * TEX_PARCH
+local INK = { 0.25, 0.17, 0.09 }   -- encre du parchemin
+-- camera des modeles 3D : recul (1 = cadrage du jeu), rotation (radians)
+local MODEL_DIST, MODEL_FACING = 1.05, 0.35
 
 local WIN_W, WIN_H = 780, 540
 local GRID_COLS, GRID_ROWS = 4, 2
@@ -83,25 +102,21 @@ local function newCard(parent, w)
     local c = CreateFrame("Button", nil, parent)
     c:SetSize(w, h)
     c.w, c.h = w, h
-    -- lueur (epique, legendaire)
+    -- zone de la carte (fractions) : gauche, haut, largeur, hauteur en pixels
+    local function box(r)
+        return math.floor(w * r.l + 0.5), math.floor(h * r.t + 0.5),
+            math.floor(w * (r.r - r.l) + 0.5), math.floor(h * (r.b - r.t) + 0.5)
+    end
+    -- halo (epique, legendaire) : la silhouette floue de la carte, teintee
+    local gw = w * (1 + 2 * HALO.pad)
     c.glow = c:CreateTexture(nil, "BACKGROUND", nil, -8)
-    c.glow:SetPoint("TOPLEFT", -5, 5)
-    c.glow:SetPoint("BOTTOMRIGHT", 5, -5)
-    c.glow:SetColorTexture(1, 1, 1, 0.3)
+    c.glow:SetSize(gw, gw * HALO.tex * 2)
+    c.glow:SetPoint("CENTER")
+    c.glow:SetTexture(MEDIA .. "halo")
+    c.glow:SetTexCoord(0, 1, 0, HALO.tex)
     c.glow:Hide()
-    -- liseré de secours (sans l image du cadre)
-    c.edge = c:CreateTexture(nil, "BACKGROUND", nil, -7)
-    c.edge:SetAllPoints()
-    c.edge:SetColorTexture(0.5, 0.5, 0.5, 1)
-    ns.NoSnap(c.edge)
-    c.bg = c:CreateTexture(nil, "BACKGROUND", nil, -6)
-    c.bg:SetPoint("TOPLEFT", 2, -2)
-    c.bg:SetPoint("BOTTOMRIGHT", -2, 2)
-    c.bg:SetColorTexture(0.07, 0.06, 0.09, 1)
-    ns.NoSnap(c.bg)
     -- image : la fenetre du cadre
-    local al, at = math.floor(w * ART.l + 0.5), math.floor(h * ART.t + 0.5)
-    local aw, ah = math.floor(w * (ART.r - ART.l) + 0.5), math.floor(h * (ART.b - ART.t) + 0.5)
+    local al, at, aw, ah = box(ART)
     c.artBg = c:CreateTexture(nil, "BORDER")
     c.artBg:SetPoint("TOPLEFT", al, -at)
     c.artBg:SetSize(aw, ah)
@@ -111,46 +126,108 @@ local function newCard(parent, w)
     c.icon:SetSize(isz, isz)
     c.icon:SetPoint("CENTER", c.artBg, "CENTER", 0, 0)
     c.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    -- tuiles de la carte du monde : 2 x 2, rognees sur les cotes
+    -- tuiles de la carte du monde : 2 x 2, rognees (TILE_CUT_U / _V)
     c.tiles = {}
     for i = 1, 4 do
         local t = c:CreateTexture(nil, "ARTWORK")
         t:SetSize(aw / 2, ah / 2)
         local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
         t:SetPoint("TOPLEFT", c.artBg, "TOPLEFT", col * aw / 2, -row * ah / 2)
+        t.coords = { col == 0 and TILE_CUT_U or 0, col == 1 and 1 - TILE_CUT_U or 1,
+                     row == 0 and TILE_CUT_V or 0, row == 1 and 1 - TILE_CUT_V or 1 }
         c.tiles[i] = t
     end
+    -- decor d un boss : ecran de chargement de son instance
+    c.scene = c:CreateTexture(nil, "ARTWORK", nil, -1)
+    c.scene:SetAllPoints(c.artBg)
+    c.scene:Hide()
     c.dim = c:CreateTexture(nil, "ARTWORK", nil, 3)
     c.dim:SetAllPoints(c.artBg)
     c.dim:SetColorTexture(0, 0, 0, 0.6)
-    -- cartouche du nom
-    local pl, pt = math.floor(w * PLATE.l + 0.5), math.floor(h * PLATE.t + 0.5)
-    local pw, ph = math.floor(w * (PLATE.r - PLATE.l) + 0.5), math.floor(h * (PLATE.b - PLATE.t) + 0.5)
-    c.plate = c:CreateTexture(nil, "BORDER")
-    c.plate:SetPoint("TOPLEFT", pl, -pt)
-    c.plate:SetSize(pw, ph)
-    c.plate:SetColorTexture(0.04, 0.035, 0.05, 1)
-    -- cadre (image argentee, teintee)
-    c.frame = c:CreateTexture(nil, "OVERLAY")
+    -- cartouche : parchemin
+    local pl, pt, pw, ph = box(PANEL)
+    c.parch = c:CreateTexture(nil, "BORDER")
+    c.parch:SetPoint("TOPLEFT", pl, -pt)
+    c.parch:SetSize(pw, ph)
+    c.parch:SetTexture(MEDIA .. "parchemin")
+    c.parch:SetTexCoord(0, 1, PARCH_V0, PARCH_V1)
+    -- creature en 3D : un cadre fils se dessine au-dessus de toutes les
+    -- textures de la carte ; le cadre argente, le nom et les marques passent
+    -- donc dans c.over, au-dessus du modele
+    c.model = CreateFrame("PlayerModel", nil, c)
+    c.model:SetAllPoints(c.artBg)
+    c.model:SetFrameLevel(c:GetFrameLevel() + 1)
+    pcall(c.model.SetKeepModelOnHide, c.model, true)
+    c.model:Hide()
+    c.over = CreateFrame("Frame", nil, c)
+    c.over:SetAllPoints()
+    c.over:SetFrameLevel(c:GetFrameLevel() + 2)
+    -- cadre (image argentee, teintee) ; le chaton dessous, dans son anneau
+    c.frame = c.over:CreateTexture(nil, "OVERLAY")
     c.frame:SetAllPoints()
-    c.frame:SetTexture(MEDIA .. "cadre")
+    c.frame:SetTexture(MEDIA .. "cadre2")
     c.frame:SetTexCoord(0, 1, 0, TEX_FRAME)
+    local gd = math.floor(w * GEM.d * 0.92 + 0.5)
+    c.gem = c.over:CreateTexture(nil, "ARTWORK")
+    c.gem:SetSize(gd, gd)
+    c.gem:SetPoint("CENTER", c, "TOPLEFT", w * GEM.x, -h * GEM.y)
+    c.gem:SetTexture(MEDIA .. "gemme")
+    c.lvl = text(c.over, "GameFontHighlightSmall", math.max(7, math.floor(gd * 0.48 + 0.5)), "OUTLINE")
+    c.lvl:SetPoint("CENTER", c.gem, "CENTER", 0, 0)
+    -- nom : sur le bandeau, une ligne
     local fsz = math.max(8, math.floor(w / 11 + 0.5))
-    c.name = text(c, "GameFontHighlightSmall", fsz, "OUTLINE")
-    c.name:SetPoint("TOPLEFT", c.plate, "TOPLEFT", 3, -1)
-    c.name:SetPoint("BOTTOMRIGHT", c.plate, "BOTTOMRIGHT", -3, 1)
+    local rl, rt, rw, rh = box(RIBBON)
+    c.name = text(c.over, "GameFontHighlightSmall", fsz, "OUTLINE")
+    c.name:SetPoint("TOPLEFT", c, "TOPLEFT", rl + 2, -rt)
+    c.name:SetSize(rw - 4, rh)
     c.name:SetJustifyH("CENTER")
     c.name:SetJustifyV("MIDDLE")
-    c.num = text(c, "GameFontDisableSmall", math.max(7, fsz - 2), "OUTLINE")
-    c.num:SetPoint("BOTTOM", c, "BOTTOM", 0, math.floor(h * 0.035 + 0.5))
-    c.qmark = text(c, "GameFontNormalHuge", math.floor(aw * 0.45 + 0.5), "OUTLINE")
+    pcall(c.name.SetWordWrap, c.name, false)
+    -- cartouche : type (ou serie), rarete, numero ; encre sur le parchemin
+    local psz = math.max(7, math.floor(w / 14 + 0.5))
+    c.sub = text(c.over, "GameFontNormalSmall", psz)
+    c.sub:SetPoint("TOP", c, "TOPLEFT", pl + pw / 2, -(pt + math.floor(ph * 0.16 + 0.5)))
+    c.sub:SetWidth(pw - 6)
+    pcall(c.sub.SetWordWrap, c.sub, false)
+    c.sub:SetTextColor(INK[1], INK[2], INK[3])
+    c.rar = text(c.over, "GameFontNormalSmall", psz)
+    c.rar:SetPoint("TOP", c.sub, "BOTTOM", 0, -2)
+    c.rar:SetWidth(pw - 6)
+    c.num = text(c.over, "GameFontNormalSmall", math.max(6, psz - 1))
+    c.num:SetPoint("BOTTOMRIGHT", c, "TOPLEFT", pl + pw - 3, -(pt + ph - 2))
+    c.num:SetTextColor(INK[1] + 0.25, INK[2] + 0.2, INK[3] + 0.15)
+    c.qmark = text(c.over, "GameFontNormalHuge", math.floor(aw * 0.45 + 0.5), "OUTLINE")
     c.qmark:SetPoint("CENTER", c.artBg, "CENTER", 0, 0)
     c.qmark:SetText("?")
     c.qmark:SetTextColor(0.7, 0.7, 0.75)
-    c.new = text(c, "GameFontNormalSmall", math.max(8, fsz - 1), "OUTLINE")
+    c.new = text(c.over, "GameFontNormalSmall", math.max(8, fsz - 1), "OUTLINE")
     c.new:SetPoint("TOP", c.artBg, "TOP", 0, -3)
     c.new:SetText(L.PEDO_NEW)
     c.new:SetTextColor(1, 0.82, 0)
+    c.nameSize, c.nameW = fsz, rw - 4
+    -- ombre portee (la silhouette floue, en noir, decalee)
+    c.shadow = c:CreateTexture(nil, "BACKGROUND", nil, -7)
+    c.shadow:SetSize(gw, gw * HALO.tex * 2)
+    c.shadow:SetPoint("CENTER", c, "CENTER", math.max(2, w / 40), -math.max(3, w / 30))
+    c.shadow:SetTexture(MEDIA .. "halo")
+    c.shadow:SetTexCoord(0, 1, 0, HALO.tex)
+    c.shadow:SetVertexColor(0, 0, 0)
+    c.shadow:SetAlpha(0.7)
+    -- carte manquante : une case vide, son numero et ou la trouver
+    c.slot = c:CreateTexture(nil, "BORDER")
+    c.slot:SetAllPoints()
+    c.slot:SetTexture(MEDIA .. "case")
+    c.slot:SetTexCoord(0, 1, 0, TEX_FRAME)
+    c.slotNum = text(c, "GameFontNormalHuge", math.max(10, math.floor(w / 6 + 0.5)))
+    c.slotNum:SetPoint("CENTER", c, "TOP", 0, -h * 0.38)
+    c.slotNum:SetTextColor(0.62, 0.5, 0.3, 0.55)
+    c.slotHint = text(c, "GameFontNormalSmall", math.max(7, math.floor(w / 12 + 0.5)))
+    c.slotHint:SetPoint("TOP", c.slotNum, "BOTTOM", 0, -math.floor(h * 0.06 + 0.5))
+    c.slotHint:SetWidth(w - 18)
+    c.slotHint:SetTextColor(0.6, 0.53, 0.42, 0.75)
+    c.empty = { c.slot, c.slotNum, c.slotHint }
+    -- face d une carte possedee
+    c.face = { c.artBg, c.parch, c.frame, c.gem, c.lvl, c.name, c.sub, c.rar, c.num, c.shadow }
     -- dos (boosters) : un cadre au-dessus de la carte, pas une texture de
     -- la carte (le jeu dessine les textes par-dessus les textures de leur
     -- couche : le nom se voyait a travers le dos)
@@ -165,55 +242,133 @@ local function newCard(parent, w)
     return c
 end
 
+-- modele 3D d une creature : charge une fois par cadre (le jeu le garde
+-- cache), en pied, tourne un peu vers la gauche
+local function showModel(m, disp)
+    m:Show()
+    if m.disp == disp then return end
+    m.disp = disp
+    pcall(m.ClearModel, m)
+    pcall(m.SetDisplayInfo, m, disp)
+    pcall(m.SetPortraitZoom, m, 0)
+    pcall(m.SetCamDistanceScale, m, MODEL_DIST)
+    pcall(m.SetRotation, m, MODEL_FACING)
+end
+
+-- face ou case vide
+local function setFace(card, on)
+    for _, r in ipairs(card.face) do r:SetShown(on) end
+    for _, r in ipairs(card.empty) do r:SetShown(not on) end
+end
+
+-- nom sur le bandeau : la taille baisse jusqu a ce qu il tienne
+local function fitName(card, s)
+    card.name:SetText(s)
+    local size = card.nameSize
+    font(card.name, size, "OUTLINE")
+    while size > 7 and (card.name:GetStringWidth() or 0) > card.nameW do
+        size = size - 1
+        font(card.name, size, "OUTLINE")
+    end
+end
+
+-- tout ce qui montre une image dans la fenetre de la carte : cache
+local function clearArt(card)
+    for _, t in ipairs(card.tiles) do t:Hide() end
+    card.icon:Hide()
+    card.scene:Hide()
+    card.model:Hide()
+    card.glow:Hide()
+    card.dim:Hide()
+    card.qmark:Hide()
+    card.new:Hide()
+end
+
+-- carte manquante : une case vide, son numero, et ou la trouver (le lieu
+-- d une creature, sinon la serie)
+local function paintEmpty(card, c)
+    clearArt(card)
+    setFace(card, false)
+    card.slotNum:SetText("#" .. (c.num or c.index))
+    card.slotHint:SetText(c.disp and P.CardPlace(c) or (L["PEDO_SERIES_" .. string.upper(c.s)] or ""))
+end
+
 -- remplit une carte ; owned : la carte est-elle dans le classeur montre
 local function paintCard(card, c, owned, isNew)
     card.card = c
     if not c then card:Hide() return end
     card:Show()
+    if not owned then paintEmpty(card, c) return end
+    setFace(card, true)
     local r1, g1, b1 = tint(c.r)
     local col = rarityRGB(c.r)
-    for _, t in ipairs(card.tiles) do t:Hide() end
-    card.icon:Hide()
-    local tiles = c.map and P.CardTiles(c)
-    if tiles then
+    clearArt(card)
+    local tiles = P.CardTiles(c)
+    local scene = not tiles and P.CardScene(c)
+    if scene then
+        card.scene:SetTexture(scene)
+        card.scene:SetTexCoord(SCENE_U, 1 - SCENE_U, 0, 1)
+        pcall(card.scene.SetDesaturated, card.scene, not owned)
+        card.scene:Show()
+    elseif tiles then
         local cols, rows = tiles.cols, tiles.rows
         local c0 = cols >= 2 and (math.floor((cols - 2) / 2) + 1) or 1
         local r0 = rows >= 2 and (math.floor((rows - 2) / 2) + 1) or 1
-        local cut = 0.139   -- rognage des cotes (fenetre plus haute que large)
         for i = 1, 4 do
             local cc, rr = c0 + (i - 1) % 2, r0 + math.floor((i - 1) / 2)
             local id = tiles.tex[(rr - 1) * cols + cc]
             local t = card.tiles[i]
             if id and cc <= cols and rr <= rows then
                 t:SetTexture(id)
-                if (i - 1) % 2 == 0 then t:SetTexCoord(cut, 1, 0, 1) else t:SetTexCoord(0, 1 - cut, 0, 1) end
+                t:SetTexCoord(t.coords[1], t.coords[2], t.coords[3], t.coords[4])
                 pcall(t.SetDesaturated, t, not owned)
                 t:Show()
             end
         end
-    else
+    elseif not c.disp then
         card.icon:SetTexture(P.CardIcon(c) or "Interface\\Icons\\INV_Misc_QuestionMark")
         pcall(card.icon.SetDesaturated, card.icon, not owned)
         card.icon:Show()
     end
+    -- creature : en 3D sur son decor
+    if c.disp then showModel(card.model, c.disp) end
     card.artBg:SetColorTexture(col[1] * 0.18, col[2] * 0.18, col[3] * 0.18, 1)
-    card.dim:SetShown(not owned)
-    card.qmark:SetShown(not owned)
-    if owned then
-        card.frame:SetVertexColor(r1, g1, b1)
-        card.edge:SetColorTexture(col[1], col[2], col[3], 1)
-        card.name:SetText(P.CardName(c))
-        card.name:SetTextColor(math.min(1, col[1] + 0.25), math.min(1, col[2] + 0.25), math.min(1, col[3] + 0.25))
-    else
-        card.frame:SetVertexColor(0.38, 0.38, 0.4)
-        card.edge:SetColorTexture(0.3, 0.3, 0.32, 1)
-        card.name:SetText("???")
-        card.name:SetTextColor(0.55, 0.55, 0.6)
-    end
+    card.frame:SetVertexColor(r1, g1, b1)
+    card.gem:SetVertexColor(col[1], col[2], col[3])
+    fitName(card, P.CardName(c))
+    card.name:SetTextColor(1, 1, 1)
+    -- cartouche : le type d une creature, sinon la serie ; puis la rarete,
+    -- dans sa couleur assombrie (lisible sur le parchemin)
+    card.sub:SetText(c.disp and P.CardTypeName(c) or (L["PEDO_SERIES_" .. string.upper(c.s)] or ""))
+    card.rar:SetText(L["PEDO_R" .. c.r] or "")
+    card.rar:SetTextColor(col[1] * 0.7, col[2] * 0.7, col[3] * 0.7)
+    card.lvl:SetText(c.disp and ((c.lvl or 0) >= 63 and "??" or tostring(c.lvl or "")) or "")
     card.num:SetText("#" .. (c.num or c.index))
-    card.new:SetShown(owned and isNew and true or false)
-    card.glow:SetShown(owned and c.r >= 4)
-    if owned and c.r >= 4 then card.glow:SetColorTexture(col[1], col[2], col[3], 0.28) end
+    card.new:SetShown(isNew and true or false)
+    if c.r >= 4 then
+        card.glow:SetVertexColor(col[1], col[2], col[3])
+        card.glow:SetAlpha(0.75)
+        card.glow:Show()
+    end
+end
+
+-- face cachee (booster) : rien ne trahit la carte autour du dos, ni le
+-- halo (il depasse du dos), ni le cadre et le chaton teintes (coins et
+-- rubans du dos) ; la vraie face n est peinte qu au retournement
+local function paintFaceDown(card, c)
+    card.card = c
+    if not c then card:Hide() return end
+    card:Show()
+    clearArt(card)
+    setFace(card, true)
+    card.artBg:SetColorTexture(0.12, 0.1, 0.16, 1)
+    card.frame:SetVertexColor(0.38, 0.38, 0.4)
+    card.gem:SetVertexColor(0.4, 0.4, 0.42)
+    card.name:SetText("")
+    card.lvl:SetText("")
+    card.sub:SetText("")
+    card.rar:SetText("")
+    card.num:SetText("")
 end
 
 local function cardTooltip(card)
@@ -228,6 +383,10 @@ local function cardTooltip(card)
         t:AddLine(owned and P.CardName(c) or L.PEDO_MISSING, col[1], col[2], col[3])
     end
     t:AddLine(L["PEDO_SERIES_" .. string.upper(c.s)] .. " · " .. L["PEDO_R" .. c.r], 0.8, 0.8, 0.8)
+    if c.disp then
+        t:AddLine(P.CardPlace(c), 1, 0.82, 0)
+        if owned then t:AddLine(P.CardCreatureInfo(c), 0.8, 0.8, 0.8) end
+    end
     local hint = P.CardHint(c)
     if hint then t:AddLine(hint, 0.6, 0.8, 1, true) end
     t:Show()
@@ -239,13 +398,77 @@ end
 
 local refreshPage
 
+-- habillage propre au classeur (pas le cadre commun de CorpUI) : fond chaud,
+-- filets dores a losanges, titres dans la police des quetes du jeu
+local GOLD = { 0.86, 0.69, 0.38 }
+local TAB_ON, TAB_OFF, TAB_HOVER = { 1, 0.84, 0.5 }, { 0.62, 0.56, 0.46 }, { 0.92, 0.85, 0.7 }
+local LATIN = { enUS = true, enGB = true, frFR = true, deDE = true, esES = true, esMX = true, ptBR = true, itIT = true }
+
+-- titre : Morpheus (police des quetes) ; elle n a que l alphabet latin
+local function titleFont(fs, size)
+    local ok, set = false, nil
+    if LATIN[GetLocale()] then ok, set = pcall(fs.SetFont, fs, "Fonts\\MORPHEUS.TTF", size, "") end
+    if not ok or set == false then ns.UI.HeadFont(fs, size - 4) end
+end
+
+local function diamond(parent, size, a)
+    local t = parent:CreateTexture(nil, "ARTWORK")
+    t:SetSize(size, size)
+    t:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], a or 1)
+    pcall(t.SetRotation, t, math.pi / 4)
+    return t
+end
+
+-- filet dore horizontal, plus vif au milieu (losange), qui s eteint aux bouts
+local function fadeLine(parent, y, x0, x1)
+    local half = (x1 - x0) / 2 - 7
+    for side = 0, 1 do
+        local l = parent:CreateTexture(nil, "BORDER")
+        l:SetColorTexture(1, 1, 1, 1)
+        l:SetSize(half, 1)
+        l:SetPoint("TOPLEFT", parent, "TOPLEFT", side == 0 and x0 or (x1 - half), y)
+        local dim, lit = CreateColor and CreateColor(GOLD[1], GOLD[2], GOLD[3], 0), CreateColor and CreateColor(GOLD[1], GOLD[2], GOLD[3], 0.75)
+        if not (dim and pcall(l.SetGradient, l, "HORIZONTAL", side == 0 and dim or lit, side == 0 and lit or dim)) then
+            l:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 0.4)
+        end
+    end
+    diamond(parent, 6, 0.9):SetPoint("CENTER", parent, "TOPLEFT", (x0 + x1) / 2, y - 0.5)
+end
+
+-- fond et liseré de la fenetre
+local function dress(f)
+    local bg = f:CreateTexture(nil, "BACKGROUND", nil, -8)
+    bg:SetAllPoints()
+    bg:SetTexture(MEDIA .. "fond")
+    local function edge(x0, y0, x1, y1, r, g, b, a)
+        local t = f:CreateTexture(nil, "BORDER")
+        t:SetColorTexture(r, g, b, a)
+        t:SetPoint("TOPLEFT", f, "TOPLEFT", x0, -y0)
+        t:SetPoint("BOTTOMRIGHT", f, "TOPLEFT", x1, -y1)
+    end
+    local w, h = f:GetWidth(), f:GetHeight()
+    -- bord noir, puis filet dore en retrait
+    edge(0, 0, w, 1, 0, 0, 0, 1) edge(0, h - 1, w, h, 0, 0, 0, 1)
+    edge(0, 0, 1, h, 0, 0, 0, 1) edge(w - 1, 0, w, h, 0, 0, 0, 1)
+    local i = 5
+    edge(i, i, w - i, i + 1, GOLD[1], GOLD[2], GOLD[3], 0.7) edge(i, h - i - 1, w - i, h - i, GOLD[1], GOLD[2], GOLD[3], 0.7)
+    edge(i, i, i + 1, h - i, GOLD[1], GOLD[2], GOLD[3], 0.7) edge(w - i - 1, i, w - i, h - i, GOLD[1], GOLD[2], GOLD[3], 0.7)
+    for _, p in ipairs({ { i, i }, { w - i, i }, { i, h - i }, { w - i, h - i } }) do
+        diamond(f, 7):SetPoint("CENTER", f, "TOPLEFT", p[1] + 0.5, -p[2] - 0.5)
+    end
+end
+
+local function paintTab(t, hover)
+    local on = t.key == current
+    local c = on and TAB_ON or (hover and TAB_HOVER or TAB_OFF)
+    t.label:SetTextColor(c[1], c[2], c[3])
+    t.line:SetShown(on)
+end
+
 local function selectTab(key)
     current = key
     for k, f in pairs(pages) do f:SetShown(k == key) end
-    for _, t in ipairs(tabs) do
-        local on = t.key == key
-        t:SetBackdropBorderColor((on and C.gold or C.border)[1], (on and C.gold or C.border)[2], (on and C.gold or C.border)[3], 1)
-    end
+    for _, t in ipairs(tabs) do paintTab(t) end
     refreshPage()
 end
 
@@ -293,7 +516,18 @@ local function buildBinder(page)
     end, function() return B.rarity end, function(v) B.rarity = v B.page = 1 B.sel = nil end, function() refreshPage() end)
     p.rarity:SetPoint("LEFT", p.series, "RIGHT", 8, 0)
     p.count = text(p, "GameFontNormal")
-    p.count:SetPoint("LEFT", p.rarity, "RIGHT", 14, 0)
+    p.count:SetPoint("LEFT", p.rarity, "RIGHT", 14, 3)
+    p.count:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
+    -- avancement de la collection (filtres en cours) : un filet dore
+    p.progress = CreateFrame("StatusBar", nil, p)
+    p.progress:SetSize(150, 3)
+    p.progress:SetPoint("TOPLEFT", p.count, "BOTTOMLEFT", 0, -3)
+    p.progress:SetStatusBarTexture(ns.BAR_TEXTURE)
+    p.progress:SetStatusBarColor(GOLD[1], GOLD[2], GOLD[3])
+    p.progress:SetMinMaxValues(0, 1)
+    local pbg = p.progress:CreateTexture(nil, "BACKGROUND")
+    pbg:SetAllPoints()
+    pbg:SetColorTexture(0, 0, 0, 0.6)
     -- classeur d un autre joueur : bandeau
     p.viewing = text(p, "GameFontNormal")
     p.viewing:SetPoint("TOPRIGHT", p, "TOPRIGHT", -150, -10)
@@ -304,7 +538,7 @@ local function buildBinder(page)
     for i = 1, PER_PAGE do
         local card = newCard(p, 112)
         local col, row = (i - 1) % GRID_COLS, math.floor((i - 1) / GRID_COLS)
-        card:SetPoint("TOPLEFT", p, "TOPLEFT", 12 + col * 124, -40 - row * 169)
+        card:SetPoint("TOPLEFT", p, "TOPLEFT", 18 + col * 128, -44 - row * 168)
         card:SetScript("OnEnter", cardTooltip)
         card:SetScript("OnLeave", ns.HideTooltip)
         card:SetScript("OnClick", function(self)
@@ -318,6 +552,7 @@ local function buildBinder(page)
     p.pageText = text(p, "GameFontHighlight")
     p.pageText:SetPoint("LEFT", p.prev, "RIGHT", 10, 0)
     p.pageText:SetWidth(110)
+    p.pageText:SetTextColor(TAB_HOVER[1], TAB_HOVER[2], TAB_HOVER[3])
     p.next = ns.UI.Button(p, ">", 30, function() B.page = B.page + 1 refreshPage() end)
     p.next:SetPoint("LEFT", p.pageText, "RIGHT", 10, 0)
     -- carte en grand
@@ -326,11 +561,14 @@ local function buildBinder(page)
     p.big:SetScript("OnEnter", cardTooltip)
     p.big:SetScript("OnLeave", ns.HideTooltip)
     p.bigName = text(p, "GameFontNormalLarge")
-    p.bigName:SetPoint("TOP", p.big, "BOTTOM", 0, -8)
+    titleFont(p.bigName, 18)
+    p.bigName:SetShadowOffset(1, -1)
+    p.bigName:SetPoint("TOP", p.big, "BOTTOM", 0, -10)
     p.bigName:SetWidth(240)
     p.bigInfo = text(p, "GameFontHighlightSmall")
     p.bigInfo:SetPoint("TOP", p.bigName, "BOTTOM", 0, -4)
     p.bigInfo:SetWidth(240)
+    p.bigInfo:SetTextColor(TAB_HOVER[1], TAB_HOVER[2], TAB_HOVER[3])
     p.bigHint = text(p, "GameFontDisableSmall")
     p.bigHint:SetPoint("TOP", p.bigInfo, "BOTTOM", 0, -4)
     p.bigHint:SetWidth(240)
@@ -356,6 +594,7 @@ local function refreshBinder(p)
     local own = 0
     for _, c in ipairs(list) do if ownedHere(c.id) then own = own + 1 end end
     p.count:SetText(string.format(L.PEDO_COUNT, own, #list, #list > 0 and math.floor(own / #list * 100 + 0.5) or 0))
+    p.progress:SetValue(#list > 0 and own / #list or 0)
     p.viewing:SetShown(view ~= nil)
     p.back:SetShown(view ~= nil)
     if view then p.viewing:SetText(string.format(L.PEDO_VIEWING, shortName(view.name))) end
@@ -389,6 +628,10 @@ local function refreshBinder(p)
         " · #" .. (sel.num or sel.index) .. "/" .. ((P.seriesCount and P.seriesCount[sel.s]) or "?"))
     local hint = P.CardHint(sel)
     if not hint and not owned and sel.s ~= "trophees" then hint = L.PEDO_MISSING_HINT end
+    -- creature : ou la trouver, puis (si on l a) niveau et type
+    if sel.disp then
+        hint = "|cffffd100" .. P.CardPlace(sel) .. "|r\n" .. (owned and P.CardCreatureInfo(sel) or hint or "")
+    end
     p.bigHint:SetText(hint or "")
     if not view and not owned and sel.s ~= "trophees" then
         p.craft:SetText(string.format(L.PEDO_CRAFT, P.CRAFT[sel.r]))
@@ -403,8 +646,64 @@ end
 -- Onglet Boosters (ouverture animee)
 ---------------------------------------------------------------------------
 
-local reveal          -- { ids, results, start, flipAt = {}, done = {} }
+local reveal          -- { ids, results, start, flipAt = {}, done = {}, face = {} }
 local FLIP_GAP, FLIP_TIME = 0.45, 0.28
+local STAGE_TIME = 4.5   -- entree en scene d une legendaire (s), un clic l abrege
+
+-- entree en scene : la carte en grand sur fond sombre, qui grandit, halo
+-- battant, creature qui tourne lentement ; les retournements attendent
+local function buildStage(p)
+    local s = CreateFrame("Button", nil, p.show)
+    s:SetAllPoints(p)
+    s:SetFrameLevel(p.show:GetFrameLevel() + 30)
+    s.bg = s:CreateTexture(nil, "BACKGROUND")
+    s.bg:SetAllPoints()
+    s.bg:SetColorTexture(0, 0, 0, 0.85)
+    s.card = newCard(s, 230)
+    s.card:SetPoint("CENTER", s, "CENTER", 0, 24)
+    s.card:EnableMouse(false)
+    s.title = text(s, "GameFontNormalHuge", 22, "OUTLINE")
+    s.title:SetPoint("TOP", s.card, "BOTTOM", 0, -12)
+    s.sub = text(s, "GameFontNormalLarge", 14, "OUTLINE")
+    s.sub:SetPoint("TOP", s.title, "BOTTOM", 0, -4)
+    s:SetScript("OnClick", function(self) self:Hide() end)
+    s:SetScript("OnUpdate", function(self)
+        local age = GetTime() - (self.at or 0)
+        local k = math.min(1, age / 0.45)
+        self:SetAlpha(math.min(1, age / 0.25))
+        self.card:SetScale(0.55 + 0.45 * (1 - (1 - k) ^ 3))
+        self.card.glow:SetAlpha(0.6 + 0.4 * math.abs(math.sin(age * 2.5)))
+        local m = self.card.model
+        if m:IsShown() then pcall(m.SetRotation, m, MODEL_FACING + age * 0.6) end
+        if age > STAGE_TIME then self:Hide() end
+    end)
+    -- fermee : les cartes suivantes reprennent leur retournement
+    s:SetScript("OnHide", function()
+        if not reveal then return end
+        for i = 1, #reveal.ids do
+            if not reveal.flipAt[i] then
+                reveal.start = GetTime() + 0.35 - 0.6 - (i - 1) * FLIP_GAP
+                break
+            end
+        end
+    end)
+    s:Hide()
+    p.stage = s
+end
+
+local function showStage(p, c)
+    local s = p.stage
+    local col = rarityRGB(c.r)
+    s.card.owned = true
+    paintCard(s.card, c, true, false)
+    s.card.new:Hide()
+    s.title:SetText(P.CardName(c))
+    s.title:SetTextColor(col[1], col[2], col[3])
+    s.sub:SetText((L["PEDO_R" .. c.r] or "") .. (c.disp and ("  ·  " .. P.CardPlace(c)) or ""))
+    s.at = GetTime()
+    s:SetAlpha(0)
+    s:Show()
+end
 
 local function buildPacks(page)
     local p = page
@@ -465,14 +764,27 @@ local function buildPacks(page)
     p.nextPack:SetPoint("BOTTOM", p.show, "BOTTOM", -110, 40)
     p.toBinder = ns.UI.Button(p.show, L.PEDO_SEE_BINDER, 200, function() reveal = nil selectTab("binder") end)
     p.toBinder:SetPoint("BOTTOM", p.show, "BOTTOM", 110, 40)
-    -- animation : retournement des cartes une a une
+    buildStage(p)
+    -- animation : retournement des cartes une a une (en pause pendant
+    -- l entree en scene d une legendaire)
     p.show:SetScript("OnUpdate", function()
         if not reveal then return end
         local now = GetTime()
         for i = 1, #reveal.ids do
             local card = p.revealCards[i]
-            if not reveal.flipAt[i] and now >= reveal.start + 0.6 + (i - 1) * FLIP_GAP then reveal.flipAt[i] = now end
+            if not reveal.flipAt[i] and not p.stage:IsShown() and now >= reveal.start + 0.6 + (i - 1) * FLIP_GAP then
+                reveal.flipAt[i] = now
+            end
             local t0 = reveal.flipAt[i]
+            -- debut du retournement : la vraie face, sous le dos encore opaque
+            if t0 and not reveal.face[i] then
+                reveal.face[i] = true
+                paintCard(card, P.byId[reveal.ids[i]], true, false)
+                card.new:Hide()
+                card.name:SetAlpha(0)
+                card.num:SetAlpha(0)
+                card.glow:SetAlpha(1)
+            end
             if t0 and not reveal.done[i] then
                 local k = math.min(1, (now - t0) / FLIP_TIME)
                 card.back:SetAlpha(1 - k)
@@ -494,6 +806,7 @@ local function buildPacks(page)
                         cap:SetTextColor(0.7, 0.7, 0.75)
                     end
                     P.Sound(SOUND_OF[c and c.r or 1])
+                    if c and c.r >= 5 then showStage(p, c) end
                 end
             end
             -- lueur des grandes raretes une fois retournees
@@ -555,22 +868,18 @@ function P.OpenNextPack()
         results[i] = { what = what, gain = gain }
     end
     d.opened = (d.opened or 0) + 1
-    reveal = { ids = ids, results = results, start = GetTime(), flipAt = {}, done = {},
+    reveal = { ids = ids, results = results, start = GetTime(), flipAt = {}, done = {}, face = {},
                title = (L["PEDO_PACK_" .. string.upper(pack.k)] or "") .. " · " .. P.WhyText(pack) }
     local p = pages.packs
+    p.stage:Hide()
     for i = 1, 5 do
         local card = p.revealCards[i]
         local c = P.byId[ids[i]]
         card.owned = true
-        paintCard(card, c, true, false)
-        card.new:Hide()
-        -- face cachee : rien de la carte ne doit se voir
-        card.name:SetAlpha(0)
-        card.num:SetAlpha(0)
+        paintFaceDown(card, c)
         card.back:Show()
         card.back:SetAlpha(1)
         card:SetScale(1)
-        card.glow:SetAlpha(1)
         p.captions[i]:SetText("")
         p.slots[i]:SetShown(c ~= nil)
     end
@@ -857,7 +1166,7 @@ local function build()
     win:SetClampedToScreen(true)
     win:EnableMouse(true)
     win:SetMovable(true)
-    ns.UI.Skin(win, 0.97, true)
+    dress(win)
     win:Hide()
     -- barre de titre (glisser pour deplacer)
     local bar = CreateFrame("Frame", nil, win)
@@ -873,28 +1182,45 @@ local function build()
         d.opt.pos = { point = point or "CENTER", x = x or 0, y = y or 0 }
     end)
     local title = bar:CreateFontString(nil, "OVERLAY")
-    ns.UI.HeadFont(title, 14)
-    title:SetPoint("LEFT", 10, 0)
-    title:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
+    titleFont(title, 21)
+    title:SetPoint("LEFT", 18, -3)
+    title:SetTextColor(TAB_ON[1], TAB_ON[2], TAB_ON[3])
+    title:SetShadowOffset(1, -1)
     title:SetText(L.PEDO_BINDER)
     local close = CreateFrame("Button", nil, bar)
     close:SetSize(22, 22)
-    close:SetPoint("RIGHT", -4, 0)
+    close:SetPoint("RIGHT", -10, -2)
     local x = close:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     x:SetPoint("CENTER")
     x:SetText("×")
+    x:SetTextColor(TAB_OFF[1], TAB_OFF[2], TAB_OFF[3])
+    close:SetScript("OnEnter", function() x:SetTextColor(TAB_ON[1], TAB_ON[2], TAB_ON[3]) end)
+    close:SetScript("OnLeave", function() x:SetTextColor(TAB_OFF[1], TAB_OFF[2], TAB_OFF[3]) end)
     close:SetScript("OnClick", function() win:Hide() end)
     win.shards = text(bar, "GameFontNormal")
     win.shards:SetPoint("RIGHT", close, "LEFT", -12, 0)
-    -- onglets
+    win.shards:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
+    -- onglets : du texte souligne d or quand il est choisi ; puis un filet
+    fadeLine(win, -61, 16, WIN_W - 16)
     for i, key in ipairs({ "binder", "packs", "stats", "guild" }) do
-        local t = ns.UI.Button(win, tabLabel(key), 130, function() selectTab(key) end)
-        t:SetPoint("TOPLEFT", win, "TOPLEFT", 12 + (i - 1) * 138, -32)
+        local t = CreateFrame("Button", nil, win)
+        t:SetSize(140, 26)
+        t:SetPoint("TOPLEFT", win, "TOPLEFT", 16 + (i - 1) * 146, -33)
+        t.label = t:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        font(t.label, 13)
+        t.label:SetPoint("CENTER", 0, 1)
+        t:SetFontString(t.label)
+        t.line = t:CreateTexture(nil, "ARTWORK")
+        t.line:SetColorTexture(GOLD[1], GOLD[2], GOLD[3], 1)
+        t.line:SetHeight(2)
+        t.line:SetPoint("BOTTOMLEFT", 24, 0)
+        t.line:SetPoint("BOTTOMRIGHT", -24, 0)
         t.key = key
-        t:HookScript("OnLeave", function(self)
-            local on = self.key == current
-            self:SetBackdropBorderColor((on and C.gold or C.border)[1], (on and C.gold or C.border)[2], (on and C.gold or C.border)[3], 1)
-        end)
+        t:SetText(tabLabel(key))
+        t:SetScript("OnClick", function() selectTab(key) end)
+        t:SetScript("OnEnter", function(self) paintTab(self, true) end)
+        t:SetScript("OnLeave", function(self) paintTab(self, false) end)
+        paintTab(t)
         tabs[i] = t
         local page = CreateFrame("Frame", nil, win)
         page:SetPoint("TOPLEFT", win, "TOPLEFT", 0, -62)

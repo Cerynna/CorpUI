@@ -1,11 +1,21 @@
 Images du podometre de CorpUI
 
-cadre.tga (cadre de carte argente, teinte en jeu selon la rarete), dos.tga
-(dos de carte), booster.tga (booster)
+dos.tga (dos de carte), booster.tga (booster)
   Generees le 11/10/2026 avec Nano Banana Pro (Google, modele gemini-3-pro-image)
   pour CorpUI, puis detourees (fond vert) et posees en haut d un canevas de
   256 x 512 px.
 
-Les noms et images des cartes (zones, objets, montures) viennent du jeu
-lui-meme (World of Warcraft, Blizzard Entertainment) : CorpUI ne fait que les
-afficher.
+cadre2.tga (cadre de carte a bandeau, passe en gris, teinte en jeu selon la
+rarete), parchemin.tga (cartouche)
+  Generees le 06/11/2026 avec Nano Banana Pro (Google, modele gemini-3-pro-image)
+  pour CorpUI, puis detourees (fond vert) et posees en haut de leur canevas.
+
+gemme.tga (chaton du niveau), halo.tga (lueur des cartes epiques et
+legendaires, ombre portee), fond.tga (fond de la fenetre du classeur),
+case.tga (case d une carte manquante) : dessinees par programme pour CorpUI.
+
+Les noms et images des cartes (zones, objets, montures, ecrans de chargement
+des instances, modeles 3D des creatures) viennent du jeu lui-meme (World of
+Warcraft, Blizzard Entertainment) : CorpUI ne fait que les afficher. La liste
+des creatures (identifiants, modeles, niveaux) est tiree de la base CMaNGOS
+Classic (GPL-3.0), faits seulement.

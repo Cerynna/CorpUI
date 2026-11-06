@@ -13,6 +13,8 @@
         annee, total ; chaque personnage garde ses km par jour et son total ;
       - paliers -> boosters (Cartes.lua tire les cartes, Classeur.lua les
         montre) ; trophees selon les distances (Cartes.lua) ;
+      - butin : un cadavre de monstre fouille cache tres rarement un booster
+        (un par jour au plus) ;
       - guilde (joueurs CorpUI) : km de la semaine et classeur partages
         (option), message "PEDO" (ns.Comm), reponse en prive a une demande.
     Rien de protege, aucun crochet : nos cadres seulement.
@@ -227,13 +229,17 @@ end
 function P.WhyText(pack)
     if not pack then return "" end
     if pack.p == "welcome" then return L.PEDO_WHY_WELCOME end
+    if pack.p == "loot" then
+        return pack.n and string.format(L.PEDO_WHY_LOOT, pack.n) or L.PEDO_WHY_LOOT_ANY
+    end
     local fmt = L["PEDO_WHY_" .. string.upper(pack.p or "")]
     if not fmt then return "" end
     return string.format(fmt, kmValue(pack.d or 0))
 end
 
-local function givePack(kind, period, kmv)
-    local pack = { k = kind, p = period, d = kmv, t = time() }
+-- name : monstre qui l a laisse (booster de butin), si on le connait
+local function givePack(kind, period, kmv, name)
+    local pack = { k = kind, p = period, d = kmv, n = name, t = time() }
     table.insert(db.packs, pack)
     if P.Announce then P.Announce("pack", pack) end
     P.Changed("pack")
@@ -277,6 +283,89 @@ function P.NextMilestone(kind)
     local y = T[kind] or 0
     for _, ms in ipairs(P.MILESTONES[kind] or {}) do
         if y < ms[1] * KM then return ms[1], ms[2], y end
+    end
+end
+
+---------------------------------------------------------------------------
+-- Butin des monstres : un booster, exceptionnellement
+---------------------------------------------------------------------------
+
+local LOOT_CHANCE = 1 / 800      -- par cadavre de monstre fouille
+local LOOT_KINDS = { { 85, "normal" }, { 12, "rare" }, { 3, "epic" } }   -- % du booster trouve
+local lootSeen = {}              -- cadavres deja tires : rouvrir ou depecer ne refait pas de tirage
+local lootLast                   -- diag : ce qu a vu la derniere fouille
+
+-- type d un identifiant (Creature, Player, Pet, GameObject...) ; nil si illisible
+local function guidKind(g)
+    if type(g) ~= "string" or issecret(g) then return nil end
+    return (strsplit("-", g))
+end
+
+-- nom du monstre, s il est la cible ou sous la souris
+local function nameOf(g)
+    for _, u in ipairs({ "target", "mouseover" }) do
+        local ok, ug = pcall(UnitGUID, u)
+        if ok and type(ug) == "string" and not issecret(ug) and ug == g then
+            local okN, n = pcall(UnitName, u)
+            if okN and type(n) == "string" and not issecret(n) and n ~= "" then return n end
+        end
+    end
+end
+
+-- monstres dont vient le butin ouvert (jamais la peche, un coffre, un joueur)
+local function lootSources()
+    local list = {}
+    if flag(IsFishingLoot) then lootLast = "peche" return list end
+    local okN, n = pcall(GetNumLootItems)
+    n = okN and num(n) or 0
+    if type(GetLootSourceInfo) == "function" then
+        local seen = {}
+        for slot = 1, n do
+            -- identifiant, quantite, identifiant, quantite... (butin regroupe)
+            local r = { pcall(GetLootSourceInfo, slot) }
+            for i = 2, #r, 2 do
+                local g = r[i]
+                if guidKind(g) == "Creature" and not seen[g] then
+                    seen[g] = true
+                    list[#list + 1] = g
+                end
+            end
+        end
+        lootLast = string.format("%d emplacement(s), %d monstre(s)", n, #list)
+    end
+    -- repli (source illisible) : la cible, si c est un monstre mort
+    if #list == 0 and n > 0 then
+        local ok, g = pcall(UnitGUID, "target")
+        if ok and guidKind(g) == "Creature" and flag(UnitIsDead, "target") then
+            list[1] = g
+            lootLast = string.format("%d emplacement(s), la cible", n)
+        end
+    end
+    return list
+end
+
+local function lootKind()
+    local r, acc = math.random() * 100, 0
+    for _, e in ipairs(LOOT_KINDS) do
+        acc = acc + e[1]
+        if r < acc then return e[2] end
+    end
+    return "normal"
+end
+
+-- fouille d un cadavre : un tirage par monstre, un booster par jour au plus
+local function onLoot()
+    local K = keysNow()
+    for _, g in ipairs(lootSources()) do
+        if not lootSeen[g] then
+            lootSeen[g] = true
+            db.lootRolled = (db.lootRolled or 0) + 1
+            if db.lootDay ~= K.day and math.random() < LOOT_CHANCE then
+                db.lootDay = K.day
+                db.lootFound = (db.lootFound or 0) + 1
+                givePack(lootKind(), "loot", 0, nameOf(g))
+            end
+        end
     end
 end
 
@@ -557,6 +646,9 @@ local function diag()
     end
     local own, all = P.OwnedCount()
     say(string.format("  cartes : %d / %d   boosters en attente : %d   eclats : %d", own, all, #db.packs, db.shards or 0))
+    say(string.format("  butin : %d cadavre(s) tire(s), %d booster(s) trouve(s), aujourd hui : %s ; source : %s ; derniere fouille : %s",
+        db.lootRolled or 0, db.lootFound or 0, db.lootDay == keysNow().day and "deja trouve" or "possible",
+        type(GetLootSourceInfo) == "function" and "GetLootSourceInfo" or "cible", tostring(lootLast or "-")))
     say("  cartes inconnues du client : " .. (#missing > 0 and table.concat(missing, " ") or "aucune"))
 end
 
@@ -670,9 +762,12 @@ ev:SetScript("OnEvent", function(_, event)
         C_Timer.After(25, function() P.Share(true) end)
     elseif event == "PLAYER_ENTERING_WORLD" then
         last = nil
+    elseif (event == "LOOT_READY" or event == "LOOT_OPENED") and db then
+        -- les deux : avec le butin automatique, l un peut arriver fenetre deja videe
+        onLoot()
     end
 end)
-for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD" }) do
+for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "LOOT_READY", "LOOT_OPENED" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
 

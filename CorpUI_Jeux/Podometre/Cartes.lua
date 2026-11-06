@@ -3,6 +3,9 @@
       - series prises dans les donnees du jeu : le client donne le nom dans
         la langue du joueur et l image (tuiles de la carte du monde pour une
         zone, icone pour un objet ou une monture) ; trophees : nos textes ;
+      - creatures (Creatures.lua, genere par .github/scripts/cartes_donnees.js) :
+        boss de donjon et de raid, elites de zone ; modele 3D sur le decor de
+        leur instance (ecran de chargement) ou de leur zone (tuiles) ;
       - une carte inconnue du client (zone ou objet absent de ce jeu) est
         ecartee au chargement : ni tiree, ni comptee, ni montree ;
       - raretes 1 a 5 : commune, peu commune, rare, epique, legendaire ;
@@ -39,7 +42,7 @@ P.CRAFT = { 40, 100, 250, 1000, 4000 }    -- une carte manquante coute
 P.WEIGHTS = { 70, 22, 6, 1.6, 0.4 }       -- chances d une case de booster
 P.PACK_MIN = { normal = 2, rare = 3, epic = 4, legendary = 5 }
 P.PACK_SIZE = 5
-P.SERIES = { "zones", "objets", "montures", "trophees" }
+P.SERIES = { "zones", "objets", "montures", "elites", "donjons", "raids", "trophees" }
 
 local Z, O, M, T = "zones", "objets", "montures", "trophees"
 local ICON = "Interface\\Icons\\"
@@ -199,6 +202,14 @@ local CATALOG = {
     { id = "t_tourdefrance", s = T, icon = "Spell_Nature_Earthquake", r = 5, cond = function(s) return s.total >= km(3500) end },
     { id = "t_earth", s = T, icon = "Spell_Nature_EarthBindTotem", r = 5, cond = function(s) return s.total >= km(40075) end },
 }
+
+-- creatures (Creatures.lua) : a la suite, dans l ordre du fichier genere ;
+-- disp : modele 3D, at : instance (boss) ou carte de la zone (elite)
+local SERIES_OF = { D = "donjons", R = "raids", E = "elites" }
+for _, e in ipairs(P.CREATURES or {}) do
+    CATALOG[#CATALOG + 1] = { id = e[1], s = SERIES_OF[e[2]], r = e[3], npc = e[4], disp = e[5], lvl = e[6],
+        at = e[7], ctype = e[8], boss = e[2] ~= "E" }
+end
 P.CATALOG = CATALOG
 
 local byId = {}
@@ -260,6 +271,7 @@ end
 
 local function check(c)
     if c.s == T then return true end
+    if c.disp then return c.disp > 0 end
     if c.map then return mapInfo(c.map) ~= nil end
     if c.item then return itemExists(c.item) end
     return false
@@ -320,9 +332,16 @@ local function itemName(id)
     end
 end
 
+-- nom d une creature, d une instance (i<carte>), d un type (t<type>) :
+-- langue du client, sinon anglais
+local function creatureText(k)
+    return (P.CREATURE_NAMES and P.CREATURE_NAMES[k]) or (P.CREATURE_NAMES_EN and P.CREATURE_NAMES_EN[k])
+end
+
 function P.CardName(c)
     if not c then return "?" end
     if c.s == T then return L["PEDO_T_" .. string.upper(c.id:sub(3))] or c.id end
+    if c.disp then return creatureText(c.id) or "?" end
     if c.map then
         local info = mapInfo(c.map)
         return info and info.name or "?"
@@ -347,14 +366,43 @@ function P.CardIcon(c)
     end
 end
 
--- tuiles de la carte du monde d une zone : { tex = {fileID...}, cols, rows }
+-- creature : ou la trouver (instance d un boss, zone d un elite)
+function P.CardPlace(c)
+    if not c or not c.disp then return nil end
+    if c.boss then return creatureText("i" .. c.at) or "?" end
+    local info = mapInfo(c.at)
+    return info and info.name or "?"
+end
+
+-- creature : type ("Elementaire"), nom du jeu
+function P.CardTypeName(c)
+    if not c or not c.disp then return nil end
+    return creatureText("t" .. (c.ctype or 10)) or ""
+end
+
+-- creature : niveau et type ("Niveau ?? · Elementaire")
+function P.CardCreatureInfo(c)
+    if not c or not c.disp then return nil end
+    local lvl = (c.lvl or 0) >= 63 and "??" or tostring(c.lvl or "?")
+    return string.format(L.PEDO_CREATURE_INFO, lvl, creatureText("t" .. (c.ctype or 10)) or "?")
+end
+
+-- decor d un boss : ecran de chargement de son instance (fileID)
+function P.CardScene(c)
+    local inst = c and c.boss and P.INSTANCES and P.INSTANCES[c.at]
+    if inst and (inst.ls or 0) > 0 then return inst.ls end
+end
+
+-- tuiles de la carte du monde d une zone : { tex = {fileID...}, cols, rows } ;
+-- celle de la carte de zone, ou celle de la zone d un elite
 local tilesCache = {}
 function P.CardTiles(c)
-    if not c or not c.map then return nil end
-    if tilesCache[c.map] ~= nil then return tilesCache[c.map] or nil end
+    local map = c and (c.map or (c.disp and not c.boss and c.at))
+    if not map then return nil end
+    if tilesCache[map] ~= nil then return tilesCache[map] or nil end
     local res = false
-    local layers = call(C_Map and C_Map.GetMapArtLayers, c.map)
-    local tex = call(C_Map and C_Map.GetMapArtLayerTextures, c.map, 1)
+    local layers = call(C_Map and C_Map.GetMapArtLayers, map)
+    local tex = call(C_Map and C_Map.GetMapArtLayerTextures, map, 1)
     local L1 = type(layers) == "table" and layers[1]
     if type(L1) == "table" and type(tex) == "table" and #tex > 0
         and (L1.tileWidth or 0) > 0 and (L1.tileHeight or 0) > 0 then
@@ -364,7 +412,7 @@ function P.CardTiles(c)
             rows = math.max(1, math.ceil((L1.layerHeight or 0) / L1.tileHeight)),
         }
     end
-    tilesCache[c.map] = res
+    tilesCache[map] = res
     return res or nil
 end
 
