@@ -21,6 +21,7 @@
 
 local _, ns = ...
 local L = ns.L
+local issecret = issecretvalue or function() return false end
 
 local DEFAULT = "Default"
 local PREFIX = "CorpUI:1:"
@@ -30,7 +31,11 @@ local PREFIX = "CorpUI:1:"
 local KEYS = {
     theme = {}, font = {}, minimap = {}, movers = {},
     frames = { diag = true }, group = {}, bars = {}, cast = {}, auras = {}, menus = {},
-    xp = { chars = true }, map = {}, info = {}, quests = {}, bags = {}, chat = {},
+    xp = { chars = true }, map = {}, info = {}, quests = {}, bags = {},
+    -- chat : messages tapes, texte des fenetres garde d une session a
+    -- l autre, erreurs d habillage = donnees du compte, pas des reglages
+    -- (05/11 : 40 Ko sur 58 dans l export)
+    chat = { history = true, scroll = true, errors = true },
     tooltips = {}, damage = {}, plates = {}, skins = {}, shop = {},
     talents = { guide = true, stageBlocked = true },
     reminders = { choice = true }, reagents = { targets = true },
@@ -220,7 +225,10 @@ local function write(v, out)
         out[#out + 1] = "{"
         for k, x in pairs(v) do
             local tk, tx = type(k), type(x)
-            if (tk == "string" or tk == "number") and (tx == "table" or tx == "string" or tx == "number" or tx == "boolean") then
+            -- valeur secrete (rangee par un module pendant la session) :
+            -- illisible, sautee (sinon l export entier echoue)
+            if (tk == "string" or tk == "number") and (tx == "table" or tx == "string" or tx == "number" or tx == "boolean")
+                and not issecret(k) and not issecret(x) then
                 write(k, out)
                 out[#out + 1] = "="
                 write(x, out)
@@ -456,6 +464,10 @@ local function buildWindow()
     text:SetAutoFocus(false)
     text:SetFontObject("GameFontHighlightSmall")
     text:SetWidth(410)
+    text:SetHeight(60)
+    -- pas de limite de longueur (le texte d un profil depasse vite 255)
+    pcall(text.SetMaxLetters, text, 0)
+    pcall(text.SetMaxBytes, text, 0)
     text:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
     sf:SetScrollChild(text)
     sf:EnableMouseWheel(true)
@@ -466,9 +478,25 @@ local function buildWindow()
     box:EnableMouse(true)
     box:SetScript("OnMouseDown", function() text:SetFocus() end)
 
+    -- une erreur ici laissait la zone vide sans rien dire (erreurs Lua
+    -- masquees) : elle est dite dans le chat, et la longueur affichee
+    -- est verifiee (05/11)
     local exp = ns.UI.Button(win, L.PROF_EXPORT, 90, function()
-        saveLive()
-        text:SetText(export())
+        local ok, s = pcall(function()
+            saveLive()
+            return export()
+        end)
+        if not ok then
+            ns.Say(string.format(L.PROF_EXPORT_ERR, tostring(s)))
+            return
+        end
+        text:SetText(s)
+        local shown = #(text:GetText() or "")
+        if shown < #s then
+            ns.Say(string.format(L.PROF_EXPORT_CUT, shown, #s))
+        else
+            ns.Say(string.format(L.PROF_EXPORTED, #s))
+        end
         text:SetFocus()
         text:HighlightText()
     end)
