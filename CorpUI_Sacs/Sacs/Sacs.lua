@@ -3,9 +3,10 @@
     Un seul sac pour tous les sacs (0 a 4).
       clic droit       : utiliser l objet (vendre chez un marchand) ; bouton
                          securise type "item", marche aussi en combat
-      clic gauche      : prendre / poser (hors combat)
+      clic gauche      : prendre / poser (aussi en combat : jeter un objet)
       Maj + clic       : lien dans le chat
-      glisser-deposer  : ranger
+      Ctrl + clic      : cabine d essayage
+      glisser-deposer  : ranger (aussi en combat)
     Recherche (les objets qui ne correspondent pas s estompent), tri, or,
     places libres. Options : taille et espacement des cases, lisere de
     qualite, objets de quete, nouveaux objets surlignes, niveau d objet,
@@ -468,6 +469,25 @@ local function modifiedClick(self)
 end
 ns.BagsModifiedClick = modifiedClick
 
+-- Ctrl + clic (touche "Essayer" du jeu, Ctrl par defaut) : cabine d essayage
+local function isDressUpClick()
+    if IsModifiedClick then
+        local ok, v = pcall(IsModifiedClick, "DRESSUP")
+        if ok and not issecret(v) then return v and true or false end
+    end
+    return IsControlKeyDown() and true or false
+end
+
+-- l objet dans la cabine d essayage : equipement, monture ou mascotte
+-- (DressUpLink du jeu les essaie tour a tour) ; rien d autre n est fait
+local function dressUp(btn)
+    local ok, info = pcall(C_Container.GetContainerItemInfo, btn.bag, btn.slot)
+    local link = (ok and type(info) == "table" and info.hyperlink) or btn.link
+    if type(link) ~= "string" or issecret(link) then return end
+    local fn = DressUpLink or DressUpItemLink
+    if type(fn) == "function" then pcall(fn, link) end
+end
+
 -- Bouton d objet commun aux sacs et a la banque.
 --   secure : bouton d action securise (sacs : clic droit "utiliser" en
 --            combat, sort qui attend une cible). Sinon bouton simple
@@ -586,7 +606,8 @@ local function createItemButton(parent, bag, slot, secure, name, size)
         end)
     end
 
-    -- clic gauche (insecure, hors combat) : prendre/poser ; Maj : lien ou partage
+    -- clic gauche (insecure, combat compris) : prendre/poser ; Maj : lien ou
+    -- partage ; Ctrl : cabine d essayage
     b:HookScript("OnClick", function(self, button, down)
         if IsShiftKeyDown() and (button == "LeftButton" or button == "RightButton") then
             -- une seule fois par clic (au relachement)
@@ -599,6 +620,11 @@ local function createItemButton(parent, bag, slot, secure, name, size)
         -- le sort a deja ete applique a l objet par l action securisee
         if button == "LeftButton" and self.targeting then
             if not down then self.targeting = nil end
+            return
+        end
+        -- Ctrl + clic gauche : essayer l objet, sans le prendre
+        if button == "LeftButton" and isDressUpClick() then
+            if not down then dressUp(self) end
             return
         end
         if button == "LeftButton" and not down then self.targeting = nil end
@@ -617,19 +643,19 @@ local function createItemButton(parent, bag, slot, secure, name, size)
         end
         if button ~= "LeftButton" or down then return end
         -- double clic : le 1er clic a pris l objet, le 2e le repose ; puis la
-        -- boite a copier (ID, nom). En combat, rien n est pris : seulement la boite.
+        -- boite a copier (ID, nom). Prendre, poser, glisser : aussi en combat,
+        -- comme les sacs du jeu (PickupContainerItem n est pas protegee) ; on
+        -- peut donc jeter un objet en combat (le poser hors des fenetres)
         local now = GetTime()
         local double = self.lastLeft and now - self.lastLeft < 0.4
         self.lastLeft = (not double) and now or nil
-        if not InCombatLockdown() then pcall(C_Container.PickupContainerItem, self.bag, self.slot) end
+        pcall(C_Container.PickupContainerItem, self.bag, self.slot)
         if double and not (CursorHasItem and CursorHasItem()) then copyItem(self) end
     end)
     b:SetScript("OnDragStart", function(self)
-        if InCombatLockdown() then return end
         pcall(C_Container.PickupContainerItem, self.bag, self.slot)
     end)
     b:SetScript("OnReceiveDrag", function(self)
-        if InCombatLockdown() then return end
         pcall(C_Container.PickupContainerItem, self.bag, self.slot)
     end)
     b:SetScript("OnEnter", function(self)
