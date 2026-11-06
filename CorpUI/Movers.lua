@@ -6,6 +6,8 @@
       - un petit panneau de reglage : cadre selectionne, X / Y saisissables
         (centre du cadre, 0 0 = milieu de l ecran), miroir (X -> -X),
         fleches 1 px (Maj = 10), aimantation, pas de la grille, verrouiller.
+    La fenetre CorpUI se cache pendant ce temps et revient au reverrouillage
+    (Core.lua, pres de ns.ShowPanel).
     En glissant, le cadre s aimante aux bords et aux centres des autres
     cadres deja places et a ceux de l ecran (Maj enfoncee = pas d aimant).
     Les fleches du clavier deplacent aussi le cadre selectionne.

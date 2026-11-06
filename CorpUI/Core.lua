@@ -3131,6 +3131,33 @@ do
     end)
 end
 
+-- Deverrouiller l interface : la fenetre se cache pour laisser voir les
+-- cadres a placer (le panneau des poignees a son bouton Verrouiller) et
+-- revient au reverrouillage, apres le combat si c est lui qui reverrouille.
+-- Rouverte puis fermee entre-temps par le joueur : elle reste fermee.
+do
+    local was, hidden, hooked = false, false, false
+    ns.Listen(function()
+        local now = ns.moversShown and true or false
+        if now == was then return end
+        was = now
+        if not main then return end
+        if now then
+            if main:IsShown() and not InCombatLockdown() then
+                if not hooked then
+                    hooked = true
+                    main:HookScript("OnShow", function() hidden = false end)
+                end
+                main:Hide()
+                hidden = true
+            end
+        elseif hidden then
+            hidden = false
+            if InCombatLockdown() then reopen = reopen or true else main:Show() end
+        end
+    end)
+end
+
 -- Les modules affichent leur panneau ainsi : on montre la page qui le
 -- contient, defilee jusqu a lui
 function ns.ShowPanel(panel)
