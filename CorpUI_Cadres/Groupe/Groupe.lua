@@ -1,6 +1,7 @@
 --[[--------------------------------------------------------------------------
     CorpUI - module Groupe
-    Cadres de groupe (party1-4) et de raid (raid1-40), a nous.
+    Cadres de groupe (party1-4, et le joueur en tete en option) et de raid
+    (raid1-40), a nous.
 
     Chaque cadre est un bouton securise lie a une unite fixe :
       clic gauche = cibler, clic droit = menu de l unite
@@ -936,14 +937,23 @@ local function sizeButton(b, s)
     if b:IsVisible() then update(b) end
 end
 
--- groupe : quatre cadres en colonne ou en ligne
+-- cadres du groupe dans l ordre : le joueur d abord s il y est (05/11),
+-- puis party1 a party4 (toujours remplis dans l ordre : pas de trou)
+local function partyButtons()
+    local list = {}
+    if db.partyPlayer then list[1] = buttons.player end
+    for i = 1, 4 do list[#list + 1] = buttons["party" .. i] end
+    return list
+end
+
+-- groupe : quatre cadres (cinq avec le joueur) en colonne ou en ligne
 local function layoutParty()
     if InCombatLockdown() then layoutPending = true return end
     local s = db.partyStyle
     local h = frameHeight(s)
     local across = s.orient == "horizontal"
-    for i = 1, 4 do
-        local b = buttons["party" .. i]
+    local list = partyButtons()
+    for i, b in ipairs(list) do
         sizeButton(b, s)
         b:ClearAllPoints()
         if across then
@@ -952,10 +962,11 @@ local function layoutParty()
             b:SetPoint("TOPLEFT", party, "TOPLEFT", 0, -(i - 1) * (h + s.spacing))
         end
     end
+    local n = #list
     if across then
-        party:SetSize(4 * s.width + 3 * s.spacing, h)
+        party:SetSize(n * s.width + (n - 1) * s.spacing, h)
     else
-        party:SetSize(s.width, 4 * h + 3 * s.spacing)
+        party:SetSize(s.width, n * h + (n - 1) * s.spacing)
     end
 end
 
@@ -1031,16 +1042,25 @@ local function applyVisibility()
             watch(b, false)
             b:SetAttribute("unit", "player")
             local n = tonumber(unit:match("%d+")) or 1
-            b:SetShown(not unit:find("^raid") or n <= 25)
-            -- membre fictif (le groupe : 2 a 5, le joueur etant hors des cadres)
-            b.fakeIndex = b.big and (n + 1) or n
+            if unit == "player" then
+                -- le joueur : membre fictif 1, s il est dans le groupe
+                b:SetShown(db.partyPlayer and true or false)
+                b.fakeIndex = 1
+            else
+                b:SetShown(not unit:find("^raid") or n <= 25)
+                -- membre fictif (le groupe : 2 a 5, le 1 etant le joueur)
+                b.fakeIndex = b.big and (n + 1) or n
+            end
             update(b)
         end
     else
         for unit, b in pairs(buttons) do
             b.fakeIndex = nil
             b:SetAttribute("unit", b.realUnit)
-            watch(b, true)
+            -- le joueur dans le groupe : seulement si la case est cochee
+            local on = unit ~= "player" or db.partyPlayer
+            watch(b, on and true or false)
+            if not on then b:Hide() end
         end
         if partyOn then
             RegisterStateDriver(party, "visibility", "[group:raid] hide; [group:party] show; hide")
@@ -1073,6 +1093,9 @@ local function build()
     party:SetSize(PARTY_W, 4 * (PARTY_H + 6))
     ns.ApplyPos(party, db.partyPos)
     for i = 1, 4 do makeButton(party, "party" .. i, true) end
+    -- le joueur, en tete du groupe si la case est cochee (05/11) ; cree
+    -- toujours (pas de cadre securise a creer plus tard, en combat)
+    makeButton(party, "player", true)
     ns.UI.Mover(party, db.partyPos, L.MOD_GROUP .. " - " .. L.GROUP_PARTY)
 
     raid = CreateFrame("Frame", "CorpUIRaid", UIParent, "SecureHandlerStateTemplate")
@@ -1105,6 +1128,9 @@ function ns.FramesOpt.Group(parent, y, which)
     form:Check(raidMode and L.GROUP_OPT_RAID or L.GROUP_OPT_PARTY,
         function() return db[raidMode and "showRaid" or "showParty"] end,
         function(v) db[raidMode and "showRaid" or "showParty"] = v end)
+    if not raidMode then
+        form:Check(L.GROUP_OPT_PLAYER, function() return db.partyPlayer end, function(v) db.partyPlayer = v end)
+    end
     form:Check(L.GROUP_OPT_BLIZZ, function() return db.hideBlizzard end, function(v) db.hideBlizzard = v end)
     form:Header(raidMode and L.GROUP_RAID_HEAD or L.GROUP_PARTY_HEAD)
     form:Columns(2)
