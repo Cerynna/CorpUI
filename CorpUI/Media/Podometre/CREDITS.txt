@@ -5,14 +5,13 @@ dos.tga (dos de carte), booster.tga (booster)
   pour CorpUI, puis detourees (fond vert) et posees en haut d un canevas de
   256 x 512 px.
 
-cadre2.tga (cadre de carte a bandeau, passe en gris, teinte en jeu selon la
-rarete), parchemin.tga (cartouche)
-  Generees le 06/11/2026 avec Nano Banana Pro (Google, modele gemini-3-pro-image)
-  pour CorpUI, puis detourees (fond vert) et posees en haut de leur canevas.
+cadre3.tga (cadre de carte : une grande fenetre pour l image et un bandeau
+pour le nom, passe en gris, teinte en jeu selon la rarete)
+  Generee le 06/11/2026 avec Nano Banana Pro (Google, modele gemini-3-pro-image)
+  pour CorpUI, puis detouree (fond vert) et posee en haut de son canevas.
 
-gemme.tga (chaton du niveau), halo.tga (lueur des cartes epiques et
-legendaires, ombre portee), case.tga (case d une carte manquante) :
-dessinees par programme pour CorpUI.
+halo.tga (lueur des cartes epiques et legendaires, ombre portee), case.tga
+(case d une carte manquante) : dessinees par programme pour CorpUI.
 
 Les noms et images des cartes (zones, objets, montures, ecrans de chargement
 des instances, modeles 3D des creatures) viennent du jeu lui-meme (World of

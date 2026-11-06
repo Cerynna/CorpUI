@@ -13,11 +13,11 @@
         equivalence reelle ;
       - Guilde : classement de la semaine des joueurs CorpUI.
     Images (Media\Podometre, Nano Banana) : cadre argente a bandeau, passe en
-    gris et teinte selon la rarete, parchemin du cartouche, dos de carte,
-    booster ; chaton du niveau et halo dessines par make_cadre.js. Carte :
-    l image en haut (creature en 3D sur son decor), le nom sur le bandeau,
-    le type et la rarete sur le parchemin, le niveau dans le chaton. Une
-    carte legendaire retournee fait son entree en grand.
+    gris et teinte selon la rarete, dos de carte, booster ; halo et case vide
+    dessines par programme. Carte : l image sur toute la carte (creature en
+    3D sur son decor), le nom sur le bandeau, rien d autre (type, rarete,
+    niveau : dans la carte en grand et l infobulle). Une carte legendaire
+    retournee fait son entree en grand.
     Aucune action protegee : la fenetre s ouvre aussi en combat.
 ----------------------------------------------------------------------------]]
 
@@ -30,26 +30,25 @@ ns.Pedo = ns.Pedo or {}
 local P = ns.Pedo
 
 local MEDIA = ns.MEDIA .. "Podometre\\"
--- mesures des images (make_cadre.js) : fractions de la carte
-local RATIO = 1.2977                     -- hauteur / largeur d une carte (rubans compris)
-local ART = { l = 0.1248, r = 0.8739, t = 0.0638, b = 0.5328 }      -- fenetre de l image
-local RIBBON = { l = 0.1248, r = 0.8739, t = 0.5328, b = 0.6494 }   -- bandeau du nom
-local PANEL = { l = 0.1248, r = 0.8739, t = 0.6494, b = 0.9149 }    -- cartouche (parchemin)
-local GEM = { x = 0.1717, y = 0.1064, d = 0.1369 }                  -- chaton du niveau
-local HALO = { pad = 0.15, tex = 0.6489 }   -- marge de chaque cote, hauteur utile de l image
-local TEX_FRAME, TEX_BACK, TEX_PACK, TEX_PARCH = 332 / 512, 363 / 512, 392 / 512, 191 / 256
+-- mesures des images (make_cadre.js) : fractions de la carte. Une carte =
+-- l image (la fenetre du cadre continue sous le bandeau, jusqu en bas) et
+-- le nom sur le bandeau ; rien d autre
+local RATIO = 1.2773                     -- hauteur / largeur d une carte (rubans compris)
+local ART = { l = 0.1277, r = 0.8700, t = 0.0622, b = 0.9108 }      -- fenetre de l image
+local RIBBON = { l = 0.1277, r = 0.8700, t = 0.7468, b = 0.8730 }   -- bandeau du nom
+local HALO = { pad = 0.15, tex = 0.6387 }   -- marge de chaque cote, hauteur utile de l image
+local TEX_FRAME, TEX_BACK, TEX_PACK = 327 / 512, 363 / 512, 392 / 512
 local PACK_RATIO = 1.5325
 local ART_ASPECT = (ART.r - ART.l) / ((ART.b - ART.t) * RATIO)       -- largeur / hauteur
--- ecran de chargement (4:3) dans la fenetre : le milieu, sur toute la hauteur
-local SCENE_U = math.max(0, (1 - ART_ASPECT / (4 / 3)) / 2)
+-- ecran de chargement (4:3) dans la fenetre (plus haute que large) : sans
+-- son haut (le logo du jeu), puis le milieu sur la largeur voulue
+local SCENE_V0 = 0.25
+local SCENE_DU = math.min(1, ART_ASPECT * (1 - SCENE_V0) * 3 / 4)
+local SCENE_U = (1 - SCENE_DU) / 2
 -- tuiles de zone (2 x 2, un carre) : rognees en haut et en bas (fenetre plus
 -- large que haute), sinon sur les cotes
 local TILE_CUT_V = ART_ASPECT >= 1 and (1 - 1 / ART_ASPECT) or 0
 local TILE_CUT_U = ART_ASPECT < 1 and (1 - ART_ASPECT) or 0
--- parchemin (1200 x 896) dans le cartouche, bien plus large : le milieu
-local PARCH_H = (1200 / 896) / ((PANEL.r - PANEL.l) / ((PANEL.b - PANEL.t) * RATIO))
-local PARCH_V0, PARCH_V1 = (1 - PARCH_H) / 2 * TEX_PARCH, (1 + PARCH_H) / 2 * TEX_PARCH
-local INK = { 0.25, 0.17, 0.09 }   -- encre du parchemin
 -- camera des modeles 3D : recul (1 = cadrage du jeu), rotation (radians)
 local MODEL_DIST, MODEL_FACING = 1.05, 0.35
 
@@ -151,13 +150,6 @@ local function newCard(parent, w)
     c.dim = c:CreateTexture(nil, "ARTWORK", nil, 3)
     c.dim:SetAllPoints(c.artBg)
     c.dim:SetColorTexture(0, 0, 0, 0.6)
-    -- cartouche : parchemin
-    local pl, pt, pw, ph = box(PANEL)
-    c.parch = c:CreateTexture(nil, "BORDER")
-    c.parch:SetPoint("TOPLEFT", pl, -pt)
-    c.parch:SetSize(pw, ph)
-    c.parch:SetTexture(MEDIA .. "parchemin")
-    c.parch:SetTexCoord(0, 1, PARCH_V0, PARCH_V1)
     -- creature en 3D : un cadre fils se dessine au-dessus de toutes les
     -- textures de la carte ; le cadre argente, le nom et les marques passent
     -- donc dans c.over, au-dessus du modele
@@ -169,18 +161,11 @@ local function newCard(parent, w)
     c.over = CreateFrame("Frame", nil, c)
     c.over:SetAllPoints()
     c.over:SetFrameLevel(c:GetFrameLevel() + 2)
-    -- cadre (image argentee, teintee) ; le chaton dessous, dans son anneau
+    -- cadre (image argentee, teintee)
     c.frame = c.over:CreateTexture(nil, "OVERLAY")
     c.frame:SetAllPoints()
-    c.frame:SetTexture(MEDIA .. "cadre2")
+    c.frame:SetTexture(MEDIA .. "cadre3")
     c.frame:SetTexCoord(0, 1, 0, TEX_FRAME)
-    local gd = math.floor(w * GEM.d * 0.92 + 0.5)
-    c.gem = c.over:CreateTexture(nil, "ARTWORK")
-    c.gem:SetSize(gd, gd)
-    c.gem:SetPoint("CENTER", c, "TOPLEFT", w * GEM.x, -h * GEM.y)
-    c.gem:SetTexture(MEDIA .. "gemme")
-    c.lvl = text(c.over, "GameFontHighlightSmall", math.max(7, math.floor(gd * 0.48 + 0.5)), "OUTLINE")
-    c.lvl:SetPoint("CENTER", c.gem, "CENTER", 0, 0)
     -- nom : sur le bandeau, une ligne
     local fsz = math.max(8, math.floor(w / 11 + 0.5))
     local rl, rt, rw, rh = box(RIBBON)
@@ -190,19 +175,6 @@ local function newCard(parent, w)
     c.name:SetJustifyH("CENTER")
     c.name:SetJustifyV("MIDDLE")
     pcall(c.name.SetWordWrap, c.name, false)
-    -- cartouche : type (ou serie), rarete, numero ; encre sur le parchemin
-    local psz = math.max(7, math.floor(w / 14 + 0.5))
-    c.sub = text(c.over, "GameFontNormalSmall", psz)
-    c.sub:SetPoint("TOP", c, "TOPLEFT", pl + pw / 2, -(pt + math.floor(ph * 0.16 + 0.5)))
-    c.sub:SetWidth(pw - 6)
-    pcall(c.sub.SetWordWrap, c.sub, false)
-    c.sub:SetTextColor(INK[1], INK[2], INK[3])
-    c.rar = text(c.over, "GameFontNormalSmall", psz)
-    c.rar:SetPoint("TOP", c.sub, "BOTTOM", 0, -2)
-    c.rar:SetWidth(pw - 6)
-    c.num = text(c.over, "GameFontNormalSmall", math.max(6, psz - 1))
-    c.num:SetPoint("BOTTOMRIGHT", c, "TOPLEFT", pl + pw - 3, -(pt + ph - 2))
-    c.num:SetTextColor(INK[1] + 0.25, INK[2] + 0.2, INK[3] + 0.15)
     c.qmark = text(c.over, "GameFontNormalHuge", math.floor(aw * 0.45 + 0.5), "OUTLINE")
     c.qmark:SetPoint("CENTER", c.artBg, "CENTER", 0, 0)
     c.qmark:SetText("?")
@@ -227,17 +199,19 @@ local function newCard(parent, w)
     c.slot:SetAllPoints()
     c.slot:SetTexture(MEDIA .. "case")
     c.slot:SetTexCoord(0, 1, 0, TEX_FRAME)
+    -- (le haut de la fenetre de l image : le numero et le lieu en dessous)
     c.sil = CreateFrame("PlayerModel", nil, c)
-    c.sil:SetAllPoints(c.artBg)
+    c.sil:SetPoint("TOPLEFT", c.artBg, "TOPLEFT")
+    c.sil:SetSize(aw, math.floor(ah * 0.7 + 0.5))
     c.sil:SetFrameLevel(c:GetFrameLevel() + 1)
     pcall(c.sil.SetKeepModelOnHide, c.sil, true)
     c.sil:Hide()
     c.slotQ = text(c, "GameFontNormalHuge", math.floor(aw * 0.45 + 0.5), "OUTLINE")
-    c.slotQ:SetPoint("CENTER", c.artBg, "CENTER", 0, 0)
+    c.slotQ:SetPoint("CENTER", c.sil, "CENTER", 0, 0)
     c.slotQ:SetText("?")
     c.slotQ:SetTextColor(C.text[1], C.text[2], C.text[3], 0.35)
     c.slotNum = text(c, "GameFontNormalHuge", math.max(10, math.floor(w / 7 + 0.5)))
-    c.slotNum:SetPoint("CENTER", c, "TOP", 0, -h * 0.64)
+    c.slotNum:SetPoint("CENTER", c, "TOP", 0, -h * 0.75)
     c.slotNum:SetTextColor(C.text[1], C.text[2], C.text[3], 0.5)
     c.slotHint = text(c, "GameFontNormalSmall", math.max(7, math.floor(w / 12 + 0.5)))
     c.slotHint:SetPoint("TOP", c.slotNum, "BOTTOM", 0, -math.floor(h * 0.03 + 0.5))
@@ -245,7 +219,7 @@ local function newCard(parent, w)
     c.slotHint:SetTextColor(C.text[1], C.text[2], C.text[3], 0.6)
     c.empty = { c.slot, c.slotQ, c.slotNum, c.slotHint }
     -- face d une carte possedee
-    c.face = { c.artBg, c.parch, c.frame, c.gem, c.lvl, c.name, c.sub, c.rar, c.num, c.shadow }
+    c.face = { c.artBg, c.frame, c.name, c.shadow }
     -- dos (boosters) : un cadre au-dessus de la carte, pas une texture de
     -- la carte (le jeu dessine les textes par-dessus les textures de leur
     -- couche : le nom se voyait a travers le dos)
@@ -306,12 +280,19 @@ local function setFace(card, on)
     for _, r in ipairs(card.empty) do r:SetShown(not on) end
 end
 
--- nom sur le bandeau : la taille baisse jusqu a ce qu il tienne
+-- nom sur le bandeau : la taille baisse jusqu a ce qu il tienne (largeur du
+-- texte entier : celle d un texte deja coupe par sa boite « tient » toujours)
+local function nameWidth(fs)
+    local ok, w = pcall(fs.GetUnboundedStringWidth, fs)
+    if ok and type(w) == "number" then return w end
+    return fs:GetStringWidth() or 0
+end
+
 local function fitName(card, s)
     card.name:SetText(s)
     local size = card.nameSize
     font(card.name, size, "OUTLINE")
-    while size > 7 and (card.name:GetStringWidth() or 0) > card.nameW do
+    while size > 7 and nameWidth(card.name) > card.nameW do
         size = size - 1
         font(card.name, size, "OUTLINE")
     end
@@ -357,7 +338,7 @@ local function paintCard(card, c, owned, isNew)
     local scene = not tiles and P.CardScene(c)
     if scene then
         card.scene:SetTexture(scene)
-        card.scene:SetTexCoord(SCENE_U, 1 - SCENE_U, 0, 1)
+        card.scene:SetTexCoord(SCENE_U, 1 - SCENE_U, SCENE_V0, 1)
         pcall(card.scene.SetDesaturated, card.scene, not owned)
         card.scene:Show()
     elseif tiles then
@@ -384,16 +365,8 @@ local function paintCard(card, c, owned, isNew)
     if c.disp then showModel(card.model, c.disp) end
     card.artBg:SetColorTexture(col[1] * 0.18, col[2] * 0.18, col[3] * 0.18, 1)
     card.frame:SetVertexColor(r1, g1, b1)
-    card.gem:SetVertexColor(col[1], col[2], col[3])
     fitName(card, P.CardName(c))
     card.name:SetTextColor(1, 1, 1)
-    -- cartouche : le type d une creature, sinon la serie ; puis la rarete,
-    -- dans sa couleur assombrie (lisible sur le parchemin)
-    card.sub:SetText(c.disp and P.CardTypeName(c) or (L["PEDO_SERIES_" .. string.upper(c.s)] or ""))
-    card.rar:SetText(L["PEDO_R" .. c.r] or "")
-    card.rar:SetTextColor(col[1] * 0.7, col[2] * 0.7, col[3] * 0.7)
-    card.lvl:SetText(c.disp and ((c.lvl or 0) >= 63 and "??" or tostring(c.lvl or "")) or "")
-    card.num:SetText("#" .. (c.num or c.index))
     card.new:SetShown(isNew and true or false)
     if c.r >= 4 then
         card.glow:SetVertexColor(col[1], col[2], col[3])
@@ -403,8 +376,8 @@ local function paintCard(card, c, owned, isNew)
 end
 
 -- face cachee (booster) : rien ne trahit la carte autour du dos, ni le
--- halo (il depasse du dos), ni le cadre et le chaton teintes (coins et
--- rubans du dos) ; la vraie face n est peinte qu au retournement
+-- halo (il depasse du dos), ni le cadre teinte (coins et rubans du dos) ;
+-- la vraie face n est peinte qu au retournement
 local function paintFaceDown(card, c)
     card.card = c
     if not c then card:Hide() return end
@@ -413,12 +386,7 @@ local function paintFaceDown(card, c)
     setFace(card, true)
     card.artBg:SetColorTexture(0.12, 0.1, 0.16, 1)
     card.frame:SetVertexColor(0.38, 0.38, 0.4)
-    card.gem:SetVertexColor(0.4, 0.4, 0.42)
     card.name:SetText("")
-    card.lvl:SetText("")
-    card.sub:SetText("")
-    card.rar:SetText("")
-    card.num:SetText("")
 end
 
 local function cardTooltip(card)
@@ -1022,7 +990,6 @@ local function buildPacks(page)
                 paintCard(card, P.byId[reveal.ids[i]], true, false)
                 card.new:Hide()
                 card.name:SetAlpha(0)
-                card.num:SetAlpha(0)
                 card.glow:SetAlpha(1)
             end
             if t0 and not reveal.done[i] then
@@ -1033,7 +1000,6 @@ local function buildPacks(page)
                     reveal.done[i] = true
                     card.back:Hide()
                     card.name:SetAlpha(1)
-                    card.num:SetAlpha(1)
                     card:SetScale(1)
                     local res = reveal.results[i]
                     local c = P.byId[reveal.ids[i]]
