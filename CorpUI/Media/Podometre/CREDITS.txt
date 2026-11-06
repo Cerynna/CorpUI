@@ -11,7 +11,8 @@ pour le nom, passe en gris, teinte en jeu selon la rarete)
   pour CorpUI, puis detouree (fond vert) et posee en haut de son canevas.
 
 halo.tga (lueur des cartes epiques et legendaires, ombre portee), case.tga
-(case d une carte manquante) : dessinees par programme pour CorpUI.
+(case d une carte manquante), rayons.tga, etincelle.tga et lueur.tga (effets
+de l ouverture des boosters) : dessinees par programme pour CorpUI.
 
 Les noms et images des cartes (zones, objets, montures, ecrans de chargement
 des instances, modeles 3D des creatures) viennent du jeu lui-meme (World of

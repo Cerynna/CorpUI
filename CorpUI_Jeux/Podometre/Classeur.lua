@@ -854,9 +854,47 @@ end
 -- Onglet Boosters (ouverture animee)
 ---------------------------------------------------------------------------
 
-local reveal          -- { ids, results, start, flipAt = {}, done = {}, face = {} }
-local FLIP_GAP, FLIP_TIME = 0.45, 0.28
+-- Ouverture d un booster, en quatre temps :
+--   1. le booster arrive au centre et tremble de plus en plus (lueur de la
+--      couleur du booster, etincelles qui montent) ;
+--   2. il eclate : eclair blanc, rayons, l ecran tremble ;
+--   3. les cartes jaillissent du centre vers leur place (rebond) ;
+--   4. elles se retournent une a une : le dos se referme, la face surgit
+--      (eclair, gerbe d etincelles de sa couleur, rayons derriere les rares
+--      et plus, nom de la rarete qui surgit, l ecran tremble pour une
+--      epique ou une legendaire), puis l entree en scene d une legendaire.
+-- Un clic sur le fond : eclate tout de suite, puis retourne la suivante.
+local reveal          -- { ids, results, cards, t0, burstAt, nextFlipAt, flip = {}, done = {} }
+local SHAKE_TIME, DEAL_TIME, DEAL_GAP = 1.1, 0.45, 0.07
+local FLIP_GAP, FLIP_CLOSE, FLIP_POP = 0.6, 0.14, 0.3
 local STAGE_TIME = 4.5   -- entree en scene d une legendaire (s), un clic l abrege
+local SPARKS = 18        -- etincelles par carte
+local PACK_W = 190
+local REVEAL_W = 120
+local REVEAL_H = math.floor(REVEAL_W * RATIO + 0.5)
+local ROW_Y = -170       -- haut de la rangee des cartes, dans la page
+local PACK_TINT = { normal = { 1, 0.85, 0.5 }, rare = { 0.3, 0.6, 1 }, epic = { 0.75, 0.35, 1 }, legendary = { 1, 0.55, 0.1 } }
+
+local function easeOutBack(k)
+    local c = 1.7
+    k = k - 1
+    return 1 + (c + 1) * k * k * k + c * k * k
+end
+
+-- son du jeu (fanfare de butin), s il existe dans ce client
+local function gameSound(name)
+    local d = db()
+    if not (d and d.opt.sound) then return end
+    local id = SOUNDKIT and SOUNDKIT[name]
+    if type(id) == "number" then pcall(PlaySound, id, "SFX") end
+end
+
+-- l ecran tremble (amplitude en pixels, duree en secondes)
+local shakeUntil, shakeAmp = 0, 0
+local function shake(amp, dur)
+    shakeUntil = math.max(shakeUntil, GetTime() + dur)
+    shakeAmp = math.max(shakeAmp, amp)
+end
 
 -- entree en scene : la carte en grand sur fond sombre, qui grandit, halo
 -- battant, creature qui tourne lentement ; les retournements attendent
@@ -867,6 +905,11 @@ local function buildStage(p)
     s.bg = s:CreateTexture(nil, "BACKGROUND")
     s.bg:SetAllPoints()
     s.bg:SetColorTexture(0, 0, 0, 0.85)
+    s.rays = s:CreateTexture(nil, "BORDER")
+    s.rays:SetSize(560, 560)
+    s.rays:SetPoint("CENTER", s, "CENTER", 0, 24)
+    s.rays:SetTexture(MEDIA .. "rayons")
+    pcall(s.rays.SetBlendMode, s.rays, "ADD")
     s.card = newCard(s, 230)
     s.card:SetPoint("CENTER", s, "CENTER", 0, 24)
     s.card:EnableMouse(false)
@@ -879,21 +922,17 @@ local function buildStage(p)
         local age = GetTime() - (self.at or 0)
         local k = math.min(1, age / 0.45)
         self:SetAlpha(math.min(1, age / 0.25))
-        self.card:SetScale(0.55 + 0.45 * (1 - (1 - k) ^ 3))
+        self.card:SetScale(0.55 + 0.45 * easeOutBack(k))
         self.card.glow:SetAlpha(0.6 + 0.4 * math.abs(math.sin(age * 2.5)))
+        pcall(self.rays.SetRotation, self.rays, age * 0.35)
+        self.rays:SetAlpha(0.55 + 0.25 * math.sin(age * 2))
         local m = self.card.model
         if m:IsShown() then pcall(m.SetRotation, m, MODEL_FACING + age * 0.6) end
         if age > STAGE_TIME then self:Hide() end
     end)
     -- fermee : les cartes suivantes reprennent leur retournement
     s:SetScript("OnHide", function()
-        if not reveal then return end
-        for i = 1, #reveal.ids do
-            if not reveal.flipAt[i] then
-                reveal.start = GetTime() + 0.35 - 0.6 - (i - 1) * FLIP_GAP
-                break
-            end
-        end
+        if reveal then reveal.nextFlipAt = GetTime() + 0.4 end
     end)
     s:Hide()
     p.stage = s
@@ -905,12 +944,151 @@ local function showStage(p, c)
     s.card.owned = true
     paintCard(s.card, c, true, false)
     s.card.new:Hide()
+    s.rays:SetVertexColor(col[1], col[2], col[3])
     s.title:SetText(P.CardName(c))
     s.title:SetTextColor(col[1], col[2], col[3])
     s.sub:SetText((L["PEDO_R" .. c.r] or "") .. (c.disp and ("  ·  " .. P.CardPlace(c)) or ""))
     s.at = GetTime()
     s:SetAlpha(0)
     s:Show()
+end
+
+-- une place de la rangee : la carte, ses rayons (derriere), son eclair et
+-- ses etincelles (devant), la rarete et ce qu elle rapporte (dessous)
+local function buildSlot(p, i)
+    local total = 5 * REVEAL_W + 4 * 16
+    local x = (WIN_W - total) / 2 + (i - 1) * (REVEAL_W + 16)
+    local slot = CreateFrame("Frame", nil, p.show)
+    slot:SetSize(REVEAL_W, REVEAL_H)
+    slot:SetPoint("TOPLEFT", p.show, "TOPLEFT", x, ROW_Y)
+    -- decalage du centre de la rangee (le booster) au centre de la place
+    slot.dx = WIN_W / 2 - (x + REVEAL_W / 2)
+    slot.rays = slot:CreateTexture(nil, "BACKGROUND")
+    slot.rays:SetSize(REVEAL_W * 2.6, REVEAL_W * 2.6)
+    slot.rays:SetPoint("CENTER")
+    slot.rays:SetTexture(MEDIA .. "rayons")
+    pcall(slot.rays.SetBlendMode, slot.rays, "ADD")
+    slot.rays:Hide()
+    local card = newCard(slot, REVEAL_W)
+    card:SetPoint("CENTER", slot, "CENTER", 0, 0)
+    card:SetScript("OnEnter", function(self) if not self.back:IsShown() then cardTooltip(self) end end)
+    card:SetScript("OnLeave", ns.HideTooltip)
+    card:SetScript("OnClick", function()
+        if reveal and reveal.landed and not reveal.flip[i] then reveal.flip[i] = GetTime() end
+    end)
+    slot.card = card
+    -- devant la carte (et son dos)
+    local fx = CreateFrame("Frame", nil, slot)
+    fx:SetAllPoints(card)
+    fx:SetFrameLevel(card:GetFrameLevel() + 8)
+    fx.flash = fx:CreateTexture(nil, "OVERLAY")
+    fx.flash:SetAllPoints()
+    fx.flash:SetColorTexture(1, 1, 1, 1)
+    pcall(fx.flash.SetBlendMode, fx.flash, "ADD")
+    fx.flash:Hide()
+    fx.sparks = {}
+    for k = 1, SPARKS do
+        local t = fx:CreateTexture(nil, "OVERLAY", nil, 1)
+        t:SetTexture(MEDIA .. "etincelle")
+        pcall(t.SetBlendMode, t, "ADD")
+        t:Hide()
+        fx.sparks[k] = t
+    end
+    slot.fx = fx
+    -- dessous : la rarete qui surgit, puis « Nouveau ! » ou les eclats
+    local capF = CreateFrame("Frame", nil, p.show)
+    capF:SetSize(REVEAL_W + 30, 40)
+    capF:SetPoint("TOP", slot, "BOTTOM", 0, -8)
+    capF.rar = text(capF, "GameFontNormalLarge")
+    ns.UI.HeadFont(capF.rar, 13)
+    capF.rar:SetPoint("TOP", 0, 0)
+    capF.cap = text(capF, "GameFontNormal")
+    capF.cap:SetPoint("TOP", capF.rar, "BOTTOM", 0, -3)
+    slot.capF = capF
+    return slot
+end
+
+-- gerbe d etincelles : chacune part du centre de la carte, ralentit, tombe
+local function burstSparks(slot, c, now)
+    local col = rarityRGB(c.r)
+    local n = math.min(SPARKS, 6 + 3 * c.r)
+    slot.sparkAt = now
+    for k, t in ipairs(slot.fx.sparks) do
+        if k <= n then
+            local a = (k / n) * math.pi * 2 + math.random() * 0.5
+            t.vx, t.vy = math.cos(a) * (60 + math.random() * 90), math.sin(a) * (60 + math.random() * 90) + 40
+            t.life = 0.5 + math.random() * 0.45
+            t.size = 10 + math.random() * 10
+            t:SetVertexColor(0.6 + 0.4 * col[1], 0.6 + 0.4 * col[2], 0.6 + 0.4 * col[3])
+            t:Show()
+        else
+            t:Hide()
+        end
+    end
+end
+
+local function updateSparks(slot, now)
+    if not slot.sparkAt then return end
+    local age = now - slot.sparkAt
+    local alive = false
+    for _, t in ipairs(slot.fx.sparks) do
+        if t:IsShown() then
+            local k = age / t.life
+            if k >= 1 then
+                t:Hide()
+            else
+                alive = true
+                local x = t.vx * age * (1 - 0.35 * k)
+                local y = t.vy * age * (1 - 0.35 * k) - 160 * age * age
+                t:ClearAllPoints()
+                t:SetPoint("CENTER", slot.fx, "CENTER", x, y)
+                local s = t.size * (1 - 0.6 * k)
+                t:SetSize(s, s)
+                t:SetAlpha(1 - k * k)
+            end
+        end
+    end
+    if not alive then slot.sparkAt = nil end
+end
+
+-- la face surgit (milieu du retournement) : eclair, etincelles, rayons,
+-- rarete, son ; l ecran tremble pour une epique ou une legendaire
+local function revealFace(p, i, now)
+    local slot = p.slots[i]
+    local card, c = slot.card, P.byId[reveal.ids[i]]
+    card.back:Hide()
+    paintCard(card, c, true, false)
+    card.new:Hide()
+    card.glow:SetAlpha(1)
+    slot.fx.flash:Show()
+    slot.flashAt = now
+    burstSparks(slot, c, now)
+    local col = rarityRGB(c.r)
+    slot.rays:SetShown(c.r >= 3)
+    slot.rays:SetVertexColor(col[1], col[2], col[3])
+    local capF = slot.capF
+    capF.rar:SetText(L["PEDO_R" .. c.r] or "")
+    capF.rar:SetTextColor(col[1], col[2], col[3])
+    local res = reveal.results[i]
+    if res and res.what == "new" then
+        capF.cap:SetText(L.PEDO_NEW_CARD)
+        capF.cap:SetTextColor(1, 0.82, 0)
+    else
+        capF.cap:SetText(string.format(L.PEDO_DUP, res and res.gain or 0))
+        capF.cap:SetTextColor(0.7, 0.7, 0.75)
+    end
+    capF:Show()
+    capF.popAt = now
+    P.Sound(SOUND_OF[c.r] or "coin")
+    if c.r == 4 then shake(3, 0.25) gameSound("UI_EPICLOOT_TOAST") end
+    if c.r >= 5 then
+        shake(7, 0.45)
+        gameSound("UI_LEGENDARY_LOOT_TOAST")
+        reveal.stageAt = now + 0.7
+        reveal.stageCard = c
+        -- la suivante attend l entree en scene
+        reveal.nextFlipAt = math.max(reveal.nextFlipAt or 0, now + 1.2)
+    end
 end
 
 local function buildPacks(page)
@@ -941,31 +1119,56 @@ local function buildPacks(page)
     p.empty:SetPoint("TOPLEFT", p.title, "BOTTOMLEFT", 0, -10)
     p.empty:SetWidth(500)
     p.empty:SetJustifyH("LEFT")
-    -- ouverture
-    p.show = CreateFrame("Frame", nil, p)
+    -- ouverture ; un clic sur le fond presse le mouvement
+    p.show = CreateFrame("Button", nil, p)
     p.show:SetAllPoints()
     p.show:Hide()
+    p.show:SetScript("OnClick", function()
+        if not reveal then return end
+        local now = GetTime()
+        if now < reveal.burstAt then reveal.burstAt = now return end
+        if not reveal.landed then return end
+        for i = 1, #reveal.ids do
+            if not reveal.flip[i] then reveal.flip[i] = now return end
+        end
+    end)
+    p.dim = p.show:CreateTexture(nil, "BACKGROUND")
+    p.dim:SetAllPoints()
+    p.dim:SetColorTexture(0, 0, 0, 0.45)
     p.showTitle = text(p.show, "GameFontNormalLarge")
     p.showTitle:SetPoint("TOP", p.show, "TOP", 0, -16)
-    p.slots, p.revealCards, p.captions = {}, {}, {}
-    local cw = 120
-    local total = 5 * cw + 4 * 16
-    for i = 1, 5 do
-        local slot = CreateFrame("Frame", nil, p.show)
-        slot:SetSize(cw, math.floor(cw * RATIO + 0.5))
-        slot:SetPoint("TOPLEFT", p.show, "TOPLEFT", (WIN_W - total) / 2 + (i - 1) * (cw + 16), -70)
-        local card = newCard(slot, cw)
-        card:SetPoint("CENTER", slot, "CENTER", 0, 0)
-        card:SetScript("OnEnter", function(self) if not self.back:IsShown() then cardTooltip(self) end end)
-        card:SetScript("OnLeave", ns.HideTooltip)
-        card:SetScript("OnClick", function()
-            if reveal and not reveal.done[i] and not reveal.flipAt[i] then reveal.flipAt[i] = GetTime() end
-        end)
-        local cap = text(p.show, "GameFontNormal")
-        cap:SetPoint("TOP", slot, "BOTTOM", 0, -10)
-        cap:SetWidth(cw + 10)
-        p.slots[i], p.revealCards[i], p.captions[i] = slot, card, cap
+    -- le booster, sa lueur, ses etincelles, ses rayons a l eclatement
+    local cx, cy = WIN_W / 2, ROW_Y - REVEAL_H / 2
+    p.packGlow = p.show:CreateTexture(nil, "BORDER")
+    p.packGlow:SetPoint("CENTER", p.show, "TOPLEFT", cx, cy)
+    p.packGlow:SetTexture(MEDIA .. "lueur")
+    pcall(p.packGlow.SetBlendMode, p.packGlow, "ADD")
+    p.burstRays = p.show:CreateTexture(nil, "BORDER", nil, 1)
+    p.burstRays:SetPoint("CENTER", p.show, "TOPLEFT", cx, cy)
+    p.burstRays:SetTexture(MEDIA .. "rayons")
+    pcall(p.burstRays.SetBlendMode, p.burstRays, "ADD")
+    p.packF = CreateFrame("Frame", nil, p.show)
+    p.packF:SetAllPoints()
+    p.packF:SetFrameLevel(p.show:GetFrameLevel() + 12)
+    p.pack = p.packF:CreateTexture(nil, "ARTWORK")
+    p.pack:SetPoint("CENTER", p.show, "TOPLEFT", cx, cy)
+    p.pack:SetTexture(MEDIA .. "booster")
+    p.pack:SetTexCoord(0, 1, 0, TEX_PACK)
+    p.motes = {}
+    for k = 1, 10 do
+        local t = p.packF:CreateTexture(nil, "OVERLAY")
+        t:SetTexture(MEDIA .. "etincelle")
+        pcall(t.SetBlendMode, t, "ADD")
+        t.seed = k * 0.37
+        p.motes[k] = t
     end
+    p.flash = p.packF:CreateTexture(nil, "OVERLAY", nil, 2)
+    p.flash:SetAllPoints(p.show)
+    p.flash:SetColorTexture(1, 1, 1, 1)
+    pcall(p.flash.SetBlendMode, p.flash, "ADD")
+    p.flash:Hide()
+    p.slots = {}
+    for i = 1, 5 do p.slots[i] = buildSlot(p, i) end
     p.nextPack = ns.UI.Button(p.show, "", 200, function()
         if db() and #db().packs > 0 then P.OpenNextPack() else reveal = nil refreshPage() end
     end)
@@ -973,52 +1176,162 @@ local function buildPacks(page)
     p.toBinder = ns.UI.Button(p.show, L.PEDO_SEE_BINDER, 200, function() reveal = nil selectTab("binder") end)
     p.toBinder:SetPoint("BOTTOM", p.show, "BOTTOM", 110, 40)
     buildStage(p)
-    -- animation : retournement des cartes une a une (en pause pendant
-    -- l entree en scene d une legendaire)
     p.show:SetScript("OnUpdate", function()
         if not reveal then return end
         local now = GetTime()
+        local age = now - reveal.t0
+        -- l ecran tremble
+        local ox, oy = 0, 0
+        if now < shakeUntil then
+            local left = (shakeUntil - now)
+            ox, oy = (math.random() * 2 - 1) * shakeAmp * math.min(1, left * 4), (math.random() * 2 - 1) * shakeAmp * math.min(1, left * 4)
+        else
+            shakeAmp = 0
+        end
+        p.show:ClearAllPoints()
+        p.show:SetPoint("TOPLEFT", p, "TOPLEFT", ox, oy)
+        p.show:SetPoint("BOTTOMRIGHT", p, "BOTTOMRIGHT", ox, oy)
+        -- 1. le booster arrive et tremble de plus en plus
+        local tint = reveal.tint
+        if now < reveal.burstAt then
+            local k = math.min(1, age / 0.25)
+            local build = math.min(1, math.max(0, (age - 0.25) / (SHAKE_TIME - 0.25)))
+            local s = 0.5 + 0.5 * easeOutBack(k) + 0.06 * build * math.sin(age * 30)
+            p.pack:SetSize(PACK_W * s, PACK_W * PACK_RATIO * s)
+            pcall(p.pack.SetRotation, p.pack, math.sin(age * (18 + 30 * build)) * 0.16 * build)
+            p.pack:SetAlpha(1)
+            p.pack:Show()
+            local g = PACK_W * (1.6 + 0.8 * build)
+            p.packGlow:SetSize(g * 1.4, g * 1.4)
+            p.packGlow:SetVertexColor(tint[1], tint[2], tint[3])
+            p.packGlow:SetAlpha(0.25 + 0.7 * build)
+            p.packGlow:Show()
+            for _, t in ipairs(p.motes) do
+                local tt = (age * 0.8 + t.seed) % 1
+                t:ClearAllPoints()
+                t:SetPoint("CENTER", p.pack, "CENTER", math.sin(t.seed * 9 + age) * PACK_W * 0.6, -PACK_W * 0.6 + tt * PACK_W * 1.6)
+                t:SetSize(8 + 8 * build, 8 + 8 * build)
+                t:SetVertexColor(tint[1], tint[2], tint[3])
+                t:SetAlpha((1 - tt) * build)
+                t:Show()
+            end
+            return
+        end
+        -- 2. il eclate
+        if not reveal.burst then
+            reveal.burst = true
+            p.flash:Show()
+            p.flash:SetAlpha(0.9)
+            P.Sound("f_tambour")
+            shake(6, 0.3)
+            for _, t in ipairs(p.motes) do t:Hide() end
+        end
+        local b = now - reveal.burstAt
+        p.flash:SetAlpha(math.max(0, 0.9 - b / 0.4))
+        if b > 0.4 then p.flash:Hide() end
+        if b < 0.2 then
+            local s = 1 + 3 * b
+            p.pack:SetSize(PACK_W * s, PACK_W * PACK_RATIO * s)
+            p.pack:SetAlpha(1 - b / 0.2)
+        else
+            p.pack:Hide()
+        end
+        local rk = math.min(1, b / 0.8)
+        p.burstRays:SetShown(rk < 1)
+        p.burstRays:SetSize(PACK_W * (1.2 + 2.5 * rk), PACK_W * (1.2 + 2.5 * rk))
+        p.burstRays:SetVertexColor(tint[1], tint[2], tint[3])
+        p.burstRays:SetAlpha(0.9 * (1 - rk))
+        pcall(p.burstRays.SetRotation, p.burstRays, b * 1.5)
+        p.packGlow:SetAlpha(math.max(0, 0.95 * (1 - b / 0.6)))
+        -- 3. les cartes jaillissent du booster vers leur place
+        local landed = true
         for i = 1, #reveal.ids do
-            local card = p.revealCards[i]
-            if not reveal.flipAt[i] and not p.stage:IsShown() and now >= reveal.start + 0.6 + (i - 1) * FLIP_GAP then
-                reveal.flipAt[i] = now
-            end
-            local t0 = reveal.flipAt[i]
-            -- debut du retournement : la vraie face, sous le dos encore opaque
-            if t0 and not reveal.face[i] then
-                reveal.face[i] = true
-                paintCard(card, P.byId[reveal.ids[i]], true, false)
-                card.new:Hide()
-                card.name:SetAlpha(0)
-                card.glow:SetAlpha(1)
-            end
-            if t0 and not reveal.done[i] then
-                local k = math.min(1, (now - t0) / FLIP_TIME)
-                card.back:SetAlpha(1 - k)
-                card:SetScale(1 + 0.12 * math.sin(k * math.pi))
-                if k >= 1 then
-                    reveal.done[i] = true
-                    card.back:Hide()
-                    card.name:SetAlpha(1)
-                    card:SetScale(1)
-                    local res = reveal.results[i]
-                    local c = P.byId[reveal.ids[i]]
-                    local cap = p.captions[i]
-                    if res and res.what == "new" then
-                        cap:SetText(L.PEDO_NEW_CARD)
-                        cap:SetTextColor(1, 0.82, 0)
-                    else
-                        cap:SetText(string.format(L.PEDO_DUP, res and res.gain or 0))
-                        cap:SetTextColor(0.7, 0.7, 0.75)
-                    end
-                    P.Sound(SOUND_OF[c and c.r or 1])
-                    if c and c.r >= 5 then showStage(p, c) end
+            local slot = p.slots[i]
+            local card = slot.card
+            local k = math.min(1, math.max(0, (b - (i - 1) * DEAL_GAP) / DEAL_TIME))
+            if k < 1 then landed = false end
+            local e = easeOutBack(k)
+            local s = math.max(0.05, 0.35 + 0.65 * e)
+            card:SetShown(k > 0)
+            card:SetScale(s)
+            card:ClearAllPoints()
+            card:SetPoint("CENTER", slot, "CENTER", slot.dx * (1 - e) / s, 0)
+            if k > 0 and not slot.dealt then slot.dealt = true P.Sound("coin") end
+        end
+        if not reveal.landed and landed then
+            reveal.landed = true
+            reveal.nextFlipAt = now + 0.35
+        end
+        if not reveal.landed then return end
+        -- 4. les retournements : un a la fois, ou au clic
+        if not p.stage:IsShown() and now >= (reveal.nextFlipAt or 0) then
+            for i = 1, #reveal.ids do
+                if not reveal.flip[i] then
+                    reveal.flip[i] = now
+                    break
                 end
             end
-            -- lueur des grandes raretes une fois retournees
-            if reveal.done[i] and card.card and card.card.r >= 4 then
-                card.glow:SetAlpha(0.55 + 0.45 * math.abs(math.sin(now * 3)))
+            reveal.nextFlipAt = now + FLIP_GAP
+        end
+        local all = true
+        for i = 1, #reveal.ids do
+            local slot = p.slots[i]
+            local card = slot.card
+            local t0 = reveal.flip[i]
+            if not reveal.done[i] then all = false end
+            if t0 and not reveal.done[i] then
+                local k = now - t0
+                if k < FLIP_CLOSE then
+                    -- le dos se referme (la carte se tourne), la carte se souleve
+                    local w = math.cos(k / FLIP_CLOSE * math.pi / 2)
+                    card.back:ClearAllPoints()
+                    card.back:SetPoint("CENTER")
+                    card.back:SetSize(REVEAL_W * math.max(0.02, w), REVEAL_H)
+                    card:SetScale(1 + 0.1 * (k / FLIP_CLOSE))
+                else
+                    if not reveal.face[i] then
+                        reveal.face[i] = true
+                        revealFace(p, i, now)
+                    end
+                    local q = math.min(1, (k - FLIP_CLOSE) / FLIP_POP)
+                    card:SetScale(1.28 - 0.28 * easeOutBack(q))
+                    if q >= 1 then
+                        reveal.done[i] = true
+                        card:SetScale(1)
+                    end
+                end
             end
+            -- eclair de la carte, rarete qui surgit, etincelles
+            if slot.flashAt then
+                local fa = now - slot.flashAt
+                slot.fx.flash:SetAlpha(math.max(0, 0.95 - fa / 0.35))
+                if fa > 0.35 then slot.fx.flash:Hide() slot.flashAt = nil end
+            end
+            if slot.capF.popAt then
+                local pa = math.min(1, (now - slot.capF.popAt) / 0.3)
+                slot.capF:SetScale(1.7 - 0.7 * easeOutBack(pa))
+                if pa >= 1 then slot.capF.popAt = nil end
+            end
+            updateSparks(slot, now)
+            -- les rares et plus : rayons qui tournent ; epiques et plus : halo battant
+            local c = reveal.face[i] and card.card
+            if c and c.r >= 3 then
+                pcall(slot.rays.SetRotation, slot.rays, now * (0.3 + 0.1 * c.r))
+                slot.rays:SetAlpha((0.15 + 0.12 * (c.r - 3)) + 0.08 * math.sin(now * 3 + i))
+            end
+            if c and c.r >= 4 then card.glow:SetAlpha(0.55 + 0.45 * math.abs(math.sin(now * 3))) end
+        end
+        -- legendaire : son entree, une fois la gerbe partie
+        if reveal.stageAt and now >= reveal.stageAt then
+            local c = reveal.stageCard
+            reveal.stageAt, reveal.stageCard = nil, nil
+            showStage(p, c)
+        end
+        -- tout est retourne : les boutons apparaissent
+        if all and not reveal.finished then
+            reveal.finished = true
+            p.nextPack:Show()
+            p.toBinder:Show()
         end
     end)
 end
@@ -1032,6 +1345,9 @@ local function refreshPacks(p)
         p.showTitle:SetText(reveal.title or "")
         local left = #d.packs
         p.nextPack:SetText(left > 0 and string.format(L.PEDO_NEXT_PACK, left) or L.PEDO_DONE)
+        -- les boutons : une fois tout retourne
+        p.nextPack:SetShown(reveal.finished and true or false)
+        p.toBinder:SetShown(reveal.finished and true or false)
         return
     end
     p.show:Hide()
@@ -1074,22 +1390,40 @@ function P.OpenNextPack()
         results[i] = { what = what, gain = gain }
     end
     d.opened = (d.opened or 0) + 1
-    reveal = { ids = ids, results = results, start = GetTime(), flipAt = {}, done = {}, face = {},
+    local now = GetTime()
+    reveal = { ids = ids, results = results, t0 = now, burstAt = now + SHAKE_TIME, flip = {}, done = {}, face = {},
+               tint = PACK_TINT[pack.k] or PACK_TINT.normal,
                title = (L["PEDO_PACK_" .. string.upper(pack.k)] or "") .. " · " .. P.WhyText(pack) }
+    shakeUntil, shakeAmp = 0, 0
     local p = pages.packs
     p.stage:Hide()
+    p.flash:Hide()
+    p.burstRays:Hide()
+    p.nextPack:Hide()
+    p.toBinder:Hide()
+    -- les cartes, face cachee, dans le booster (elles en jaillissent)
     for i = 1, 5 do
-        local card = p.revealCards[i]
+        local slot = p.slots[i]
+        local card = slot.card
         local c = P.byId[ids[i]]
         card.owned = true
         paintFaceDown(card, c)
+        card.back:ClearAllPoints()
+        card.back:SetAllPoints()
         card.back:Show()
         card.back:SetAlpha(1)
         card:SetScale(1)
-        p.captions[i]:SetText("")
-        p.slots[i]:SetShown(c ~= nil)
+        card:Hide()
+        slot.rays:Hide()
+        slot.fx.flash:Hide()
+        for _, t in ipairs(slot.fx.sparks) do t:Hide() end
+        slot.sparkAt, slot.flashAt, slot.dealt = nil, nil, nil
+        slot.capF:Hide()
+        slot.capF.popAt = nil
+        slot.capF:SetScale(1)
+        slot:SetShown(c ~= nil)
     end
-    P.Sound("f_confirm1")
+    P.Sound("f_montee")
     if P.CheckTrophies then P.CheckTrophies() end
     P.Changed("open")
     if current ~= "packs" then selectTab("packs") else refreshPage() end
