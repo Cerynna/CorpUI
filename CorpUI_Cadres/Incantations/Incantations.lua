@@ -376,7 +376,7 @@ local function makeBar(unit, store, label)
     f.ready = makeReady(f, f)
     f:SetScript("OnUpdate", onUpdate)
     f:Hide()
-    f.mover = ns.UI.Mover(f, store, label)
+    f.mover = ns.UI.Mover(f, store, label, nil, function() if ns.OpenFrames then ns.OpenFrames(unit) end end)
     place(f)
 
     local ev = CreateFrame("Frame")

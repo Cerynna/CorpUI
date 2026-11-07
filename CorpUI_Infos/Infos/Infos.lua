@@ -788,7 +788,7 @@ local function bind(i)
         for _, key in ipairs(ITEMS) do
             B.texts[key] = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         end
-        B.mover = ns.UI.Mover(bar, c.pos, barLabel(i))
+        B.mover = ns.UI.Mover(bar, c.pos, barLabel(i), nil, "infos")
         -- deplace a la main : plus lie a la zone de saisie du chat
         B.mover.onMoved = function() if B.conf then B.conf.underChat = nil end end
         local elapsed = 1

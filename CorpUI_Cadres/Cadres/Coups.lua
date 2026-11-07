@@ -326,7 +326,7 @@ local function build()
     box:SetFrameStrata("LOW")
     box:SetSize(db.width, db.height)
     for _, k in ipairs(KINDS) do makeBar(k) end
-    box.mover = ns.UI.Mover(box, db.pos, L.SWING_MOVER)
+    box.mover = ns.UI.Mover(box, db.pos, L.SWING_MOVER, nil, function() if ns.OpenFrames then ns.OpenFrames("player") end end)
     -- deplace a la main : minuteur libre
     box.mover.onMoved = function() db.attach = false end
     box:Hide()

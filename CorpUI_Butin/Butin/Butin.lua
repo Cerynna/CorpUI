@@ -341,7 +341,7 @@ local function buildLoot()
     lootHolder = CreateFrame("Frame", "CorpUILootAnchor", UIParent)
     lootHolder:SetSize(LOOT_W, HEADER_H + FOOTER_H + 3 * 34)
     ns.ApplyPos(lootHolder, db.pos)
-    lootHolder.mover = ns.UI.Mover(lootHolder, db.pos, L.LT_H_WINDOW)
+    lootHolder.mover = ns.UI.Mover(lootHolder, db.pos, L.LT_H_WINDOW, nil, "butin")
 
     local f = CreateFrame("Frame", "CorpUILootFrame", UIParent, "BackdropTemplate")
     lootFrame = f
@@ -713,7 +713,7 @@ local function buildRolls()
     rollHolder = CreateFrame("Frame", "CorpUILootRollAnchor", UIParent)
     rollHolder:SetSize(db.rollWidth, db.rollIconSize + 8)
     ns.ApplyPos(rollHolder, db.rollPos)
-    rollHolder.mover = ns.UI.Mover(rollHolder, db.rollPos, L.LT_H_ROLLS)
+    rollHolder.mover = ns.UI.Mover(rollHolder, db.rollPos, L.LT_H_ROLLS, nil, "butin")
     local since = 0
     rollHolder:SetScript("OnUpdate", function(_, dt)
         since = since + dt

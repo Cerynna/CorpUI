@@ -336,7 +336,7 @@ local function build()
         texts[s[1]]:SetPoint(s[2], anchor, s[3], s[4], s[5])
     end
 
-    ns.UI.Mover(frame, db.pos, L.MOD_XP)
+    ns.UI.Mover(frame, db.pos, L.MOD_XP, nil, "xp")
 end
 
 ---------------------------------------------------------------------------

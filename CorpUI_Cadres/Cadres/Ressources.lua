@@ -205,7 +205,7 @@ local function buildCombo()
         combo.boxes[i] = b
     end
     combo:SetScript("OnSizeChanged", layoutBoxes)
-    combo.mover = ns.UI.Mover(combo, db.comboFree, L.RES_COMBO)
+    combo.mover = ns.UI.Mover(combo, db.comboFree, L.RES_COMBO, nil, function() if ns.OpenFrames then ns.OpenFrames("player") end end)
     combo:Hide()
     layoutBoxes()
 end

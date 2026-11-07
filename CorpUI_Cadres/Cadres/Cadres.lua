@@ -880,9 +880,10 @@ local function makeBar(parent, h)
     return bar
 end
 
--- poignee commune (grille, aimantation, reglage au pixel : Movers.lua)
-local function makeMover(f, store, label)
-    f.mover = ns.UI.Mover(f, store, label)
+-- poignee commune (grille, aimantation, reglage au pixel : Movers.lua) ;
+-- clic droit : l editeur des cadres sur ce cadre (key : player, boss...)
+local function makeMover(f, store, label, key)
+    f.mover = ns.UI.Mover(f, store, label, nil, function() if ns.OpenFrames then ns.OpenFrames(key) end end)
 end
 
 local function build(u, store)
@@ -1030,7 +1031,7 @@ local function build(u, store)
     f.mark = f.markHost:CreateTexture(nil, "OVERLAY", nil, 7)
     f.mark:Hide()
 
-    if not u.below then makeMover(f, store, L[u.label]) end
+    if not u.below then makeMover(f, store, L[u.label], u.group or u.unit) end
 
     -- evenements de cette unite seulement
     local ev = CreateFrame("Frame")

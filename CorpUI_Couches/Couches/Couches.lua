@@ -654,7 +654,7 @@ local function buildFrame()
     frame:SetScript("OnEnter", function(self) showTip(self) end)
     frame:SetScript("OnLeave", ns.HideTooltip)
     ns.ApplyPos(frame, db.pos)
-    ns.UI.Mover(frame, db.pos, L.MOD_LAYER)
+    ns.UI.Mover(frame, db.pos, L.MOD_LAYER, nil, "couches")
 end
 
 ---------------------------------------------------------------------------

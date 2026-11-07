@@ -516,7 +516,7 @@ local function buildPlugin(p)
     h.bar = { key = p.key, plugin = p }
     ns.ApplyPos(h, db.pos[p.key])
     layout(h)
-    ns.UI.Mover(h, db.pos[p.key], p.name())
+    ns.UI.Mover(h, db.pos[p.key], p.name(), nil, "barres")
     table.insert(ns.ButtonBars, { frame = h, conf = function() return conf(p.key) end })
     table.insert(headers, h)
 end
@@ -544,7 +544,7 @@ local function build()
                 control:ChildUpdate("actionpage", newstate)
             ]])
         end
-        ns.UI.Mover(h, db.pos[bar.key], barName(bar))
+        ns.UI.Mover(h, db.pos[bar.key], barName(bar), nil, "barres")
         table.insert(ns.ButtonBars, { frame = h, conf = function() return conf(bar.key) end })
         headers[i] = h
     end
@@ -559,7 +559,7 @@ local function build()
     h.buttons = {}
     for j = 1, bar.count do h.buttons[j] = makePetButton(h, bar, j) end
     layout(h)
-    ns.UI.Mover(h, db.pos.pet, barName(bar))
+    ns.UI.Mover(h, db.pos.pet, barName(bar), nil, "barres")
     table.insert(ns.ButtonBars, { frame = h, conf = function() return conf(bar.key) end })
     table.insert(headers, h)
     -- barres ajoutees (barre des totems...) ; celles d une autre classe : rien
@@ -680,7 +680,7 @@ local function buildVehicle()
         ns.UI.ResetBorder(self)
         ns.HideTooltip()
     end)
-    ns.UI.Mover(b, db.pos.vehicle, L.BARS_VEHICLE)
+    ns.UI.Mover(b, db.pos.vehicle, L.BARS_VEHICLE, nil, "barres")
     vehicleButton = b
 end
 

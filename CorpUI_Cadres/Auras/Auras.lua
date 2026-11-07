@@ -242,7 +242,7 @@ local function header(name, store, w, h, label)
     local f = CreateFrame("Frame", name, UIParent)
     f:SetSize(w, h)
     ns.ApplyPos(f, store)
-    ns.UI.Mover(f, store, label)
+    ns.UI.Mover(f, store, label, nil, function() if ns.OpenFrames then ns.OpenFrames("player") end end)
     return f
 end
 

@@ -1096,13 +1096,15 @@ local function build()
     -- le joueur, en tete du groupe si la case est cochee (05/11) ; cree
     -- toujours (pas de cadre securise a creer plus tard, en combat)
     makeButton(party, "player", true)
-    ns.UI.Mover(party, db.partyPos, L.MOD_GROUP .. " - " .. L.GROUP_PARTY)
+    ns.UI.Mover(party, db.partyPos, L.MOD_GROUP .. " - " .. L.GROUP_PARTY, nil,
+        function() if ns.OpenFrames then ns.OpenFrames("party") end end)
 
     raid = CreateFrame("Frame", "CorpUIRaid", UIParent, "SecureHandlerStateTemplate")
     raid:SetSize(8 * (RAID_W + RAID_GAP), 5 * (RAID_H + RAID_GAP))
     ns.ApplyPos(raid, db.raidPos)
     for i = 1, 40 do makeButton(raid, "raid" .. i, false) end
-    ns.UI.Mover(raid, db.raidPos, L.MOD_GROUP .. " - " .. L.GROUP_RAID)
+    ns.UI.Mover(raid, db.raidPos, L.MOD_GROUP .. " - " .. L.GROUP_RAID, nil,
+        function() if ns.OpenFrames then ns.OpenFrames("raid") end end)
 
     applyVisibility()
 end

@@ -574,7 +574,7 @@ local function build()
     font(footer, 11)
     footer:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
     sizeHolder()
-    holder.mover = ns.UI.Mover(holder, db.pos, L.MOD_FEED)
+    holder.mover = ns.UI.Mover(holder, db.pos, L.MOD_FEED, nil, "fil")
     layout()
 end
 

@@ -1007,7 +1007,7 @@ buildFrame = function()
 
     for _ = 1, POOL do makeRow() end
     -- poignee commune (Deverrouiller l interface, onglet General)
-    f.mover = ns.UI.Mover(f, db.pos, L.MOD_NOTES)
+    f.mover = ns.UI.Mover(f, db.pos, L.MOD_NOTES, nil, "note")
     f:Hide()
 end
 

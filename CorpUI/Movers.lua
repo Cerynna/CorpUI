@@ -7,7 +7,8 @@
         (centre du cadre, 0 0 = milieu de l ecran), miroir (X -> -X),
         fleches 1 px (Maj = 10), aimantation, pas de la grille, verrouiller.
     La fenetre CorpUI se cache pendant ce temps et revient au reverrouillage
-    (Core.lua, pres de ns.ShowPanel).
+    (Core.lua, pres de ns.ShowPanel). Clic droit sur une poignee : la
+    fenetre s ouvre sur les reglages de son module (ns.UI.Mover, open).
     En glissant, le cadre s aimante aux bords et aux centres des autres
     cadres deja places et a ceux de l ecran (Maj enfoncee = pas d aimant).
     Les fleches du clavier deplacent aussi le cadre selectionne.
@@ -224,7 +225,7 @@ end
 
 local function buildPanel()
     panel = CreateFrame("Frame", "CorpUIMoverPanel", UIParent, "BackdropTemplate")
-    panel:SetSize(340, 166)
+    panel:SetSize(340, 180)
     panel:SetPoint("TOP", UIParent, "TOP", 0, -220)
     panel:SetFrameStrata("FULLSCREEN_DIALOG")
     panel:SetClampedToScreen(true)
@@ -246,6 +247,11 @@ local function buildPanel()
     hint:SetPoint("BOTTOMRIGHT", -10, 9)
     hint:SetJustifyH("LEFT")
     hint:SetText(L.MOVER_PICK)
+    local hint2 = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    hint2:SetPoint("BOTTOMLEFT", hint, "TOPLEFT", 0, 3)
+    hint2:SetPoint("BOTTOMRIGHT", hint, "TOPRIGHT", 0, 3)
+    hint2:SetJustifyH("LEFT")
+    hint2:SetText(L.MOVER_OPTIONS)
 
     -- X / Y
     local function coord(label, x)
@@ -362,8 +368,27 @@ end
 -- Poignee
 ---------------------------------------------------------------------------
 
--- target : cadre a deplacer, si ce n est pas celui que la poignee recouvre
-function ns.UI.Mover(frame, store, label, target)
+-- Clic droit sur une poignee : les reglages de son module dans la fenetre
+-- CorpUI. open : commande du module (son Open), ou fonction (editeur des
+-- cadres ouvert sur le bon cadre) ; sans open, le clic droit ne fait rien.
+local function openOptions(m)
+    local open = m.open
+    local fn
+    if type(open) == "function" then
+        fn = open
+    elseif type(open) == "string" and ns.ModuleOn(open) then
+        for _, mod in ipairs(ns.modules) do
+            if mod.command == open and mod.Open then fn = mod.Open end
+        end
+    end
+    if not fn then return end
+    local ok, err = pcall(fn)
+    if not ok then geterrorhandler()(err) end
+end
+
+-- target : cadre a deplacer, si ce n est pas celui que la poignee recouvre ;
+-- open : voir openOptions
+function ns.UI.Mover(frame, store, label, target, open)
     target = target or frame
     local m = CreateFrame("Frame", nil, frame)
     m:SetAllPoints()
@@ -375,7 +400,7 @@ function ns.UI.Mover(frame, store, label, target)
     fs:SetPoint("CENTER")
     fs:SetText(label or "")
     m.text = fs
-    m.target, m.store, m.label = target, store, label or ""
+    m.target, m.store, m.label, m.open = target, store, label or "", open
     m:EnableMouse(true)
     target:SetClampedToScreen(true)
 
@@ -389,7 +414,14 @@ function ns.UI.Mover(frame, store, label, target)
         self.dx, self.dy = cx / s - l, cy / s - t
         dragging = self
     end)
-    m:SetScript("OnMouseUp", function(self)
+    m:SetScript("OnMouseUp", function(self, button)
+        if button == "RightButton" then
+            if dragging or InCombatLockdown() then return end
+            selectMover(self)
+            refreshPanel()
+            openOptions(self)
+            return
+        end
         if dragging ~= self then return end
         dragging = nil
         guides.x:Hide()

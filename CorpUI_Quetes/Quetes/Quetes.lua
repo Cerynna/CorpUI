@@ -995,7 +995,7 @@ local function build()
     ns.UI.Gradient(hover, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.32, C.violet[1], C.violet[2], C.violet[3], 0.04)
     hover:Hide()
 
-    ns.UI.Mover(frame, db.pos, L.QUESTS_TITLE)
+    ns.UI.Mover(frame, db.pos, L.QUESTS_TITLE, nil, "quetes")
 end
 
 local function applyBlizzard()

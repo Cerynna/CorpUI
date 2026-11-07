@@ -213,7 +213,7 @@ local function ensureAnchor()
     anchor = CreateFrame("Frame", "CorpUITooltipAnchor", UIParent)
     anchor:SetSize(200, 80)
     ns.ApplyPos(anchor, db.anchorPos)
-    ns.UI.Mover(anchor, db.anchorPos, L.MOD_TIPS)
+    ns.UI.Mover(anchor, db.anchorPos, L.MOD_TIPS, nil, "infobulles")
     return anchor
 end
 

@@ -147,7 +147,7 @@ local function build()
     ns.UI.Skin(bar, 0.8)
     text = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     text:SetPoint("CENTER", 0, 0)
-    ns.UI.Mover(holder, db.pos, L.CENTER_MOVER)
+    ns.UI.Mover(holder, db.pos, L.CENTER_MOVER, nil, function() if ns.OpenFrames then ns.OpenFrames("player") end end)
 end
 
 local function apply()

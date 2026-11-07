@@ -866,7 +866,7 @@ local function buildRaid()
     raidFrame.empty = raidFrame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     raidFrame.empty:SetPoint("TOPLEFT", 2, -20)
     raidFrame.empty:SetText(L.CD_EMPTY_RAID)
-    ns.UI.Mover(raidFrame, o.pos, L.CD_TAB_RAID)
+    ns.UI.Mover(raidFrame, o.pos, L.CD_TAB_RAID, nil, "cd")
     local since, full = 0, 0
     raidFrame:SetScript("OnUpdate", function(_, dt)
         since, full = since + dt, full + dt
@@ -1002,7 +1002,7 @@ local function buildPerso()
     persoFrame:SetSize(o.size, o.size)
     persoFrame:SetFrameStrata("LOW")
     ns.ApplyPos(persoFrame, o.pos)
-    ns.UI.Mover(persoFrame, o.pos, L.CD_TAB_PERSO)
+    ns.UI.Mover(persoFrame, o.pos, L.CD_TAB_PERSO, nil, "cd")
     lastPersoSig = nil
     refreshPerso()
 end

@@ -158,7 +158,7 @@ local function build()
     bar = CreateFrame("Frame", "CorpUITotemBar", UIParent)
     bar:SetFrameStrata("LOW")
     for i, spec in ipairs(ORDER) do buttons[i] = makeButton(i, spec) end
-    bar.mover = ns.UI.Mover(bar, db.pos, L.TOTEM_MOVER)
+    bar.mover = ns.UI.Mover(bar, db.pos, L.TOTEM_MOVER, nil, function() if ns.OpenFrames then ns.OpenFrames("player") end end)
     -- deplace a la main : barre libre
     bar.mover.onMoved = function() db.attach = false end
     local acc = 0
