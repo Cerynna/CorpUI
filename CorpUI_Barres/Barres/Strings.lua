@@ -720,3 +720,17 @@ ns.AddStrings({
         BARS_TOTEM_AIR = "바람",
     },
 })
+
+-- Appui des touches montre sur les boutons (Barres.lua)
+ns.AddStrings({
+    enUS = { BARS_OPT_PRESS = "Show key presses on the buttons" },
+    frFR = { BARS_OPT_PRESS = "Montrer l'appui des touches sur les boutons" },
+    deDE = { BARS_OPT_PRESS = "Tastendruck auf den Knöpfen anzeigen" },
+    esES = { BARS_OPT_PRESS = "Mostrar la pulsación de teclas en los botones" },
+    ptBR = { BARS_OPT_PRESS = "Mostrar as teclas pressionadas nos botões" },
+    itIT = { BARS_OPT_PRESS = "Mostra la pressione dei tasti sui pulsanti" },
+    ruRU = { BARS_OPT_PRESS = "Показывать нажатие клавиш на кнопках" },
+    zhCN = { BARS_OPT_PRESS = "在按钮上显示按键按下" },
+    zhTW = { BARS_OPT_PRESS = "在按鈕上顯示按鍵按下" },
+    koKR = { BARS_OPT_PRESS = "버튼에 키 누름 표시" },
+})

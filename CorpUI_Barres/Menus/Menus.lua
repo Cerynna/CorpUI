@@ -100,6 +100,8 @@ local function makeStanceButton(i)
     hl:SetColorTexture(1, 1, 1, 0.2)
     b.hotkey = b:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmallGray")
     b.hotkey:SetPoint("TOPRIGHT", -1, -2)
+    -- appui de la touche montre sur le bouton (Barres.lua)
+    if ns.AddPressFx then ns.AddPressFx(b) end
     b:SetScript("OnEnter", function(self)
         if ns.QuickBindHover and ns.QuickBindHover(self) then return end
         local t = ns.Tooltip(self, "ANCHOR_TOP")

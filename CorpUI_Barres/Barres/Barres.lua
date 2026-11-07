@@ -21,6 +21,9 @@
     glisser pour retirer. Les raccourcis des barres de Blizzard sont
     rediriges vers les notres (SetOverrideBindingClick, hors combat).
 
+    Appui des touches : le bouton s allume tant que sa touche est tenue
+    (option, active par defaut ; boutons des postures compris).
+
     Reglages par barre : nombre de boutons, boutons par ligne, taille,
     espacement, fond (et sa marge), opacite, visible au survol seulement,
     raccourcis / noms de macro / charges affiches ou non.
@@ -428,7 +431,74 @@ local function makePetButton(header, bar, j)
     return b
 end
 
--- Apparence commune : icone, recharge, textes
+-- Appui d une touche : la touche du raccourci (ou un clic) enfonce le
+-- bouton a l ecran. Tant qu elle est tenue : voile dore et liseré d or,
+-- au-dessus de la recharge (visible pendant le temps global) ; au
+-- relachement, fondu. PostClick (le script prevu pour le code non securise)
+-- recoit l appui puis le relachement : les boutons sont inscrits pour les
+-- deux (AnyDown, AnyUp) et un raccourci envoie l un a l appui de la touche,
+-- l autre au relachement. Cadre et textures a nous : permis en combat.
+-- Option db.pressFx (active par defaut). Partage : boutons des postures
+-- (module Menus).
+local PRESS_MAX = 5     -- relachement jamais recu (sort glisse hors du bouton...) : effet retire
+
+local function pressRelease(fx)
+    if not fx.down then return end
+    fx.down = nil
+    fx.fade:Play()
+end
+
+local function pressDown(fx)
+    fx.fade:Stop()
+    fx:SetAlpha(1)
+    fx:Show()
+    local t = GetTime()
+    fx.down = t
+    C_Timer.After(PRESS_MAX, function() if fx.down == t then pressRelease(fx) end end)
+end
+
+function ns.AddPressFx(b)
+    local C = ns.COLORS
+    local fx = CreateFrame("Frame", nil, b)
+    fx:SetAllPoints()
+    fx:SetFrameLevel((b.cd and b.cd:GetFrameLevel() or b:GetFrameLevel()) + 2)
+    fx:Hide()
+    local fill = fx:CreateTexture(nil, "ARTWORK")
+    fill:SetAllPoints()
+    fill:SetColorTexture(1, 0.85, 0.3, 0.3)
+    fill:SetBlendMode("ADD")
+    for _, side in ipairs({ { "TOPLEFT", "TOPRIGHT", true }, { "BOTTOMLEFT", "BOTTOMRIGHT", true },
+                            { "TOPLEFT", "BOTTOMLEFT", false }, { "TOPRIGHT", "BOTTOMRIGHT", false } }) do
+        local t = fx:CreateTexture(nil, "OVERLAY")
+        t:SetColorTexture(C.gold[1], C.gold[2], C.gold[3], 1)
+        t:SetPoint(side[1])
+        t:SetPoint(side[2])
+        if side[3] then t:SetHeight(2) else t:SetWidth(2) end
+    end
+    local fade = fx:CreateAnimationGroup()
+    local a = fade:CreateAnimation("Alpha")
+    a:SetFromAlpha(1)
+    a:SetToAlpha(0)
+    a:SetDuration(0.25)
+    fade:SetToFinalAlpha(true)
+    fade:SetScript("OnFinished", function() fx:Hide() end)
+    fx.fade = fade
+    -- bouton cache pendant l appui : rien ne reste allume a son retour
+    fx:SetScript("OnHide", function(self)
+        self.down = nil
+        self.fade:Stop()
+        self:Hide()
+    end)
+    b.pressFx = fx
+    b:HookScript("PostClick", function(_, _, down)
+        if db and db.pressFx == false then return end
+        if down then pressDown(fx) else pressRelease(fx) end
+    end)
+    -- souris relachee hors du bouton (sort pris a la souris) : pas de clic
+    b:HookScript("OnMouseUp", function() pressRelease(fx) end)
+end
+
+-- Apparence commune : icone, recharge, textes, appui des touches
 makeVisuals = function(b)
     ns.UI.Skin(b, 0.6)
     b.icon = b:CreateTexture(nil, "ARTWORK")
@@ -452,6 +522,7 @@ makeVisuals = function(b)
     b.macro:SetPoint("BOTTOMRIGHT", -2, 2)
     b.macro:SetWordWrap(false)
     b.macro:Hide()
+    ns.AddPressFx(b)
 end
 
 -- Textes d un bouton affiche selon les reglages de sa barre
@@ -877,6 +948,7 @@ local function buildWindow()
     form:Check(L.BARS_OPT_ENABLE, function() return db.enabled end, function(v) db.enabled = v end)
     form:Check(L.BARS_OPT_BINDINGS, function() return db.bindings end, function(v) db.bindings = v end)
     form:Check(L.BARS_OPT_LOCK, function() return db.lockButtons end, function(v) db.lockButtons = v end)
+    form:Check(L.BARS_OPT_PRESS, function() return db.pressFx end, function(v) db.pressFx = v end)
     form:Check(L.BARS_OPT_BLIZZ, function() return db.hideBlizzard end, function(v) db.hideBlizzard = v end)
     form:Columns(2)
     form:Number(L.FRAMES_SCALE, function() return db.scale end, function(v) db.scale = v end, 0.6, 1.6, 0.1)
@@ -1102,6 +1174,8 @@ ev:SetScript("OnEvent", function(_, event, arg)
         if db.enabled == nil then db.enabled = false end
         if db.bindings == nil then db.bindings = true end
         if db.lockButtons == nil then db.lockButtons = true end
+        -- appui des touches montre sur les boutons (ajoute le 08/11)
+        if db.pressFx == nil then db.pressFx = true end
         -- l interface de Blizzard qu on remplace est masquee par defaut (une fois)
         if not db.blizzDefault2 then
             db.hideBlizzard = true
