@@ -82,6 +82,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Talents** | Export et import des talents. | `/corp talents` |
 | **Sorts à venir** | Les prochains sorts et le niveau pour les apprendre. | `/corp sorts` |
 | **Profils** | Réglages par personnage, copie, partage. | `/corp profils` |
+| **Erreurs Lua** | Capte les erreurs Lua et les actions bloquées, avec la pile d'appels et le contexte ; icône sur la minicarte avec le compteur. | `/corp erreurs` |
 
 ### Mini-jeux
 
@@ -120,6 +121,12 @@ Mise à jour : supprime les anciens dossiers `CorpUI` et `CorpUI_Xxx`, puis déc
 | `/corp minimap` | Affiche ou cache le bouton de la minicarte. |
 
 `/corpui` et `/cui` sont des alias de `/corp`. Le bouton **Déverrouiller** de la page Général affiche les poignées pour déplacer les cadres et les barres.
+
+## Signaler un bug
+
+1. Clique sur l'icône d'erreur de la minicarte (ou tape `/corp erreurs`).
+2. Choisis l'erreur avec les flèches, puis clique sur **Copier** et fais Ctrl+C.
+3. Colle le texte tel quel sur Discord : il est déjà mis en forme (2000 caractères au plus ; **Format : complet** pour tout avoir).
 
 ## Apparence
 

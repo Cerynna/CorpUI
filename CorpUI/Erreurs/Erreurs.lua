@@ -8,15 +8,22 @@
         Blizzard) ;
       - une erreur : message, pile d appels, variables locales (debugstack
         et debuglocals au niveau de l erreur, meme calcul que Blizzard) ;
-        deja vue (meme message, meme premiere ligne de pile) : elle compte
-        une fois de plus et repasse en tete ; valeur secrete : "(illisible)" ;
+        deja vue (meme message, meme ligne fautive dans la pile) : elle
+        compte une fois de plus et repasse en tete ; valeur secrete :
+        "(illisible)" ;
       - aussi notes : actions bloquees ou interdites a un addon
-        (ADDON_ACTION_BLOCKED / FORBIDDEN) et avertissements Lua ;
+        (ADDON_ACTION_BLOCKED / FORBIDDEN), avec la pile d appels et les
+        locales du code fautif (l evenement part pendant l appel bloque),
+        et avertissements Lua ;
+      - chaque erreur garde son contexte (version de CorpUI, personnage,
+        zone, combat, groupe) ;
       - icone dans la barre d icones de la minicarte (a cote du suivi et du
         courrier), avec le nombre d erreurs de la session ; clic : la
-        fenetre (une erreur par page, cette session ou toutes, texte
-        selectionnable pour Ctrl+C) ; sans minicarte CorpUI : icone libre
-        au coin de la carte ;
+        fenetre (une erreur par page, cette session ou toutes) ; le texte
+        est un rapport a coller tel quel sur Discord (mise en forme
+        Markdown, 2000 caracteres au plus, ou complet), « Copier » le
+        selectionne pour Ctrl+C ; sans minicarte CorpUI : icone libre au
+        coin de la carte ;
       - gardees d une session a l autre (200 au plus), au niveau du compte.
     Module coupe (page Modules) : le gestionnaire du jeu est remis a la
     connexion et les erreurs du chargement lui sont rendues.
@@ -67,18 +74,30 @@ local function firstLine(s)
     return type(s) == "string" and (s:match("^[^\n]*") or "") or ""
 end
 
+-- ligne de pile qui distingue une erreur : celle du code fautif, pas
+-- d une fonction C (SetPoint, error) ni d un appel terminal
+local function keyLine(s)
+    if type(s) ~= "string" then return "" end
+    for line in s:gmatch("[^\n]+") do
+        if not line:find("[C]", 1, true) and not line:find("tail call", 1, true) then return line end
+    end
+    return firstLine(s)
+end
+
 local function store(e)
     if not db then
         if #pending < MAX_ERRORS then pending[#pending + 1] = e end
         return
     end
-    local key = (e.msg or "") .. "\n" .. firstLine(e.stack)
+    local key = (e.raw or e.msg or "") .. "\n" .. keyLine(e.stack)
     local list = db.list
     for i = #list, 1, -1 do
         local x = list[i]
         if x.key == key then
             x.count = (x.count or 1) + 1
             x.last = e.time
+            -- contexte de la derniere fois
+            x.ctx, x.raw, x.kind = e.ctx or x.ctx, e.raw or x.raw, e.kind or x.kind
             if x.session == sessionId then
                 x.sessCount = (x.sessCount or 1) + 1
             else
@@ -122,35 +141,86 @@ local function errorData()
     return stack, locals
 end
 
+-- pile et locales d une action bloquee : l evenement part pendant l appel
+-- fautif ; on saute nos propres niveaux (ce fichier, et le pcall entre
+-- eux), la pile commence a la fonction protegee ([C]) et les locales sont
+-- celles du premier code Lua
+local SELF = "CorpUI/Erreurs/Erreurs.lua"
+local function blockedData()
+    if not debugstack then return nil, nil end
+    local first, lua
+    for level = 2, 24 do
+        local line = debugstack(level, 1, 0)
+        if type(line) ~= "string" or line == "" or not readable(line) then break end
+        if (line:gsub("\\", "/")):find(SELF, 1, true) then
+            first = nil
+        else
+            first = first or level
+            if not line:find("[C]", 1, true) and not line:find("tail call", 1, true) then
+                lua = level
+                break
+            end
+        end
+    end
+    if not first then return nil, nil end
+    local stack = debugstack(first)
+    local locals = lua and debuglocals and debuglocals(lua, true) or nil
+    return stack, locals
+end
+
+-- contexte au moment de l erreur
+local function context()
+    local c = { ver = ns.VERSION }
+    pcall(function()
+        c.combat = InCombatLockdown() and true or false
+        local z = GetRealZoneText()
+        if readable(z) and z ~= "" then c.zone = z end
+        local cls = UnitClass("player")
+        if readable(cls) then c.class = cls end
+        local lvl = UnitLevel("player")
+        if readable(lvl) and lvl > 0 then c.level = lvl end
+        if IsInRaid() then c.group = "raid" elseif IsInGroup() then c.group = "party" end
+        local n = c.group and GetNumGroupMembers()
+        if n and readable(n) then c.size = n end
+    end)
+    return c
+end
+
+local function cleanLocals(lo)
+    lo = safeText(lo)
+    if lo and lo ~= L.ERR_SECRET then lo = lo:gsub("|([kK])", "%1") end
+    return lo
+end
+
 local function record(msg, stack, locals)
     local m = safeText(msg) or "?"
-    local st = safeText(stack)
-    local lo = safeText(locals)
-    if lo and lo ~= L.ERR_SECRET then lo = lo:gsub("|([kK])", "%1") end
     -- journal du jeu (Logs\General.log), comme le gestionnaire de Blizzard
     if C_Log and C_Log.LogErrorMessage and readable(msg) and (stack == nil or readable(stack)) then
         pcall(C_Log.LogErrorMessage, string.format("Lua Error: %s\n%s", tostring(msg), tostring(stack or "")))
     end
-    return store({ msg = m, stack = st, locals = lo, time = time(), kind = "error" })
+    return store({ msg = m, stack = safeText(stack), locals = cleanLocals(locals), time = time(),
+                   kind = "error", ctx = context() })
 end
 
 -- avalanche (la meme erreur a chaque image) : dans la seconde qui suit,
 -- elle est seulement comptee, sans relire pile et locales (couteux)
 local stormMsg, stormAt, stormEntry = nil, 0, nil
+local function storming(plain, now)
+    if not (plain and plain == stormMsg and stormEntry and now - stormAt < 1 and now >= stormAt) then return false end
+    stormEntry.count = (stormEntry.count or 1) + 1
+    stormEntry.sessCount = (stormEntry.sessCount or 1) + 1
+    stormEntry.last = time()
+    stormAt = now
+    if notify then pcall(notify, stormEntry, false) end
+    return true
+end
+
 local function onError(msg)
     if handling then return end
     handling = true
     local now = GetTime()
     local plain = type(msg) == "string" and not issecret(msg) and msg or nil
-    if plain and plain == stormMsg and stormEntry and now - stormAt < 1 and now >= stormAt then
-        stormEntry.count = (stormEntry.count or 1) + 1
-        stormEntry.sessCount = (stormEntry.sessCount or 1) + 1
-        stormEntry.last = time()
-        stormAt = now
-        if notify then pcall(notify, stormEntry, false) end
-        handling = false
-        return
-    end
+    if storming(plain, now) then handling = false return end
     local stack, locals = errorData()
     local ok, e = pcall(record, msg, stack, locals)
     stormMsg, stormAt, stormEntry = plain, now, ok and e or nil
@@ -163,16 +233,35 @@ if seterrorhandler then
     installed = geterrorhandler and geterrorhandler() == onError or false
 end
 
--- actions bloquees ou interdites, avertissements Lua
+-- actions bloquees ou interdites, avertissements Lua ; raw : le texte
+-- d origine (celui de BugSack et du journal des souillures)
+local function onAction(event, a, b)
+    local now = GetTime()
+    local e, msg
+    if event == "LUA_WARNING" then
+        local text = safeText(b) or safeText(a) or "?"
+        msg = string.format(L.ERR_WARNING, text)
+        if storming(msg, now) then return end
+        e = store({ msg = msg, raw = "[LUA_WARNING] " .. text, time = time(), kind = "warning", ctx = context() })
+    else
+        local who, what = safeText(a) or "?", safeText(b) or "?"
+        local kind = event == "ADDON_ACTION_BLOCKED" and "blocked" or "forbidden"
+        msg = string.format(kind == "blocked" and L.ERR_BLOCKED or L.ERR_FORBIDDEN, who, what)
+        if storming(msg, now) then return end
+        local stack, locals = blockedData()
+        e = store({ msg = msg, time = time(), kind = kind, ctx = context(),
+                    raw = string.format("[%s] AddOn '%s' tried to call the protected function '%s'.", event, who, what),
+                    stack = safeText(stack), locals = cleanLocals(locals) })
+    end
+    stormMsg, stormAt, stormEntry = msg, now, e
+end
+
 local cap = CreateFrame("Frame")
 cap:SetScript("OnEvent", function(_, event, a, b)
-    local now = time()
-    if event == "ADDON_ACTION_BLOCKED" or event == "ADDON_ACTION_FORBIDDEN" then
-        local fmt = event == "ADDON_ACTION_BLOCKED" and L.ERR_BLOCKED or L.ERR_FORBIDDEN
-        store({ msg = string.format(fmt, safeText(a) or "?", safeText(b) or "?"), time = now, kind = "blocked" })
-    elseif event == "LUA_WARNING" then
-        store({ msg = string.format(L.ERR_WARNING, safeText(b) or safeText(a) or "?"), time = now, kind = "warning" })
-    end
+    if handling then return end
+    handling = true
+    pcall(onAction, event, a, b)
+    handling = false
 end)
 for _, e in ipairs({ "ADDON_ACTION_BLOCKED", "ADDON_ACTION_FORBIDDEN", "LUA_WARNING" }) do
     pcall(cap.RegisterEvent, cap, e)
@@ -284,7 +373,7 @@ end
 -- Fenetre : une erreur par page
 ---------------------------------------------------------------------------
 
-local view = { all = false, index = nil }
+local view = { all = false, index = nil, full = false }
 local sureUntil = 0
 
 local function currentList()
@@ -296,20 +385,154 @@ local function stamp(t)
     return t and date(L.ERR_DATE, t) or "?"
 end
 
-local function errorText(e)
-    local parts = { e.msg or "?", "" }
-    parts[#parts + 1] = string.format(L.ERR_WHEN, e.count or 1, stamp(e.first), stamp(e.last))
-    if e.stack and e.stack ~= "" then
-        parts[#parts + 1] = ""
-        parts[#parts + 1] = L.ERR_STACK
-        parts[#parts + 1] = e.stack
+---------------------------------------------------------------------------
+-- Rapport a coller sur Discord
+--   **CorpUI 2.0.6** · Action bloquee
+--   -# WoW 1.15.7 (61000) · frFR · Guerrier 60 · Orgrimmar · en combat · seul
+--   -# 9 fois · premiere ... · derniere ... · 4 cette session
+--   ```lua
+--   [ADDON_ACTION_BLOCKED] AddOn 'CorpUI_Sacs' tried to call ...
+--   -- Pile d'appels :
+--   ...
+--   -- Variables locales :
+--   ...
+--   ```
+--   -# Autres addons : ... · CorpUI coupes : ...
+-- Format Discord : 2000 caracteres au plus (limite d un message), les
+-- locales puis la fin de la pile sautent ; format complet : tout.
+---------------------------------------------------------------------------
+
+local DISCORD_MAX = 1990
+local FENCE = "```"
+local KIND = { error = "ERR_K_ERROR", blocked = "ERR_K_BLOCKED", forbidden = "ERR_K_FORBIDDEN", warning = "ERR_K_WARNING" }
+
+-- chemins courts : CorpUI_Sacs/Sacs/Sacs.lua:12 au lieu de
+-- [string "@Interface/AddOns/CorpUI_Sacs/Sacs/Sacs.lua"]:12
+local function tidy(s)
+    s = s:gsub("\\", "/")
+    s = s:gsub('%[string "@?([^"]*)"%]', "%1")
+    s = s:gsub("=%[C%]", "[C]")
+    s = s:gsub("=%(tail call%)", "(tail call)")
+    s = s:gsub("Interface/AddOns/", "")
+    s = s:gsub(FENCE, "'''")
+    return s
+end
+
+-- coupe a n octets sans casser un caractere UTF-8
+local function cut(s, n)
+    if #s <= n then return s end
+    local i = n
+    while i > 0 and (s:byte(i + 1) or 0) >= 0x80 and s:byte(i + 1) < 0xC0 do i = i - 1 end
+    return s:sub(1, i) .. "…"
+end
+
+-- lignes d un texte (pile, locales), raccourcies ; sans les temporaires
+local function lines(s, skipTemp)
+    local out = {}
+    if type(s) ~= "string" or s == "" then return out end
+    for line in s:gmatch("[^\n]+") do
+        if not (skipTemp and line:find("(*temporary)", 1, true)) then out[#out + 1] = tidy(line) end
     end
-    if e.locals and e.locals ~= "" then
-        parts[#parts + 1] = ""
-        parts[#parts + 1] = L.ERR_LOCALS
-        parts[#parts + 1] = e.locals
+    return out
+end
+
+local function addonApi(name)
+    return (C_AddOns and C_AddOns[name]) or _G[name]
+end
+
+-- addons charges en plus de CorpUI, et modules CorpUI coupes
+local function addonsLine()
+    local num, info, isOn = addonApi("GetNumAddOns"), addonApi("GetAddOnInfo"), addonApi("IsAddOnLoaded")
+    if not (num and info and isOn) then return nil end
+    local ok, n = pcall(num)
+    local others, off = {}, {}
+    for i = 1, ok and tonumber(n) or 0 do
+        local okI, name = pcall(info, i)
+        if okI and type(name) == "string" and not name:find("^Blizzard_") then
+            local okL, on = pcall(isOn, name)
+            on = okL and on
+            if name:find("^CorpUI") then
+                if not on then off[#off + 1] = (name:gsub("^CorpUI_", "")) end
+            elseif on then
+                others[#others + 1] = name
+            end
+        end
     end
-    return table.concat(parts, "\n")
+    local function list(t, max)
+        if #t <= max then return table.concat(t, ", ") end
+        return table.concat(t, ", ", 1, max) .. " +" .. (#t - max)
+    end
+    local s = string.format(L.ERR_R_ADDONS, #others > 0 and list(others, 15) or L.ERR_R_NONE)
+    if #off > 0 then s = s .. " · " .. string.format(L.ERR_R_OFF, list(off, 15)) end
+    return s
+end
+
+local function aboutLine(e)
+    local c = e.ctx or {}
+    local parts = {}
+    local function add(s) if s and s ~= "" then parts[#parts + 1] = s end end
+    local ok, ver, build = pcall(GetBuildInfo)
+    if ok and ver then add("WoW " .. tostring(ver) .. (build and (" (" .. tostring(build) .. ")") or "")) end
+    add(GetLocale and GetLocale())
+    if c.class then add(c.class .. (c.level and (" " .. c.level) or "")) end
+    add(c.zone)
+    if c.combat ~= nil then add(c.combat and L.ERR_R_COMBAT or L.ERR_R_PEACE) end
+    if c.group == "raid" then
+        add(string.format(L.ERR_R_RAID, c.size or 0))
+    elseif c.group == "party" then
+        add(string.format(L.ERR_R_PARTY, c.size or 0))
+    elseif c.combat ~= nil then
+        add(L.ERR_R_SOLO)
+    end
+    return table.concat(parts, " · ")
+end
+
+local function whenLine(e)
+    local s = string.format(L.ERR_WHEN, e.count or 1, stamp(e.first), stamp(e.last))
+    if e.session == sessionId and e.sessCount and e.sessCount ~= (e.count or 1) then
+        s = s .. " · " .. string.format(L.ERR_R_SESSION, e.sessCount)
+    end
+    return s
+end
+
+local function report(e, full)
+    local ver = e.ctx and e.ctx.ver
+    local top = table.concat({
+        string.format("**CorpUI%s** · %s", ver and (" " .. ver) or "", L[KIND[e.kind] or "ERR_K_ERROR"]),
+        "-# " .. aboutLine(e),
+        "-# " .. whenLine(e),
+        FENCE .. "lua",
+    }, "\n")
+    local foot = addonsLine()
+    local bottom = FENCE .. (foot and ("\n-# " .. foot) or "")
+    local note = "-- " .. L.ERR_R_CUT
+    -- place pour le bloc de code (une fin de ligne par ligne)
+    local room = full and math.huge or (DISCORD_MAX - #top - #bottom - 2 - #note - 1)
+    local body, used, cutOff = {}, 0, false
+    local function put(s)
+        if used + #s + 1 > room then cutOff = true return false end
+        body[#body + 1] = s
+        used = used + #s + 1
+        return true
+    end
+    local msg = tidy(e.raw or e.msg or "?")
+    if not full then msg = cut(msg, math.min(600, math.max(room - 40, 40))) end
+    put(msg)
+    local stack, locs = lines(e.stack), lines(e.locals, true)
+    if #stack == 0 then
+        put("-- " .. L.ERR_R_NOSTACK)
+    else
+        put("")
+        put("-- " .. L.ERR_STACK)
+        for _, s in ipairs(stack) do if not put(s) then break end end
+    end
+    if #locs > 0 and not cutOff then
+        put("")
+        put("-- " .. L.ERR_LOCALS)
+        for _, s in ipairs(locs) do if not put(s) then break end end
+    end
+    if cutOff then body[#body + 1] = note end
+    return top .. "\n" .. table.concat(body, "\n") .. "\n" .. bottom
 end
 
 local refreshWindow
@@ -371,13 +594,14 @@ local function buildWindow()
     end)
     win.clear:SetPoint("RIGHT", close, "LEFT", -8, 0)
 
-    -- texte selectionnable
+    -- texte selectionnable : le rapport pour Discord
     local scroll = CreateFrame("ScrollFrame", nil, win, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 10, -62)
-    scroll:SetPoint("BOTTOMRIGHT", -30, 28)
+    scroll:SetPoint("BOTTOMRIGHT", -30, 36)
     local edit = CreateFrame("EditBox", nil, scroll)
     edit:SetMultiLine(true)
     edit:SetAutoFocus(false)
+    edit:SetMaxLetters(0)
     edit:SetFontObject("ChatFontNormal")
     edit:SetWidth(590)
     edit:SetScript("OnEscapePressed", function() win:Hide() end)
@@ -387,10 +611,28 @@ local function buildWindow()
     end)
     scroll:SetScrollChild(edit)
     win.edit, win.scroll = edit, scroll
-    local hint = win:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    hint:SetPoint("BOTTOMLEFT", 10, 9)
-    hint:SetText(L.ERR_COPY_HINT)
+
+    -- copier : tout selectionner, Ctrl+C reste au joueur (le presse-papiers
+    -- est reserve a Blizzard) ; format Discord (2000 caracteres) ou complet
+    win.copy = ns.UI.Button(win, L.ERR_COPY, 110, function()
+        edit:SetFocus()
+        edit:HighlightText()
+        win.hint:SetText(L.ERR_COPIED)
+    end)
+    win.copy:SetSize(110, 22)
+    win.copy:SetPoint("BOTTOMRIGHT", -10, 8)
+    win.format = ns.UI.Button(win, "", 150, function()
+        view.full = not view.full
+        refreshWindow()
+    end)
+    win.format:SetSize(150, 22)
+    win.format:SetPoint("RIGHT", win.copy, "LEFT", -8, 0)
+    win.hint = win:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    win.hint:SetPoint("BOTTOMLEFT", 10, 13)
+    win.hint:SetPoint("RIGHT", win.format, "LEFT", -8, 0)
+    win.hint:SetJustifyH("LEFT")
     win:SetScript("OnShow", function() refreshWindow() end)
+    win:SetScript("OnHide", function() edit:ClearFocus() end)
 end
 
 refreshWindow = function()
@@ -406,9 +648,14 @@ refreshWindow = function()
     win.scope:SetText(view.all and L.ERR_ALL or L.ERR_SESSION)
     win.clear:SetText(GetTime() < sureUntil and L.ERR_CLEAR_SURE or L.ERR_CLEAR)
     win.clear:SetEnabled(db ~= nil and #db.list > 0)
-    local text = e and errorText(e) or L.ERR_NONE
+    win.format:SetText(view.full and L.ERR_FMT_FULL or L.ERR_FMT_DISCORD)
+    win.copy:SetEnabled(e ~= nil)
+    local text = e and report(e, view.full) or L.ERR_NONE
+    -- caracteres (UTF-8), comme les compte Discord
+    win.hint:SetText(e and string.format(L.ERR_COPY_HINT, select(2, text:gsub("[^\128-\191]", ""))) or "")
     win.edit.shown = text
     win.edit:SetText(text)
+    win.edit:HighlightText(0, 0)
     win.edit:SetCursorPosition(0)
     win.scroll:SetVerticalScroll(0)
 end
@@ -524,4 +771,5 @@ ns.RegisterModule({
 -- banc d essai
 ns._errors = { store = store, onError = onError, list = function() return db and db.list end,
                installed = function() return installed end, button = function() return btn end,
-               session = function() return sessionId end, paint = paintButton }
+               session = function() return sessionId end, paint = paintButton,
+               report = function(e, full) return report(e, full) end, onAction = onAction }
