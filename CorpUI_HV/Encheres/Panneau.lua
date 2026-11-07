@@ -10,7 +10,9 @@
 
     Ce client interdit aux addons de mettre en vente, d acheter, d encherir
     et d annuler : le volet analyse, conseille et lance des recherches ; le
-    clic final se fait toujours sur les boutons de Blizzard.
+    clic final se fait toujours sur les boutons de Blizzard (seule
+    exception : confirmer un devis de marchandise que la fenetre de
+    Blizzard refuse, Accepter.lua).
 
     Outils communs aux onglets (ns.AH) : lecture prudente des champs de
     Blizzard, liste a defilement, ligne d objet, recherche dans l HV.
