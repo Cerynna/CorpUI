@@ -960,6 +960,12 @@ local function placeCorner()
     if not db.corner then return end
     local cf = DEFAULT_CHAT_FRAME or ChatFrame1
     if not cf or (EditModeManagerFrame and EditModeManagerFrame:IsShown()) then return end
+    -- en combat, la fenetre est protegee (la colonne d icones, et son bouton
+    -- securise, y sont accroches) : la deplacer etait refuse (rapport du
+    -- 08/11, Chat.lua:979 setPoint, Monastere ecarlate). Le releve suivant
+    -- hors combat la replace.
+    local okP, protected = pcall(cf.IsProtected, cf)
+    if InCombatLockdown() and (not okP or protected) then return end
     -- le mode Edition retient la fenetre a l ecran avec une marge calculee sur
     -- son cadre de selection (ancienne colonne de boutons, ~35 px a gauche) :
     -- c est notre panneau qui borde le chat maintenant, on leve cette retenue
