@@ -10,6 +10,10 @@ pour le nom, passe en gris, teinte en jeu selon la rarete)
   Generee le 06/11/2026 avec Nano Banana Pro (Google, modele gemini-3-pro-image)
   pour CorpUI, puis detouree (fond vert) et posee en haut de son canevas.
 
+booster_normal.tga, booster_rare.tga, booster_legendaire.tga (boosters de
+la machine a sous : argent, bleu, orange) : booster.tga dont le violet du
+sachet change de teinte, les ornements dores restent (par programme, 08/11/2026).
+
 halo.tga (lueur des cartes epiques et legendaires, ombre portee), case.tga
 (case d une carte manquante), rayons.tga, etincelle.tga et lueur.tga (effets
 de l ouverture des boosters) : dessinees par programme pour CorpUI.

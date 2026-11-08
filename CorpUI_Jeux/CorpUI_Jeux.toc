@@ -27,3 +27,4 @@ Podometre\Creatures.lua
 Podometre\Cartes.lua
 Podometre\Podometre.lua
 Podometre\Classeur.lua
+Podometre\Machine.lua

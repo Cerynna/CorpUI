@@ -15,6 +15,8 @@
         montre) ; trophees selon les distances (Cartes.lua) ;
       - butin : un cadavre de monstre fouille cache tres rarement un booster
         (un par jour au plus) ;
+      - machine a sous (Machine.lua) : ses boosters arrivent sans annonce
+        (le gain est deja a l ecran) ;
       - guilde (joueurs CorpUI) : km de la semaine et classeur partages
         (option), message "PEDO" (ns.Comm), reponse en prive a une demande.
     Rien de protege, aucun crochet : nos cadres seulement.
@@ -229,6 +231,7 @@ end
 function P.WhyText(pack)
     if not pack then return "" end
     if pack.p == "welcome" then return L.PEDO_WHY_WELCOME end
+    if pack.p == "slots" then return L.PEDO_WHY_SLOTS end
     if pack.p == "loot" then
         return pack.n and string.format(L.PEDO_WHY_LOOT, pack.n) or L.PEDO_WHY_LOOT_ANY
     end
@@ -241,7 +244,7 @@ end
 local function givePack(kind, period, kmv, name)
     local pack = { k = kind, p = period, d = kmv, n = name, t = time() }
     table.insert(db.packs, pack)
-    if P.Announce then P.Announce("pack", pack) end
+    if P.Announce and period ~= "slots" then P.Announce("pack", pack) end
     P.Changed("pack")
 end
 P._givePack = function(...) if db then givePack(...) end end
@@ -756,6 +759,8 @@ ev:SetScript("OnEvent", function(_, event)
             givePack("normal", "welcome", 0)
         end
         if P.BuildPool then P.BuildPool() end
+        -- tour de machine a sous interrompu (rechargement) : gain verse
+        if P.SlotSettle then P.SlotSettle() end
         checkMilestones(keysAt(time()))
         Comm = ns.Comm
         if Comm and Comm.On then Comm.On("PEDO", onPedo) end

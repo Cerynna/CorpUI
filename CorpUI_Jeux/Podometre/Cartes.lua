@@ -10,8 +10,8 @@
         ecartee au chargement : ni tiree, ni comptee, ni montree ;
       - raretes 1 a 5 : commune, peu commune, rare, epique, legendaire ;
       - booster : 5 cartes, la 5e d une rarete minimale selon le booster ;
-        un doublon se change en eclats, les eclats fabriquent une carte
-        manquante ;
+        un doublon se change en eclats, qui se jouent a la machine a sous
+        (Machine.lua) ;
       - trophees : jamais tires, gagnes par les distances (P.CheckTrophies).
     L identifiant (id) de chaque carte est garde dans la sauvegarde, et sa
     place dans CATALOG sert au classeur partage avec la guilde (bits) :
@@ -38,7 +38,6 @@ P.RARITY_RGB = {
     { 1.00, 0.50, 0.00 },   -- legendaire
 }
 P.SHARDS = { 5, 10, 25, 100, 400 }        -- un doublon rapporte
-P.CRAFT = { 40, 100, 250, 1000, 4000 }    -- une carte manquante coute
 P.WEIGHTS = { 70, 22, 6, 1.6, 0.4 }       -- chances d une case de booster
 P.PACK_MIN = { normal = 2, rare = 3, epic = 4, legendary = 5 }
 P.PACK_SIZE = 5
@@ -449,22 +448,6 @@ function P.Grant(id)
     P.db.cards[id] = true
     P.db.newCards[id] = true
     return "new", 0
-end
-
-function P.CanCraft(id)
-    local c = byId[id]
-    return c and c.s ~= T and P.db and valid[id] and not P.db.cards[id]
-        and (P.db.shards or 0) >= (P.CRAFT[c.r] or math.huge) or false
-end
-
-function P.Craft(id)
-    if not P.CanCraft(id) then return false end
-    local c = byId[id]
-    P.db.shards = P.db.shards - P.CRAFT[c.r]
-    P.db.cards[id] = true
-    P.db.newCards[id] = true
-    if P.Changed then P.Changed("craft") end
-    return true
 end
 
 ---------------------------------------------------------------------------

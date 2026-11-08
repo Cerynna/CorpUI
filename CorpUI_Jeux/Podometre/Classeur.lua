@@ -1,13 +1,14 @@
 --[[--------------------------------------------------------------------------
-    CorpUI - podometre : le classeur (fenetre a quatre onglets) et l annonce
+    CorpUI - podometre : le classeur (fenetre a cinq onglets) et l annonce
       - Classeur : albums a gauche (tout, chaque serie, chaque donjon, chaque
         raid, les elites de chaque zone : avancement), pages de 6 x 3 cartes,
         filtre de rarete ; clic sur une carte : la carte en grand par-dessus
-        (fabrication avec les eclats, carte precedente / suivante) ; carte
+        (carte precedente / suivante) ; carte
         manquante : une case vide, et la silhouette noire d une creature ;
         classeur d un joueur de la guilde en lecture seule ;
       - Boosters : boosters en attente, ouverture animee (cartes retournees
         une a une, son selon la rarete, "Nouveau !" ou eclats du doublon) ;
+      - Machine a sous : les eclats s y jouent (Machine.lua) ;
       - Statistiques : jour, semaine, mois, annee, total (prochain palier),
         facons de se deplacer, record, 30 derniers jours, personnages,
         equivalence reelle ;
@@ -645,14 +646,6 @@ local function buildZoom(p)
     z.hint:SetPoint("TOPLEFT", z.lines, "BOTTOMLEFT", 0, -14)
     z.hint:SetWidth(460)
     z.hint:SetJustifyH("LEFT")
-    z.craft = ns.UI.Button(z, "", 220, function()
-        local c = z.list and z.list[z.index]
-        if c and P.Craft(c.id) then
-            P.Sound("f_ding")
-            refreshPage()
-        end
-    end)
-    z.craft:SetPoint("TOPLEFT", z.hint, "BOTTOMLEFT", 0, -14)
     z.prev = ns.UI.Button(z, "<", 30, function() openZoom(p, z.index - 1) end)
     z.prev:SetPoint("TOPLEFT", z.card, "BOTTOMLEFT", 0, -14)
     z.prevName = text(z, "GameFontDisableSmall")
@@ -698,13 +691,6 @@ refreshZoom = function(p)
     local hint = P.CardHint(c)
     if not hint and not owned and c.s ~= "trophees" then hint = L.PEDO_MISSING_HINT end
     z.hint:SetText(hint or "")
-    if not view and not owned and c.s ~= "trophees" then
-        z.craft:SetText(string.format(L.PEDO_CRAFT, P.CRAFT[c.r]))
-        z.craft:SetEnabled(P.CanCraft(c.id))
-        z.craft:Show()
-    else
-        z.craft:Hide()
-    end
     local prev, nxt = z.list[z.index - 1], z.list[z.index + 1]
     z.prev:SetEnabled(prev ~= nil)
     z.next:SetEnabled(nxt ~= nil)
@@ -1694,6 +1680,7 @@ refreshPage = function()
     local p = pages[current]
     if current == "binder" then refreshBinder(p)
     elseif current == "packs" then refreshPacks(p)
+    elseif current == "slots" then if P.RefreshSlots then P.RefreshSlots(p) end
     elseif current == "stats" then refreshStats(p)
     elseif current == "guild" then refreshGuild(p) end
 end
@@ -1743,7 +1730,7 @@ local function build()
     win.shards = text(bar, "GameFontNormal")
     win.shards:SetPoint("RIGHT", close, "LEFT", -12, 0)
     -- onglets
-    for i, key in ipairs({ "binder", "packs", "stats", "guild" }) do
+    for i, key in ipairs({ "binder", "packs", "slots", "stats", "guild" }) do
         local t = ns.UI.Button(win, tabLabel(key), 130, function() selectTab(key) end)
         t:SetPoint("TOPLEFT", win, "TOPLEFT", 12 + (i - 1) * 138, -32)
         t.key = key
@@ -1757,6 +1744,7 @@ local function build()
     end
     buildBinder(pages.binder)
     buildPacks(pages.packs)
+    if P.BuildSlots then P.BuildSlots(pages.slots) end
     buildStats(pages.stats)
     buildGuild(pages.guild)
     win:SetScript("OnShow", function() selectTab(current) end)

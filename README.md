@@ -90,7 +90,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | --- | --- | --- |
 | **Course du murloc** | Fais courir un murloc sur la plage et saute les obstacles. | `/corp murloc` |
 | **Fusion des minerais** | Un 2048 de mineur : du cuivre jusqu'aux objets légendaires. | `/corp minerais` |
-| **Podomètre** | Les kilomètres parcourus font gagner des boosters de cartes (zones, objets, montures, élites de zone, boss de donjon et de raid en 3D, trophées) à ranger dans un classeur ; très rarement, le butin d'un monstre en cache un (un par jour au plus) ; classement de la semaine avec la guilde. | `/corp podometre` |
+| **Podomètre** | Les kilomètres parcourus font gagner des boosters de cartes (zones, objets, montures, élites de zone, boss de donjon et de raid en 3D, trophées) à ranger dans un classeur ; très rarement, le butin d'un monstre en cache un (un par jour au plus) ; les doublons donnent des éclats à jouer à la machine à sous pour gagner d'autres boosters ; classement de la semaine avec la guilde. | `/corp podometre` |
 
 Les mini-jeux peuvent s'ouvrir tout seuls pendant les trajets en griffon.
 
