@@ -13,6 +13,7 @@ param([string]$AddOns = (Join-Path $PSScriptRoot "..\..\..\Interface\AddOns"))
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $AddOns = (Resolve-Path $AddOns).Path
 # retires du paquet, trop casses : CorpUI_Voyage (20/10), CorpUI_Leveling (05/11)
+# (CorpUI_Guide, prive, est hors paquet mais lie ici : il n est pas dans cette liste)
 $horsPaquet = @("CorpUI_Voyage", "CorpUI_Leveling")
 
 $dossiers = Get-ChildItem $repo -Directory | Where-Object {

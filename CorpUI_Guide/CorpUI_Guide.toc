@@ -1,0 +1,18 @@
+## Interface: 16001
+## Title: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Guide]|r
+## Title-frFR: |cffd65cffCorp|r|cffffd100UI|r |cff8fd16a[Guide]|r
+## Notes: step-by-step leveling guide 1-60, arrow (private: not in the package)
+## Notes-frFR: guide de leveling pas à pas de 1 à 60, flèche (privé : hors paquet)
+## IconTexture: Interface\Icons\INV_Misc_Map_01
+## Author: ceryn
+## Version: 2.0.5
+## Dependencies: CorpUI
+## Group: CorpUI
+
+Guide\Strings.lua
+Donnees\Guides.lua
+Guide\Moteur.lua
+Guide\Fleche.lua
+Guide\Suivi.lua
+Guide\Fenetre.lua
+Guide\Guide.lua

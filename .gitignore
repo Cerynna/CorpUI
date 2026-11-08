@@ -5,3 +5,7 @@ desktop.ini
 *.bak
 *.tmp
 *.orig
+
+# donnees privees (guides sans licence, jamais publiees)
+.prive/
+CorpUI_Guide/Donnees/
