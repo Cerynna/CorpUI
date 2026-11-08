@@ -8,12 +8,13 @@
       - une seule combinaison par tour :
           trois boosters, toutes couleurs : un booster de la couleur la plus
             basse des trois (deux ou cinq avec la mise 20 ou 50) ;
-          trois eclats : 8 fois la mise ; trois bottes : 3 fois ;
+          trois eclats : 6 fois la mise ; trois bottes : 3 fois ;
           deux eclats : la mise rendue ;
-      - retour moyen 89 %, dont 54 % en boosters (un booster compte pour les
-        eclats de ses doublons : calc_machine.js) ; booster 1 tour sur 16,
-        rare 1 sur 107, epique 1 sur 829, legendaire 1 sur 8000 : la machine
-        ne fabrique pas d eclats sans fin ;
+      - retour moyen 98 %, dont 67 % en boosters (un booster compte pour les
+        eclats de ses doublons : calc_machine.js, search_machine.js) ; un gain
+        tous les 3,6 tours, booster 1 tour sur 11 (normal 1 sur 13), rare 1
+        sur 86, epique 1 sur 505, legendaire 1 sur 4630 : sous 100 %, la
+        machine ne fabrique pas d eclats sans fin ;
       - tirage au lancer (P.SlotSpin : mise retiree, resultat garde dans
         db.slots.pending) ; gain verse a l arret des rouleaux (P.SlotSettle),
         ou en quittant l onglet, ou a la connexion suivante ;
@@ -39,14 +40,14 @@ local P = ns.Pedo
 P.SLOT_BETS = { 10, 20, 50 }
 P.SLOT_BASE = 10                     -- mise de reference (un booster)
 P.SLOT_SYMBOLS = {
-    { key = "boots", w = 34, icon = "INV_Boots_02" },
-    { key = "shard", w = 24, icon = "INV_Enchant_ShardBrilliantLarge" },
-    { key = "normal", w = 20, pack = 1 },
+    { key = "boots", w = 30, icon = "INV_Boots_02" },
+    { key = "shard", w = 25, icon = "INV_Enchant_ShardBrilliantLarge" },
+    { key = "normal", w = 21, pack = 1 },
     { key = "rare", w = 11, pack = 2 },
-    { key = "epic", w = 6, pack = 3 },
-    { key = "legendary", w = 5, pack = 4 },
+    { key = "epic", w = 7, pack = 3 },
+    { key = "legendary", w = 6, pack = 4 },
 }
-P.SLOT_PAY = { shard3 = 8, boots3 = 3, shard2 = 1 }   -- fois la mise
+P.SLOT_PAY = { shard3 = 6, boots3 = 3, shard2 = 1 }   -- fois la mise
 local PACK_KINDS = { "normal", "rare", "epic", "legendary" }
 
 local SYM, WEIGHT = {}, 0
