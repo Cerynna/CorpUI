@@ -102,12 +102,22 @@ local RACE = { Human = "Human", Dwarf = "Dwarf", NightElf = "Night Elf", Gnome =
 local function flat(s) return s and (s:gsub("[%s_%-]", ""):lower()) or nil end
 
 function GD.Who()
-    local _, race = call(UnitRace, "player")
+    local raceLoc, race = call(UnitRace, "player")
     local _, class = call(UnitClass, "player")
     local faction = call(UnitFactionGroup, "player")
-    race, class, faction = str(race), str(class), str(faction)
+    race, class, faction, raceLoc = str(race), str(class), str(faction), str(raceLoc)
+    -- Eolides : jeton du jeu inconnu (deux variantes, une par faction) ;
+    -- reconnus a leur jeton ou a leur nom ("Eolide de l Ordre supreme")
+    local r = race and RACE[race]
+    if not r then
+        local sky = L.GUIDE_RACE_SKYBORNE
+        if (race and race:lower():find("skyborne", 1, true)) or (raceLoc and raceLoc:lower():find("skyborne", 1, true))
+            or (raceLoc and sky and raceLoc:find(sky, 1, true)) then
+            r = "Skyborne"
+        end
+    end
     return {
-        race = race and (RACE[race] or race), raceToken = race,
+        race = r or race, raceToken = race, raceName = raceLoc,
         class = class and (class:sub(1, 1) .. class:sub(2):lower()), classToken = class,
         faction = faction,
     }
@@ -442,29 +452,88 @@ function GD.Advance(g, prog)
     return p, s
 end
 
--- apres la derniere quete rendue du guide (sur son etape si elle n est pas
--- faite en entier) ; renvoie le nombre d etapes passees
-function GD.CatchUp(g, prog)
-    local lastP, lastS, full
+-- niveaux de chaque partie, lus dans son titre ("29 ...", "29-30 ...") ;
+-- sans nombre : ceux de la partie d avant
+local levels = {}
+local function stageLevels(g)
+    local t = levels[g.k]
+    if t then return t end
+    t = {}
+    local lo, hi = 1, 1
     for p = 1, #g.e do
         local e = GD.Stage(g, p)
-        for s = 1, e and #e[4] or 0 do
-            local st = GD.Parse(e[4][s], GD.who)
-            if turnedIn(st) then lastP, lastS, full = p, s, GD.AutoDone(st) == true end
+        local a, b = (e and e[1] or ""):match("^(%d+)%-?(%d*)")
+        if a then
+            lo = tonumber(a)
+            hi = tonumber(b) or lo
+        end
+        t[p] = { lo, hi }
+    end
+    levels[g.k] = t
+    return t
+end
+GD.StageLevels = stageLevels
+
+-- capitales : on y passe sans y faire la partie de son niveau
+local CITIES = { [1453] = true, [1454] = true, [1455] = true, [1456] = true, [1457] = true, [1458] = true }
+
+-- cartes ou se trouve le joueur : la sienne et ses parents
+function GD.PlayerZones()
+    local list = {}
+    local map = C_Map and num(call(C_Map.GetBestMapForUnit, "player"))
+    local guard = 0
+    while map and map > 0 and guard < 6 do
+        list[map] = true
+        local info = call(C_Map.GetMapInfo, map)
+        map = type(info) == "table" and num(info.parentMapID) or nil
+        guard = guard + 1
+    end
+    return list
+end
+
+-- Se placer dans le guide (premiere ouverture, bouton Recaler) :
+--   depart : la partie de ton niveau dans la zone ou tu es (niveau - 2 a
+--   niveau + 1, hors capitales), sinon la premiere partie qui commence au
+--   niveau - 1 ;
+--   puis, si plus loin : la derniere quete rendue des parties de ton niveau
+--   ou d avant (sur son etape si elle n est pas faite en entier).
+-- Renvoie le nombre d etapes passees et { quest, level, zone } (parties).
+function GD.CatchUp(g, prog, level, zones)
+    level = level or num(call(UnitLevel, "player")) or 1
+    zones = zones or GD.PlayerZones()
+    local lv = stageLevels(g)
+    local qp, qs, full
+    for p = 1, #g.e do
+        if lv[p][1] <= level + 1 then
+            local e = GD.Stage(g, p)
+            for s = 1, e and #e[4] or 0 do
+                local st = GD.Parse(e[4][s], GD.who)
+                if turnedIn(st) then qp, qs, full = p, s, GD.AutoDone(st) == true end
+            end
         end
     end
-    local before = GD.Index(g, math.min(prog.p, #g.e), prog.s)
+    local lp, zp
+    for p = 1, #g.e do
+        if not lp and lv[p][1] >= level - 1 then lp = p end
+        local e = GD.Stage(g, p)
+        if not zp and lv[p][1] >= level - 2 and lv[p][1] <= level + 1 and e and e[2] and zones[e[2]] and not CITIES[e[2]] then
+            zp = p
+        end
+    end
+    local sp = zp or lp or #g.e
+    local before = GD.Index(g, math.min(prog.p, #g.e), math.min(prog.s, 99))
     prog.hold = nil
-    if lastP and not full then
-        prog.p, prog.s = lastP, lastS
-    elseif lastP then
-        local np, ns_ = nextPos(g, lastP, lastS)
-        prog.p, prog.s = np or (#g.e + 1), ns_ or 1
-    else
-        prog.p, prog.s = 1, 1
+    prog.p, prog.s = sp, 1
+    if qp and qp >= sp then
+        if full then
+            local np, ns_ = nextPos(g, qp, qs)
+            prog.p, prog.s = np or (#g.e + 1), ns_ or 1
+        else
+            prog.p, prog.s = qp, qs
+        end
     end
     GD.Advance(g, prog)
-    return GD.Index(g, math.min(prog.p, #g.e), prog.s) - before
+    return GD.Index(g, math.min(prog.p, #g.e), prog.s) - before, { quest = qp, level = lp, zone = zp }
 end
 
 -- etape en cours choisie a la main (elle reste tant qu elle n est pas cochee)
