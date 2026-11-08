@@ -10,8 +10,9 @@
       clic sur des coordonnees : la fleche y va ;
       clic sur une etape suivante : elle devient l etape en cours ;
       clic droit sur l etape en cours : la valider.
-    Fond obsidienne (opacite au choix). Deplacable avec "Deverrouiller
-    l interface".
+    Dessin du suivi des quetes (demande du 08/11) : pas de fond (opacite au
+    choix, 0 par defaut), titre clair, filet fin dessous, voile violet au
+    survol. Deplacable avec "Deverrouiller l interface".
 ----------------------------------------------------------------------------]]
 
 local _, ns = ...
@@ -19,8 +20,8 @@ if CorpUI and next(ns) == nil then ns = CorpUI end   -- espace de noms du noyau 
 local L = ns.L
 local GD = ns.Guide
 
-local HEAD_H = 24
-local PAD = 6
+local HEAD_H = 22
+local PAD = 2
 local MAX_AHEAD = 4
 local CHECK = "Interface\\RaidFrame\\ReadyCheck-Ready"
 
@@ -76,10 +77,11 @@ local function row(i)
     r:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     pcall(r.SetHyperlinksEnabled, r, true)
     r:SetScript("OnHyperlinkClick", onLink)
-    r.mark = r:CreateTexture(nil, "BACKGROUND")
-    r.mark:SetPoint("TOPLEFT", -PAD + 1, 2)
-    r.mark:SetPoint("BOTTOMRIGHT", PAD - 1, -2)
-    ns.UI.Gradient(r.mark, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.22, C.violet[1], C.violet[2], C.violet[3], 0)
+    -- survol : le voile du suivi des quetes
+    r.mark = r:CreateTexture(nil, "HIGHLIGHT")
+    r.mark:SetPoint("TOPLEFT", -PAD, 2)
+    r.mark:SetPoint("BOTTOMRIGHT", PAD, -2)
+    ns.UI.Gradient(r.mark, "HORIZONTAL", C.violet[1], C.violet[2], C.violet[3], 0.32, C.violet[1], C.violet[2], C.violet[3], 0.04)
     r.num = r:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     r.num:SetPoint("TOPLEFT", 0, -1)
     r.num:SetWidth(22)
@@ -106,8 +108,8 @@ local function fill(r, p, s, st, current, y)
     r:ClearAllPoints()
     r:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, -y)
     r:SetWidth(w)
-    r.mark:SetShown(current)
     r:SetAlpha(current and 1 or 0.62)
+    r.num:SetFontObject(current and "GameFontNormalSmall" or "GameFontDisableSmall")
     r.num:SetText(string.format("%02d)", s))
     r.text:SetWidth(w - 26)
     r.text:SetFontObject(current and "GameFontHighlight" or "GameFontHighlightSmall")
@@ -136,7 +138,7 @@ function GD.DrawTracker()
         return
     end
     frame:SetWidth(width())
-    if frame.cuiBg then frame.cuiBg:SetAlpha(db.alpha or 0.75) end
+    frame.bg:SetAlpha(db.bgAlpha or 0)
     local g, prog = GD.g, GD.prog
     local y = HEAD_H + 6
     local used = 0
@@ -177,7 +179,6 @@ function GD.DrawTracker()
                     r:ClearAllPoints()
                     r:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, -y)
                     r:SetWidth(width() - PAD * 2)
-                    r.mark:Hide()
                     r:SetAlpha(0.62)
                     r.num:SetText("")
                     r.note:Hide()
@@ -216,7 +217,12 @@ function GD.BuildTracker(options)
     frame:SetSize(width(), HEAD_H + 40)
     frame:SetFrameStrata("LOW")
     ns.ApplyPos(frame, db.pos)
-    ns.UI.Skin(frame, db.alpha or 0.75)
+    -- pas de fond par defaut : l etape est posee sur le jeu
+    frame.bg = frame:CreateTexture(nil, "BACKGROUND")
+    frame.bg:SetPoint("TOPLEFT", -4, 2)
+    frame.bg:SetPoint("BOTTOMRIGHT", 4, -2)
+    frame.bg:SetColorTexture(0, 0, 0, 1)
+    frame.bg:SetAlpha(db.bgAlpha or 0)
     rows = {}
 
     header = CreateFrame("Frame", nil, frame)
@@ -224,13 +230,13 @@ function GD.BuildTracker(options)
     header:SetPoint("TOPRIGHT")
     header:SetHeight(HEAD_H)
     local rule = header:CreateTexture(nil, "BORDER")
-    rule:SetPoint("BOTTOMLEFT", PAD, 0)
-    rule:SetPoint("BOTTOMRIGHT", -PAD, 0)
+    rule:SetPoint("BOTTOMLEFT", 0, 1)
+    rule:SetPoint("BOTTOMRIGHT", 0, 1)
     rule:SetHeight(1)
     ns.NoSnap(rule)
-    rule:SetColorTexture(1, 1, 1, 0.18)
+    rule:SetColorTexture(1, 1, 1, 0.22)
     header.open = iconButton(header, L.GUIDE_OPEN, function() GD.ToggleWindow() end)
-    header.open:SetPoint("RIGHT", -4, 0)
+    header.open:SetPoint("RIGHT", -2, 0)
     local book = header.open:CreateTexture(nil, "ARTWORK")
     book:SetAllPoints()
     book:SetTexture("Interface\\Icons\\INV_Misc_Map_01")
@@ -256,7 +262,7 @@ function GD.BuildTracker(options)
     header.title:SetPoint("RIGHT", header.count, "LEFT", -6, 0)
     header.title:SetJustifyH("LEFT")
     header.title:SetWordWrap(false)
-    header.title:SetTextColor(ns.COLORS.gold[1], ns.COLORS.gold[2], ns.COLORS.gold[3])
+    header.title:SetTextColor(0.93, 0.93, 0.93)
 
     frame.msg = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     frame.msg:SetJustifyH("LEFT")

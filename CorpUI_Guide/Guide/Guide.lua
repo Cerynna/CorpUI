@@ -255,8 +255,8 @@ local function buildOptions()
     form:Check(L.GUIDE_OPT_SHOW, function() return db.show end, function(v) db.show = v refresh() end)
     form:Number(L.GUIDE_OPT_AHEAD, function() return db.ahead end, function(v) db.ahead = v refresh() end, 0, 4)
     form:Number(L.GUIDE_OPT_WIDTH, function() return db.width end, function(v) db.width = v refresh() end, 240, 480, 20)
-    form:Number(L.GUIDE_OPT_ALPHA, function() return math.floor((db.alpha or 0.75) * 100 + 0.5) end,
-        function(v) db.alpha = v / 100 refresh() end, 0, 100, 5)
+    form:Number(L.GUIDE_OPT_ALPHA, function() return math.floor((db.bgAlpha or 0) * 100 + 0.5) end,
+        function(v) db.bgAlpha = v / 100 refresh() end, 0, 100, 5)
     form:Header(L.GUIDE_H_ARROW)
     form:Check(L.GUIDE_OPT_ARROW, function() return db.arrow end, function(v) db.arrow = v refresh() end)
     form:Number(L.GUIDE_OPT_ARROW_SIZE, function() return db.arrowScale end, function(v)
@@ -302,7 +302,10 @@ ev:SetScript("OnEvent", function(_, event)
         if db.native == nil then db.native = false end
         db.ahead = db.ahead or 2
         db.width = db.width or 320
-        db.alpha = db.alpha or 0.75
+        -- fond : aucun par defaut, comme le suivi des quetes (08/11 ; l ancien
+        -- reglage "alpha", 75 % par defaut, est abandonne)
+        db.alpha = nil
+        db.bgAlpha = db.bgAlpha or 0
         db.arrowScale = db.arrowScale or 100
         GD.who = GD.Who()
         GD.BuildTracker(db)
