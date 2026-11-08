@@ -3,7 +3,8 @@
     Remplace le bas d ecran de Blizzard :
       - barre de postures a nous : formes de druide, postures de guerrier,
         camouflage, auras de paladin (l API des formes couvre tout ca).
-        Boutons securises type "spell" (ID du sort de la forme) ; leur
+        Boutons securises qui cliquent le bouton de forme de Blizzard (meme
+        clic que sa barre : la forme deja prise est quittee) ; leur
         nombre change hors combat seulement. Raccourcis SHAPESHIFTBUTTONn
         rediriges vers nos boutons. Visibilite selon conditions (reglee
         dans le panneau des barres) : pilote d etat, comme les barres.
@@ -84,7 +85,17 @@ local function makeStanceButton(i)
     b:RegisterForClicks("AnyUp", "AnyDown")
     b.bindLabel = L.MENUS_STANCE .. " - " .. i
     if ns.RegisterBindable then ns.RegisterBindable(b, "SHAPESHIFTBUTTON" .. i) end
-    b:SetAttribute("type", "spell")
+    -- clic confie au bouton de Blizzard (StanceButtonN, meme numero) par
+    -- l action securisee "click" : son code (StanceBar.lua, branche forever)
+    -- appelle CastShapeshiftForm, qui quitte la forme deja prise. Lancer le
+    -- sort de la forme (type "spell") la reprenait au lieu de la quitter.
+    local blizz = _G["StanceButton" .. i]
+    if type(blizz) == "table" and blizz.Click then
+        b:SetAttribute("type", "click")
+        b:SetAttribute("clickbutton", blizz)
+    else
+        b:SetAttribute("type", "spell")
+    end
     ns.UI.Skin(b, 0.6)
     b.icon = b:CreateTexture(nil, "ARTWORK")
     b.icon:SetAllPoints()
