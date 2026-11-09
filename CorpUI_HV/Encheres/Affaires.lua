@@ -10,7 +10,13 @@
           profit = revente a la valeur marche apres la commission de 5 % ;
           sous leur prix marchand (option) : revente au PNJ, profit sur ;
       - Bons plans dez : sous Y % de leur valeur de desenchantement
-        (armures et armes, composants tous avec un prix) : profit estime.
+        (armures et armes, composants tous avec un prix) : profit estime
+        sur la valeur moyenne apres la commission de 5 % (on revend les
+        composants). Le desenchantement est un tirage (09/11) : pour les
+        exemplaires a acheter, chance que le total rembourse l achat
+        (AH.DEChance) ; sous la chance mini (o.deSafe, 60 % par defaut,
+        /corp hv) l affaire est ecartee : plus de "bon plan" qui ne paie
+        que si l eclat a 5 % tombe.
     Chaque liste a son seuil, ses objets ignores et ses 150 places. Pour
     chaque objet : les exemplaires a acheter (echelle des prix du dernier
     releve), le profit et la rentabilite (profit net / depense, 12/10 :
@@ -45,6 +51,7 @@ local function opts()
     local o = db.deals
     if type(o.pct) ~= "number" then o.pct = 70 end
     if type(o.dePct) ~= "number" then o.dePct = 90 end
+    if type(o.deSafe) ~= "number" then o.deSafe = 60 end
     if type(o.minProfit) ~= "number" then o.minProfit = 10000 end
     if type(o.fresh) ~= "number" then o.fresh = 60 end
     if o.vendor == nil then o.vendor = true end
@@ -65,7 +72,7 @@ AH.DealOpts = opts
 -- meilleures affaires d un objet : revente (marche / marchand) et
 -- desenchantement, chacune nil ou { id, kind, q, cost, profit, ref, ... }
 local function evaluate(id, o)
-    local wantResale, wantDE = not o.ignore[id], not o.ignoreDE[id] and AH.DEValue
+    local wantResale, wantDE = not o.ignore[id], not o.ignoreDE[id] and AH.DEDist
     if not wantResale and not wantDE then return nil, nil end
     local v = ns.AHValues and ns.AHValues(id, true)
     if not v or v.age > o.fresh * 60 then return nil, nil end
@@ -93,8 +100,18 @@ local function evaluate(id, o)
         end
     end
     if wantDE then
-        local dv, missing = AH.DEValue("item:" .. id)
-        if dv and missing == 0 and dv > 0 then de = under(dv * o.dePct / 100, dv, "de", nil) end
+        local dist = AH.DEDist("item:" .. id)
+        if dist and dist.missing == 0 and dist.mean > 0 then
+            local net = dist.mean * CUT
+            de = under(net * o.dePct / 100, net, "de", nil)
+            if de then
+                -- tirage : chance que les exemplaires achetes remboursent
+                -- l achat (composants revendus), total atteint 3 fois sur 4
+                local chance, low = AH.DEChance(dist, de.q, de.cost / CUT)
+                de.chance, de.low = chance, low * CUT
+                if chance * 100 < o.deSafe then de = nil end
+            end
+        end
     end
     return resale, de
 end
@@ -202,6 +219,13 @@ local function kindText(d)
     return "|cffffd100" .. string.format(L.DEAL_K_MARKET, pct, M(d.market or 0)) .. "|r"
 end
 
+-- chance de rembourser l achat (dez) : vert des 80 %, jaune des 60, orange
+local function safeText(d)
+    local p = math.floor((d.chance or 0) * 100 + 0.5)
+    local col = p >= 80 and "6be070" or p >= 60 and "ffd100" or "ff9a40"
+    return "|cff" .. col .. string.format(L.DEAL_SAFE, p) .. "|r"
+end
+
 -- rentabilite : vert vif au-dela de 50 %, jaune de 25 a 50, orange en dessous
 local function roiText(d)
     local p = math.floor((d.roi or 0) + 0.5)
@@ -234,9 +258,18 @@ local function makeRow(list, i)
     row:SetScript("OnEnter", function(self)
         local d = self.d
         if not d then return end
-        AH.ItemTip(self, d.id, { { kindText(d) },
-            { string.format(L.DEAL_TIP_ROI, math.floor((d.roi or 0) + 0.5), AH.Money(d.profit), AH.Money(d.cost)), 0.42, 0.88, 0.46 },
-            { L.DEAL_TIP_CLICK, 0.7, 0.7, 0.7 } })
+        local extra = { { kindText(d) } }
+        if d.kind == "de" then
+            -- chaque resultat possible, puis ce que donnent les exemplaires a acheter
+            extra[1] = { "|cffc080ff" .. string.format(L.DEAL_TIP_DE, AH.Money(d.ref)) .. "|r" }
+            for _, l in ipairs(AH.DELines("item:" .. d.id)) do extra[#extra + 1] = l end
+            extra[#extra + 1] = { string.format(L.DEAL_TIP_SAFE, d.q, math.floor((d.chance or 0) * 100 + 0.5),
+                                                AH.Money(d.low or 0)), 1, 0.82, 0 }
+        end
+        extra[#extra + 1] = { string.format(L.DEAL_TIP_ROI, math.floor((d.roi or 0) + 0.5), AH.Money(d.profit), AH.Money(d.cost)),
+                              0.42, 0.88, 0.46 }
+        extra[#extra + 1] = { L.DEAL_TIP_CLICK, 0.7, 0.7, 0.7 }
+        AH.ItemTip(self, d.id, extra)
     end)
     return row
 end
@@ -247,7 +280,13 @@ local function fillRow(row, d, i)
     row.icon:SetTexture(ns.ItemIcon(d.id))
     row.name:SetText(AH.QualityHex(d.id) .. AH.ItemLabel(d.id) .. "|r")
     row.right:SetText("|cff6be070+" .. AH.Money(d.profit) .. "|r")
-    row.sub:SetText(kindText(d) .. "|cff9d9d9d  ·  " .. string.format(L.DEAL_BUY, d.q, AH.Money(d.cost)) .. "|r")
+    if d.kind == "de" then
+        -- ligne courte : valeur, chance de rembourser, achat
+        row.sub:SetText("|cffc080ff" .. string.format(L.DEAL_K_DE_ROW, AH.Money(d.ref)) .. "|r|cff9d9d9d · |r" .. safeText(d)
+            .. "|cff9d9d9d · " .. string.format(L.DEAL_BUY_SHORT, d.q, AH.Money(d.cost)) .. "|r")
+    else
+        row.sub:SetText(kindText(d) .. "|cff9d9d9d  ·  " .. string.format(L.DEAL_BUY, d.q, AH.Money(d.cost)) .. "|r")
+    end
     row.roi:SetText(roiText(d))
 end
 
@@ -438,6 +477,12 @@ table.insert(ns.AHPanelHooks, function(panel, form)
         local o = opts()
         if o then o.announce = v end
     end)
+    -- dez : chance mini que les exemplaires achetes remboursent l achat
+    form:Number(L.DEAL_OPT_SAFE, function() local o = opts() return o and o.deSafe or 60 end, function(v)
+        local o = opts()
+        if o then o.deSafe = v end
+        dirty = true
+    end, 0, 95, 5)
     local btn = ns.UI.Button(panel, "", 200, function(self)
         local o = opts()
         if o then

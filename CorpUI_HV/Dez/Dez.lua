@@ -14,7 +14,9 @@
     Attributs, affichage et position changes hors combat seulement (cadre
     securise) ; en combat l icone reste telle quelle, a demi transparente.
     Infobulle : celle de l objet, la valeur de desenchantement estimee
-    (module Encheres) et les deux clics.
+    (module Encheres) avec chaque resultat possible, et les deux clics.
+    Clic gauche : l objet vise est donne au module Encheres
+    (ns.DezClicked), qui note ce que le desenchantement a vraiment donne.
     Touche (11/10) : raccourci du jeu "CLICK CorpUIDez:LeftButton" (comme les
     barres), choisi dans /corp dez ou en mode raccourcis rapides (/corp kb) ;
     sans objet a desenchanter, le bouton n a pas d action (la touche ne
@@ -70,7 +72,7 @@ ns.DezIsEnchanter = isEnchanter
 -- objet desenchantable : on reprend la table du module Encheres (qualite,
 -- classe, emplacement) ; sans elle, armes / armures vertes a violettes
 local function disenchantable(link, info)
-    if ns.AH and ns.AH.DEParts then return ns.AH.DEParts(link) ~= nil end
+    if ns.AH and ns.AH.DECan then return ns.AH.DECan(link) end
     local fn = (C_Item and C_Item.GetItemInfo) or GetItemInfo
     local ok, name, _, quality, _, _, _, _, _, loc, _, _, classID = pcall(fn, link)
     if not ok or not name then return false end
@@ -129,7 +131,11 @@ local function showTip(self)
     if not pcall(t.SetBagItem, t, current.bag, current.slot) then t:AddLine(current.link) end
     if ns.AH and ns.AH.DEValue then
         local v = ns.AH.DEValue(current.link)
-        if v and v > 0 and ns.AHMoney then t:AddLine(string.format(L.DEZ_VALUE, ns.AHMoney(v)), 1, 0.82, 0.25) end
+        if v and v > 0 and ns.AHMoney then
+            t:AddLine(string.format(L.DEZ_VALUE, ns.AHMoney(v)), 1, 0.82, 0.25)
+            -- resultats possibles (tirage), du plus probable au plus rare
+            for _, l in ipairs(ns.AH.DELines and ns.AH.DELines(current.link) or {}) do t:AddLine(l[1], l[2], l[3], l[4]) end
+        end
     end
     t:AddLine(L.DEZ_TIP_LEFT, 0.42, 0.88, 0.46)
     local key = bindKey()
@@ -184,7 +190,11 @@ local function build()
     btn:SetScript("OnLeave", function() ns.HideTooltip() end)
     -- clic gauche : action securisee ; on note l objet pour attribuer un refus
     btn:SetScript("PreClick", function(_, button, down)
-        if button == "LeftButton" and current then lastClick = { id = current.id, t = GetTime() } end
+        if button == "LeftButton" and current then
+            lastClick = { id = current.id, t = GetTime() }
+            -- objet vise, pour noter ce que donne le desenchantement (Encheres)
+            ns.DezClicked = { link = current.link, t = lastClick.t }
+        end
     end)
     -- clic droit (au relachement) : ignorer l objet
     btn:SetScript("PostClick", function(_, button, down)
