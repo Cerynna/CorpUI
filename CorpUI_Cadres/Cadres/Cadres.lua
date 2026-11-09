@@ -484,6 +484,113 @@ local function moodTooltip(self)
     GameTooltip:Show()
 end
 
+-- JcJ : embleme de faction (ou JcJ libre) a l exterieur du cadre joueur
+-- (a gauche, sous le "Zz") et du cadre cible (a droite), memes regles que
+-- le cadre de Blizzard (UnitFrameUtil, branche forever) ; joueur : compte a
+-- rebours quand le JcJ se desactive (IsPVPTimerRunning, GetPVPTimer en ms).
+-- Valeurs secretes : pas d embleme.
+local PVP_ATLAS = { Horde = "UI-HUD-UnitFrame-Player-PVP-HordeIcon",
+                    Alliance = "UI-HUD-UnitFrame-Player-PVP-AllianceIcon",
+                    FFA = "UI-HUD-UnitFrame-Player-PVP-FFAIcon" }
+local PVP_SIZE = 22
+
+-- "FFA", "Horde", "Alliance" ou nil
+local function pvpState(unit)
+    if unitFlag(UnitIsPVPFreeForAll, unit) then return "FFA" end
+    if not unitFlag(UnitIsPVP, unit) then return nil end
+    local ok, faction = pcall(UnitFactionGroup, unit)
+    if not ok or issecret(faction) or (faction ~= "Horde" and faction ~= "Alliance") then return nil end
+    -- mercenaire : il se bat pour l autre faction
+    if unit == "player" and unitFlag(UnitIsMercenary, unit) then
+        faction = faction == "Horde" and "Alliance" or "Horde"
+    end
+    return faction
+end
+
+-- embleme du jeu a sa forme, dans un carre de PVP_SIZE ; sans l atlas :
+-- ancienne texture du cadre de cible
+local function setPvPArt(v, state)
+    local atlas = PVP_ATLAS[state]
+    local okI, info = false, nil
+    if C_Texture and C_Texture.GetAtlasInfo then okI, info = pcall(C_Texture.GetAtlasInfo, atlas) end
+    local w, h = PVP_SIZE, PVP_SIZE
+    if okI and type(info) == "table" and pcall(v.tex.SetAtlas, v.tex, atlas) then
+        local aw, ah = tonumber(info.width) or 1, tonumber(info.height) or 1
+        local k = PVP_SIZE / math.max(aw, ah, 1)
+        w, h = aw * k, ah * k
+    else
+        v.tex:SetTexture("Interface\\TargetingFrame\\UI-PVP-" .. state)
+        v.tex:SetTexCoord(0, 0.62, 0, 0.62)
+    end
+    v.tex:SetSize(w, h)
+end
+
+-- temps restant avant la fin du JcJ ("4:59"), nil sans compte a rebours
+local function pvpTime(v)
+    if not v.timerEnd then return nil end
+    local left = v.timerEnd - GetTime()
+    if left <= 0 then v.timerEnd = nil return nil end
+    left = math.ceil(left)
+    return string.format("%d:%02d", math.floor(left / 60), left % 60)
+end
+
+local function pvpTooltip(self)
+    if not self.state then return end
+    GameTooltip:SetOwner(self, self.left and "ANCHOR_LEFT" or "ANCHOR_RIGHT")
+    GameTooltip:SetText(self.state == "FFA" and L.FRAMES_PVP_FFA or L.FRAMES_PVP_ON, 1, 0.82, 0)
+    local t = pvpTime(self)
+    if t then GameTooltip:AddLine(string.format(L.FRAMES_PVP_TIMER, t), 1, 1, 1) end
+    GameTooltip:Show()
+end
+
+-- compte a rebours du joueur, relu 4 fois par seconde
+local function pvpTick(v, elapsed)
+    v.tick = (v.tick or 0) + (elapsed or 0)
+    if v.tick < 0.25 then return end
+    v.tick = 0
+    local t = pvpTime(v)
+    v.timer:SetText(t or "")
+    if not t then v:SetScript("OnUpdate", nil) end
+end
+
+local function readPvPTimer(v)
+    v.timerEnd = nil
+    local okR, running = pcall(IsPVPTimerRunning)
+    if not okR or issecret(running) or not running then return end
+    local okT, ms = pcall(GetPVPTimer)
+    if okT and type(ms) == "number" and not issecret(ms) and ms > 0 then v.timerEnd = GetTime() + ms / 1000 end
+end
+
+local function updatePvP(f)
+    local v = f.pvp
+    if not v then return end
+    local state
+    if db.pvpIcon ~= false and UnitExists(f.unit) then state = pvpState(f.unit) end
+    v.state = state
+    v:SetShown(state ~= nil)
+    if not state then
+        v.timerEnd = nil
+        if v.timer then v.timer:SetText("") end
+        v:SetScript("OnUpdate", nil)
+        return
+    end
+    setPvPArt(v, state)
+    -- a cote du portrait s il est de ce cote, sinon du cadre
+    local p = f.portrait
+    local a = (p and p:IsShown() and ((style(f).portraitSide == "right") ~= v.left)) and p or f
+    v:ClearAllPoints()
+    if v.left then
+        v:SetPoint("BOTTOMRIGHT", a, "BOTTOMLEFT", -3, 0)
+    else
+        v:SetPoint("BOTTOMLEFT", a, "BOTTOMRIGHT", 3, 0)
+    end
+    if v.timer then
+        readPvPTimer(v)
+        v.timer:SetText(pvpTime(v) or "")
+        v:SetScript("OnUpdate", v.timerEnd and pvpTick or nil)
+    end
+end
+
 local function renderInfo(fs, tag, f, unit)
     if tag == "name" or tag == "nameshort" then
         local ok, name = pcall(UnitName, unit)
@@ -822,6 +929,7 @@ end
 
 local function updateAll(f)
     updateMood(f)
+    updatePvP(f)
     if not UnitExists(f.unit) and ns.PreviewOn("units") and fakeUpdate(f) then
         updateMark(f, true)
         return
@@ -955,6 +1063,24 @@ local function build(u, store)
         r:Hide()
         f.rest = r
     end
+    -- JcJ : embleme a l exterieur (joueur a gauche, cible a droite)
+    if unit == "player" or unit == "target" then
+        local v = CreateFrame("Frame", nil, f)
+        v:SetSize(PVP_SIZE, PVP_SIZE)
+        v:SetFrameLevel(f:GetFrameLevel() + 6)
+        v.left = unit == "player"
+        v.tex = v:CreateTexture(nil, "ARTWORK")
+        v.tex:SetPoint("CENTER")
+        if unit == "player" then
+            v.timer = v:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            v.timer:SetPoint("TOP", v, "BOTTOM", 0, -1)
+        end
+        v:EnableMouse(true)
+        v:SetScript("OnEnter", pvpTooltip)
+        v:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        v:Hide()
+        f.pvp = v
+    end
     -- familier de chasseur : humeur (nourriture), a droite du cadre
     if unit == "pet" then
         local m = CreateFrame("Frame", nil, f)
@@ -1045,6 +1171,9 @@ local function build(u, store)
             updatePower(f)
         elseif event == "UNIT_PORTRAIT_UPDATE" or event == "UNIT_MODEL_CHANGED" then
             updatePortrait(f)
+        elseif event == "UNIT_FACTION" then
+            updateInfo(f)
+            updatePvP(f)
         else
             updateInfo(f)
         end
@@ -1231,6 +1360,7 @@ function ns.FramesOpt.Common(parent, y)
     form:Check(L.FRAMES_OPT_BLIZZ, function() return db.hideBlizzard end, function(v) db.hideBlizzard = v end)
     form:Check(L.FRAMES_OPT_HEAL, function() return db.healPrediction end, function(v) db.healPrediction = v end)
     form:Check(L.FRAMES_OPT_REST, function() return db.restIcon end, function(v) db.restIcon = v end)
+    form:Check(L.FRAMES_OPT_PVP, function() return db.pvpIcon end, function(v) db.pvpIcon = v end)
     form:Columns(2)
     form:Number(L.FRAMES_SCALE, function() return db.scale end, function(v)
         db.scale = math.max(0.6, math.min(1.6, math.floor(v * 10 + 0.5) / 10))
@@ -1345,6 +1475,7 @@ ev:SetScript("OnEvent", function(_, event)
         db.scale = db.scale or 1
         if db.healPrediction == nil then db.healPrediction = true end
         if db.restIcon == nil then db.restIcon = true end
+        if db.pvpIcon == nil then db.pvpIcon = true end
         if db.petMood == nil then db.petMood = true end
         -- apparence par cadre : valeurs par defaut pour les reglages manquants
         db.style = db.style or {}
@@ -1394,6 +1525,10 @@ ev:SetScript("OnEvent", function(_, event)
         end
     elseif event == "PLAYER_UPDATE_RESTING" then
         if frames.player then updateRest(frames.player) end
+    elseif event == "PVP_TIMER_UPDATE" or event == "PLAYER_FLAGS_CHANGED" or event == "PLAYER_PVP_FLAG_CHANGED" then
+        -- JcJ active, coupe ou compte a rebours
+        if frames.player then updatePvP(frames.player) end
+        if frames.target then updatePvP(frames.target) end
     elseif event == "UNIT_HAPPINESS" or event == "PET_UI_UPDATE" then
         if frames.pet then updateMood(frames.pet) end
     elseif event == "GROUP_ROSTER_UPDATE" then
@@ -1411,7 +1546,7 @@ for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_TARGET_CHANGED", "PLAYER_ENTERING_W
                      "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "UNIT_PET", "PLAYER_FOCUS_CHANGED",
                      "INSTANCE_ENCOUNTER_ENGAGE_UNIT", "UNIT_TARGETABLE_CHANGED", "ARENA_OPPONENT_UPDATE",
                      "GROUP_ROSTER_UPDATE", "PLAYER_UPDATE_RESTING", "UNIT_HAPPINESS", "PET_UI_UPDATE",
-                     "RAID_TARGET_UPDATE" }) do
+                     "RAID_TARGET_UPDATE", "PVP_TIMER_UPDATE", "PLAYER_FLAGS_CHANGED", "PLAYER_PVP_FLAG_CHANGED" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
 pcall(ev.RegisterUnitEvent, ev, "UNIT_TARGET", "target")

@@ -931,3 +931,27 @@ ns.AddStrings({
         MARK_POS_BOTTOM = "아래",
     },
 })
+
+-- Embleme JcJ (joueur et cible)
+ns.AddStrings({
+    enUS = { FRAMES_OPT_PVP = "Show the PvP emblem (player and target)", FRAMES_PVP_ON = "PvP enabled", FRAMES_PVP_FFA = "Free-for-all PvP: anyone can attack",
+             FRAMES_PVP_TIMER = "Turns off in %s" },
+    frFR = { FRAMES_OPT_PVP = "Montrer l'emblème JcJ (joueur et cible)", FRAMES_PVP_ON = "JcJ activé", FRAMES_PVP_FFA = "JcJ libre : tout le monde peut attaquer",
+             FRAMES_PVP_TIMER = "Se désactive dans %s" },
+    deDE = { FRAMES_OPT_PVP = "PvP-Wappen zeigen (Spieler und Ziel)", FRAMES_PVP_ON = "PvP aktiviert", FRAMES_PVP_FFA = "Jeder gegen jeden: alle können angreifen",
+             FRAMES_PVP_TIMER = "Endet in %s" },
+    esES = { FRAMES_OPT_PVP = "Mostrar el emblema JcJ (jugador y objetivo)", FRAMES_PVP_ON = "JcJ activado", FRAMES_PVP_FFA = "JcJ libre: cualquiera puede atacar",
+             FRAMES_PVP_TIMER = "Se desactiva en %s" },
+    ptBR = { FRAMES_OPT_PVP = "Mostrar o emblema JxJ (jogador e alvo)", FRAMES_PVP_ON = "JxJ ativado", FRAMES_PVP_FFA = "JxJ livre: qualquer um pode atacar",
+             FRAMES_PVP_TIMER = "Desativa em %s" },
+    itIT = { FRAMES_OPT_PVP = "Mostra l'emblema PvP (giocatore e bersaglio)", FRAMES_PVP_ON = "PvP attivo", FRAMES_PVP_FFA = "PvP libero: chiunque può attaccare",
+             FRAMES_PVP_TIMER = "Si disattiva tra %s" },
+    ruRU = { FRAMES_OPT_PVP = "Показывать значок PvP (игрок и цель)", FRAMES_PVP_ON = "PvP включён", FRAMES_PVP_FFA = "Каждый сам за себя: напасть может любой",
+             FRAMES_PVP_TIMER = "Отключится через %s" },
+    zhCN = { FRAMES_OPT_PVP = "显示PvP标志（玩家和目标）", FRAMES_PVP_ON = "PvP已开启", FRAMES_PVP_FFA = "自由PvP：任何人都可以攻击",
+             FRAMES_PVP_TIMER = "%s后关闭" },
+    zhTW = { FRAMES_OPT_PVP = "顯示PvP標誌（玩家和目標）", FRAMES_PVP_ON = "PvP已開啟", FRAMES_PVP_FFA = "自由PvP：任何人都可以攻擊",
+             FRAMES_PVP_TIMER = "%s後關閉" },
+    koKR = { FRAMES_OPT_PVP = "PvP 문장 표시 (플레이어와 대상)", FRAMES_PVP_ON = "PvP 활성화", FRAMES_PVP_FFA = "자유 PvP: 누구나 공격할 수 있음",
+             FRAMES_PVP_TIMER = "%s 후 해제" },
+})
