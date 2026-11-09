@@ -16,6 +16,9 @@
     Sort non interruptible : gris acier + bouclier ; cible et focalisation :
     liseré vert quand l interruption du joueur est prete (db.lockColor,
     db.interruptReady).
+    Fin de sort : seulement celle du sort affiche (castGUID, sinon le sort
+    continue-t-il ?) ; un autre sort tente pendant l incantation echoue
+    sans cacher la barre.
 ----------------------------------------------------------------------------]]
 
 local _, ns = ...
@@ -210,6 +213,7 @@ end
 
 local function stop(bar, interrupted)
     bar.casting = nil
+    bar.castID = nil
     bar.notInt = nil
     bar.ready:SetAlpha(0)
     if interrupted then
@@ -224,17 +228,18 @@ end
 
 local function start(bar, channel)
     local unit = bar.unit
-    local name, _, tex, startMS, endMS, notInterruptible
+    local name, _, tex, startMS, endMS, notInterruptible, castID
     if channel then
         local ok, n, _, t, s, e, _, ni = pcall(UnitChannelInfo, unit)
         if ok then name, tex, startMS, endMS, notInterruptible = n, t, s, e, ni end
     else
-        local ok, n, _, t, s, e, _, _, ni = pcall(UnitCastingInfo, unit)
-        if ok then name, tex, startMS, endMS, notInterruptible = n, t, s, e, ni end
+        local ok, n, _, t, s, e, _, id, ni = pcall(UnitCastingInfo, unit)
+        if ok then name, tex, startMS, endMS, castID, notInterruptible = n, t, s, e, id, ni end
     end
     if isNil(name) then return stop(bar) end
     bar.casting = true
     bar.channel = channel
+    bar.castID = castID
     bar.hideAt = nil
     bar.icon:SetTexture(tex)
     pcall(bar.text.SetText, bar.text, name)
@@ -258,6 +263,21 @@ local function start(bar, channel)
         bar.sb:SetMinMaxValues(0, 1)
     end
     bar:Show()
+end
+
+-- l evenement de fin (castGUID) vise-t-il le sort affiche ? Un autre sort
+-- tente pendant l incantation echoue (« une autre action est en cours »)
+-- avec son propre castGUID : la barre reste. GUID lisibles : compares,
+-- comme la barre de Blizzard ; secrets, ou canalisation (pas de GUID) :
+-- le sort affiche continue-t-il ?
+local function endsShownCast(bar, guid)
+    if not bar.casting then return true end
+    if not bar.channel and not isNil(bar.castID) and not isNil(guid)
+        and not issecret(bar.castID) and not issecret(guid) then
+        return bar.castID == guid
+    end
+    local ok, n = pcall(bar.channel and UnitChannelInfo or UnitCastingInfo, bar.unit)
+    return not ok or isNil(n)
 end
 
 local function onUpdate(bar, elapsed)
@@ -380,7 +400,7 @@ local function makeBar(unit, store, label)
     place(f)
 
     local ev = CreateFrame("Frame")
-    ev:SetScript("OnEvent", function(_, event)
+    ev:SetScript("OnEvent", function(_, event, _, castGUID)
         if ns.ModuleOff("incantations", ev) then return end
         if not db or not db.show[unit] then return end
         if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_DELAYED" then
@@ -388,7 +408,7 @@ local function makeBar(unit, store, label)
         elseif event == "UNIT_SPELLCAST_CHANNEL_START" or event == "UNIT_SPELLCAST_CHANNEL_UPDATE" then
             start(f, true)
         elseif event == "UNIT_SPELLCAST_INTERRUPTED" then
-            stop(f, true)
+            if f.casting and endsShownCast(f, castGUID) then stop(f, true) end
         elseif event == "UNIT_SPELLCAST_INTERRUPTIBLE" or event == "UNIT_SPELLCAST_NOT_INTERRUPTIBLE" then
             -- l etat change en cours de sort : le nom de l evenement suffit
             if f.casting then
@@ -396,9 +416,11 @@ local function makeBar(unit, store, label)
                 paint(f)
                 updateReady(f)
             end
-        elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_FAILED"
-            or event == "UNIT_SPELLCAST_CHANNEL_STOP" then
-            if not f.hideAt then stop(f) end
+        elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_FAILED" then
+            if not f.hideAt and endsShownCast(f, castGUID) then stop(f) end
+        elseif event == "UNIT_SPELLCAST_CHANNEL_STOP" then
+            -- fin d une canalisation : pas celle d une incantation affichee
+            if not f.hideAt and not (f.casting and not f.channel) then stop(f) end
         end
     end)
     for _, e in ipairs({ "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_DELAYED", "UNIT_SPELLCAST_STOP",
