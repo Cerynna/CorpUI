@@ -26,6 +26,8 @@ Jeux\StringsEboulis.lua
 Jeux\Eboulis.lua
 Jeux\StringsJoaillier.lua
 Jeux\Joaillier.lua
+Jeux\StringsSiege.lua
+Jeux\Siege.lua
 Podometre\Strings.lua
 Podometre\Creatures.lua
 Podometre\Cartes.lua

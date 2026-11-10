@@ -92,6 +92,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Fusion des minerais** | Un 2048 de mineur : du cuivre jusqu'aux objets légendaires. | `/corp minerais` |
 | **Éboulis** | Des blocs de minerai tombent dans un puits : tourne-les et place-les pour remplir des lignes entières (pièces suivantes, réserve, ombre d'arrivée, niveaux). | `/corp eboulis` |
 | **L'établi du joaillier** | Échange deux gemmes voisines pour en aligner trois ou plus ; gemmes taillées, éclatantes et diamants, cascades, 30 coups par partie. | `/corp joaillier` |
+| **Le siège** | Casse-briques : renvoie le boulet avec ton bouclier contre douze murailles (pierres renforcées, plaques de fer, bonus aux icônes de sorts du jeu). | `/corp siege` |
 | **Podomètre** | Les kilomètres parcourus font gagner des boosters de cartes (zones, objets, montures, élites de zone, boss de donjon et de raid en 3D, trophées) à ranger dans un classeur ; très rarement, le butin d'un monstre en cache un (un par jour au plus) ; les doublons donnent des éclats à jouer à la machine à sous pour gagner d'autres boosters ; classement de la semaine avec la guilde. | `/corp podometre` |
 
 Les mini-jeux peuvent s'ouvrir tout seuls pendant les trajets en griffon.

@@ -10,7 +10,7 @@ ns.AddStrings({
         MODULES_TAG = "after reload", MODULES_OFF = "%s is turned off. Turn it back on in /corp modules.",
         MODULES_UNITS = "Player, target and focus frames",
         MODULES_UNITS_DESC = "player, target, target of target, focus, pet, boss and arena frames, centre of the screen, swing timer, totems",
-        MODULES_GAMES_DESC = "murloc run and ore fusion, also offered during flights",
+        MODULES_GAMES_DESC = "murloc run, ore fusion, rockslide, jeweler's bench and siege, also offered during flights",
     },
     frFR = {
         PAGE_MODULES = "Modules", MODULES_DESC = "allume ou coupe chaque partie de CorpUI",
@@ -19,7 +19,7 @@ ns.AddStrings({
         MODULES_TAG = "au rechargement", MODULES_OFF = "%s est coupé. Rallume-le dans /corp modules.",
         MODULES_UNITS = "Cadres joueur, cible et focalisation",
         MODULES_UNITS_DESC = "joueur, cible, cible de la cible, focalisation, familier, boss et arène, centre de l'écran, coups blancs, totems",
-        MODULES_GAMES_DESC = "course du murloc et fusion des minerais, proposés aussi pendant les vols",
+        MODULES_GAMES_DESC = "course du murloc, fusion des minerais, éboulis, établi du joaillier et siège, proposés aussi pendant les vols",
     },
     deDE = {
         PAGE_MODULES = "Module", MODULES_DESC = "jeden Teil von CorpUI ein- oder ausschalten",
@@ -28,7 +28,7 @@ ns.AddStrings({
         MODULES_TAG = "nach Neuladen", MODULES_OFF = "%s ist ausgeschaltet. Wieder einschalten unter /corp modules.",
         MODULES_UNITS = "Spieler-, Ziel- und Fokusfenster",
         MODULES_UNITS_DESC = "Spieler, Ziel, Ziel des Ziels, Fokus, Begleiter, Boss und Arena, Bildschirmmitte, Schlagtimer, Totems",
-        MODULES_GAMES_DESC = "Murloc-Lauf und Erzfusion, auch während Flügen",
+        MODULES_GAMES_DESC = "Murloc-Lauf, Erzfusion, Steinschlag, Juwelierwerkbank und Belagerung, auch während Flügen",
     },
     esES = {
         PAGE_MODULES = "Módulos", MODULES_DESC = "activa o desactiva cada parte de CorpUI",
@@ -37,7 +37,7 @@ ns.AddStrings({
         MODULES_TAG = "al recargar", MODULES_OFF = "%s está desactivado. Reactívalo en /corp modules.",
         MODULES_UNITS = "Marcos de jugador, objetivo y foco",
         MODULES_UNITS_DESC = "jugador, objetivo, objetivo del objetivo, foco, mascota, jefe y arena, centro de la pantalla, golpes automáticos, tótems",
-        MODULES_GAMES_DESC = "carrera múrloc y fusión de minerales, también durante los vuelos",
+        MODULES_GAMES_DESC = "carrera múrloc, fusión de minerales, derrumbe, banco del joyero y asedio, también durante los vuelos",
     },
     ptBR = {
         PAGE_MODULES = "Módulos", MODULES_DESC = "liga ou desliga cada parte do CorpUI",
@@ -46,7 +46,7 @@ ns.AddStrings({
         MODULES_TAG = "ao recarregar", MODULES_OFF = "%s está desligado. Ligue de novo em /corp modules.",
         MODULES_UNITS = "Quadros de jogador, alvo e foco",
         MODULES_UNITS_DESC = "jogador, alvo, alvo do alvo, foco, ajudante, chefe e arena, centro da tela, ataques automáticos, totens",
-        MODULES_GAMES_DESC = "corrida do murloc e fusão de minérios, também durante os voos",
+        MODULES_GAMES_DESC = "corrida do murloc, fusão de minérios, desmoronamento, bancada do joalheiro e cerco, também durante os voos",
     },
     itIT = {
         PAGE_MODULES = "Moduli", MODULES_DESC = "attiva o disattiva ogni parte di CorpUI",
@@ -55,7 +55,7 @@ ns.AddStrings({
         MODULES_TAG = "al ricaricamento", MODULES_OFF = "%s è disattivato. Riattivalo in /corp modules.",
         MODULES_UNITS = "Riquadri giocatore, bersaglio e focus",
         MODULES_UNITS_DESC = "giocatore, bersaglio, bersaglio del bersaglio, focus, famiglio, boss e arena, centro dello schermo, colpi automatici, totem",
-        MODULES_GAMES_DESC = "corsa del murloc e fusione dei minerali, anche durante i voli",
+        MODULES_GAMES_DESC = "corsa del murloc, fusione dei minerali, frana, banco del gioielliere e assedio, anche durante i voli",
     },
     ruRU = {
         PAGE_MODULES = "Модули", MODULES_DESC = "включение и выключение каждой части CorpUI",
@@ -64,7 +64,7 @@ ns.AddStrings({
         MODULES_TAG = "после перезагрузки", MODULES_OFF = "%s выключен. Включите его снова в /corp modules.",
         MODULES_UNITS = "Окна игрока, цели и фокуса",
         MODULES_UNITS_DESC = "игрок, цель, цель цели, фокус, питомец, боссы и арена, центр экрана, автоатаки, тотемы",
-        MODULES_GAMES_DESC = "забег мурлока и слияние руды, также во время полётов",
+        MODULES_GAMES_DESC = "забег мурлока, слияние руды, обвал, верстак ювелира и осада, также во время полётов",
     },
     zhCN = {
         PAGE_MODULES = "模块", MODULES_DESC = "开启或关闭 CorpUI 的每个部分",
@@ -73,7 +73,7 @@ ns.AddStrings({
         MODULES_TAG = "重载后", MODULES_OFF = "%s 已关闭。可在 /corp modules 中重新开启。",
         MODULES_UNITS = "玩家、目标和焦点框体",
         MODULES_UNITS_DESC = "玩家、目标、目标的目标、焦点、宠物、首领和竞技场、屏幕中央、自动攻击计时、图腾",
-        MODULES_GAMES_DESC = "鱼人赛跑和矿石合成，飞行途中也可游玩",
+        MODULES_GAMES_DESC = "鱼人赛跑、矿石合成、落石、珠宝匠工作台和攻城，飞行途中也可游玩",
     },
     zhTW = {
         PAGE_MODULES = "模組", MODULES_DESC = "開啟或關閉 CorpUI 的每個部分",
@@ -82,7 +82,7 @@ ns.AddStrings({
         MODULES_TAG = "重新載入後", MODULES_OFF = "%s 已關閉。可在 /corp modules 中重新開啟。",
         MODULES_UNITS = "玩家、目標和專注框架",
         MODULES_UNITS_DESC = "玩家、目標、目標的目標、專注、寵物、首領和競技場、螢幕中央、自動攻擊計時、圖騰",
-        MODULES_GAMES_DESC = "魚人賽跑和礦石融合，飛行途中也能玩",
+        MODULES_GAMES_DESC = "魚人賽跑、礦石融合、落石、珠寶匠工作臺和攻城，飛行途中也能玩",
     },
     koKR = {
         PAGE_MODULES = "모듈", MODULES_DESC = "CorpUI의 각 부분을 켜거나 끕니다",
@@ -91,6 +91,6 @@ ns.AddStrings({
         MODULES_TAG = "다시 불러온 후", MODULES_OFF = "%s 모듈이 꺼져 있습니다. /corp modules에서 다시 켜세요.",
         MODULES_UNITS = "플레이어, 대상, 주시 대상 프레임",
         MODULES_UNITS_DESC = "플레이어, 대상, 대상의 대상, 주시 대상, 소환수, 우두머리와 투기장, 화면 중앙, 자동 공격 타이머, 토템",
-        MODULES_GAMES_DESC = "멀록 달리기와 광석 합치기, 비행 중에도 즐길 수 있음",
+        MODULES_GAMES_DESC = "멀록 달리기, 광석 합치기, 낙석, 보석세공사의 작업대, 공성전, 비행 중에도 즐길 수 있음",
     },
 })
