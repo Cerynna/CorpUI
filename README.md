@@ -77,7 +77,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Persos** | Tous tes personnages : niveau, or, métiers, objets, raids verrouillés. | `/corp persos` |
 | **Métiers** | File de fabrication et liste de courses façon Skillet, bénéfice par recette ; chance de montée et coût par point de compétence (onglet Montée). | `/corp metiers` |
 | **Désenchanteur** | Une icône pour désenchanter un par un les objets des sacs. | `/corp dez` |
-| **Hôtel des ventes** | Scan, valeur marché et historique, aide à la vente, mes enchères, listes d'achats, bonnes affaires, façon TSM ; achat d'une marchandise même quand les prix bougent (« n'est plus disponible »). | `/corp hv` |
+| **Hôtel des ventes** | Scan, valeur marché et historique, aide à la vente, mes enchères, listes d'achats, bonnes affaires, façon TSM ; bons plans à désenchanter avec leurs chances de rembourser l'achat (le dez est un tirage, corrigé par tes propres désenchantements) ; achat d'une marchandise même quand les prix bougent (« n'est plus disponible »). | `/corp hv` |
 | **Comptabilité** | Ventes, achats, frais de l'hôtel des ventes, or de tous les personnages. | `/corp compta` |
 | **Talents** | Export et import des talents. | `/corp talents` |
 | **Sorts à venir** | Les prochains sorts et le niveau pour les apprendre. | `/corp sorts` |
@@ -120,7 +120,7 @@ Mise à jour : supprime les anciens dossiers `CorpUI` et `CorpUI_Xxx`, puis déc
 | `/corp lang <code>` | Change la langue de CorpUI (`frFR`, `enUS`, `deDE`…). |
 | `/corp minimap` | Affiche ou cache le bouton de la minicarte. |
 
-`/corpui` et `/cui` sont des alias de `/corp`. Le bouton **Déverrouiller** de la page Général affiche les poignées pour déplacer les cadres et les barres.
+`/corpui` et `/cui` sont des alias de `/corp`. Le bouton **Déverrouiller** de la page Général affiche les poignées pour déplacer les cadres et les barres ; un clic droit sur une poignée ouvre les réglages de ce cadre.
 
 ## Signaler un bug
 
