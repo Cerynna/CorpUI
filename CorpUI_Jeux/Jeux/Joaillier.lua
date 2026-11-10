@@ -1039,7 +1039,8 @@ local function toggle()
     win:SetShown(not win:IsShown())
 end
 
--- liste des jeux (ouverture pendant un vol : Jeux.lua)
+-- liste des jeux : ouverture pendant un vol, ligne de la page des
+-- mini-jeux (Jeux.lua), avec ses reglages
 ns.Games.Register("joaillier", {
     title = function() return L.MOD_JOAILLIER end,
     open = function()
@@ -1050,57 +1051,28 @@ ns.Games.Register("joaillier", {
     end,
     close = function() if win then win:Hide() end end,
     shown = function() return win and win:IsShown() or false end,
+    ready = function() return db ~= nil end,
+    play = function() toggle() end,
+    icon = function() return iconOf(DIAMOND) end,
+    tagline = function() return L.JOA_DESC end,
+    hint = function() return L.JOA_HINT end,
+    stats = function()
+        return string.format(L.MURLOC_BEST, db.best or 0) .. "   ·   " .. string.format(L.JOA_STATS, db.games or 0)
+    end,
+    options = function(form)
+        form:Check(L.MURLOC_OPT_SOUND, function() return db.sound end, function(v) db.sound = v end)
+        form:Check(L.JOA_OPT_HINT, function() return db.hint end, function(v)
+            db.hint = v
+            if not v then
+                hint = nil
+                if win then placeMarks() end
+            end
+        end)
+        form:Number(L.MURLOC_OPT_SCALE, function() return math.floor((db.scale or 1) * 100 + 0.5) end,
+            function(v) db.scale = v / 100 end, 60, 150, 5)
+    end,
+    apply = function() if win then win:SetScale(db.scale or 1) end end,
 })
-
----------------------------------------------------------------------------
--- Reglages (/corp joaillier)
----------------------------------------------------------------------------
-
-local panel
-
-local function buildPanel()
-    panel = ns.UI.Window("CorpUIJoaillierOptions", ns.TITLE .. " - " .. L.MOD_JOAILLIER, nil, 440, 470)
-    local icon = panel:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(64, 64)
-    icon:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -40)
-    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    icon:SetTexture(iconOf(DIAMOND))
-    local desc = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    desc:SetPoint("TOPLEFT", panel, "TOPLEFT", 92, -40)
-    desc:SetWidth(336)
-    desc:SetJustifyH("LEFT")
-    desc:SetText(L.JOA_HINT)
-    local stats = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    stats:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -10)
-    stats:SetWidth(336)
-    stats:SetJustifyH("LEFT")
-    local playBtn = ns.UI.Button(panel, L.MURLOC_PLAY, 120, function() toggle() end)
-    playBtn:SetPoint("TOPLEFT", stats, "BOTTOMLEFT", 0, -10)
-    local form = ns.UI.Form(panel, -266, function()
-        if win then win:SetScale(db.scale or 1) end
-    end)
-    form:Check(L.MURLOC_OPT_SOUND, function() return db.sound end, function(v) db.sound = v end)
-    form:Check(L.JOA_OPT_HINT, function() return db.hint end, function(v)
-        db.hint = v
-        if not v then
-            hint = nil
-            placeMarks()
-        end
-    end)
-    form:Number(L.MURLOC_OPT_SCALE, function() return math.floor((db.scale or 1) * 100 + 0.5) end,
-        function(v) db.scale = v / 100 end, 60, 150, 5)
-    ns.Games.TaxiOptions(form)
-    table.insert(form.refreshers, function()
-        stats:SetText(string.format(L.MURLOC_BEST, db.best or 0) .. "   ·   " .. string.format(L.JOA_STATS, db.games or 0))
-    end)
-    panel:HookScript("OnShow", function() form:Refresh() end)
-end
-
-local function openPanel()
-    if not db then return end
-    if not panel then buildPanel() end
-    ns.ShowPanel(panel)
-end
 
 ---------------------------------------------------------------------------
 -- Evenements
@@ -1138,15 +1110,13 @@ end
 ns.RegisterModule({
     command = "joaillier",
     alias = "gemmes",
-    panelName = "CorpUIJoaillierOptions",
     icon = ns.ItemIcon(12800),
     title = function() return L.MOD_JOAILLIER end,
     desc = function() return L.JOA_DESC end,
     Slash = function(rest)
         rest = strlower(strtrim(rest or ""))
-        if rest == "options" or rest == "config" then openPanel() else toggle() end
+        if rest == "options" or rest == "config" then ns.Games.ShowOptions("joaillier") else toggle() end
     end,
-    Open = openPanel,
 })
 
 -- banc d essai

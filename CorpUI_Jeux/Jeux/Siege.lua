@@ -1154,7 +1154,8 @@ local function toggle()
     win:SetShown(not win:IsShown())
 end
 
--- liste des jeux (ouverture pendant un vol : Jeux.lua)
+-- liste des jeux : ouverture pendant un vol, ligne de la page des
+-- mini-jeux (Jeux.lua), avec ses reglages
 ns.Games.Register("siege", {
     title = function() return L.MOD_SIEGE end,
     open = function()
@@ -1165,70 +1166,44 @@ ns.Games.Register("siege", {
     end,
     close = function() if win then win:Hide() end end,
     shown = function() return win and win:IsShown() or false end,
+    ready = function() return db ~= nil end,
+    play = function() toggle() end,
+    icon = function() return ICON end,
+    tagline = function() return L.SIE_DESC end,
+    hint = function() return L.SIE_HINT end,
+    stats = function()
+        return string.format(L.SIE_BEST, db.best or 0) .. "   ·   " .. string.format(L.SIE_STATS, db.bestLevel or 0, db.games or 0)
+    end,
+    options = function(form, box)
+        -- ce qui tombe des pierres : icones des sorts et leur effet
+        local head = box:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        head:SetPoint("TOPLEFT", box, "TOPLEFT", 4, form.y)
+        head:SetText(L.SIE_BONUSES)
+        form:Gap(16)
+        form:Columns(2)
+        for _, def in ipairs(BONUS) do
+            local x, y, w = form:Cell(22)
+            local t = box:CreateTexture(nil, "ARTWORK")
+            t:SetSize(18, 18)
+            t:SetPoint("TOPLEFT", box, "TOPLEFT", 6 + x, y - 2)
+            t:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            t:SetTexture(spellIcon(def))
+            local fs = box:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            fs:SetPoint("LEFT", t, "RIGHT", 6, 0)
+            fs:SetWidth(w - 32)
+            fs:SetJustifyH("LEFT")
+            fs:SetWordWrap(false)
+            fs:SetText(L[def.text])
+            if def.trap then fs:SetTextColor(1, 0.45, 0.4) end
+        end
+        form:Gap(6)
+        form:Check(L.SIE_OPT_SOUND, function() return db.sound end, function(v) db.sound = v end)
+        form:Check(L.SIE_OPT_LETTERS, function() return db.letters end, function(v) db.letters = v end)
+        form:Number(L.SIE_OPT_SCALE, function() return math.floor((db.scale or 1) * 100 + 0.5) end,
+            function(v) db.scale = v / 100 end, 60, 150, 5)
+    end,
+    apply = function() if win then win:SetScale(db.scale or 1) end end,
 })
-
----------------------------------------------------------------------------
--- Reglages (/corp siege)
----------------------------------------------------------------------------
-
-local panel
-
-local function buildPanel()
-    panel = ns.UI.Window("CorpUISiegeOptions", ns.TITLE .. " - " .. L.MOD_SIEGE, nil, 440, 480)
-    local icon = panel:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(64, 64)
-    icon:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -40)
-    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    icon:SetTexture(ICON)
-    local desc = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    desc:SetPoint("TOPLEFT", panel, "TOPLEFT", 92, -40)
-    desc:SetWidth(336)
-    desc:SetJustifyH("LEFT")
-    desc:SetText(L.SIE_HINT)
-    local stats = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    stats:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -10)
-    stats:SetWidth(336)
-    stats:SetJustifyH("LEFT")
-    local playBtn = ns.UI.Button(panel, L.SIE_PLAY, 120, function() toggle() end)
-    playBtn:SetPoint("TOPLEFT", stats, "BOTTOMLEFT", 0, -10)
-    -- ce qui tombe des pierres : icones des sorts et leur effet
-    local legend = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    legend:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -206)
-    legend:SetText(L.SIE_BONUSES)
-    for k, def in ipairs(BONUS) do
-        local col, row = (k - 1) % 2, math.floor((k - 1) / 2)
-        local t = panel:CreateTexture(nil, "ARTWORK")
-        t:SetSize(18, 18)
-        t:SetPoint("TOPLEFT", panel, "TOPLEFT", 14 + col * 212, -226 - row * 22)
-        t:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-        t:SetTexture(spellIcon(def))
-        local fs = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        fs:SetPoint("LEFT", t, "RIGHT", 6, 0)
-        fs:SetWidth(186)
-        fs:SetJustifyH("LEFT")
-        fs:SetText(L[def.text])
-        if def.trap then fs:SetTextColor(1, 0.45, 0.4) end
-    end
-    local form = ns.UI.Form(panel, -300, function()
-        if win then win:SetScale(db.scale or 1) end
-    end)
-    form:Check(L.SIE_OPT_SOUND, function() return db.sound end, function(v) db.sound = v end)
-    form:Check(L.SIE_OPT_LETTERS, function() return db.letters end, function(v) db.letters = v end)
-    form:Number(L.SIE_OPT_SCALE, function() return math.floor((db.scale or 1) * 100 + 0.5) end,
-        function(v) db.scale = v / 100 end, 60, 150, 5)
-    ns.Games.TaxiOptions(form)
-    table.insert(form.refreshers, function()
-        stats:SetText(string.format(L.SIE_BEST, db.best or 0) .. "   ·   "
-            .. string.format(L.SIE_STATS, db.bestLevel or 0, db.games or 0))
-    end)
-    panel:HookScript("OnShow", function() form:Refresh() end)
-end
-
-local function openPanel()
-    if not db then return end
-    if not panel then buildPanel() end
-    ns.ShowPanel(panel)
-end
 
 ---------------------------------------------------------------------------
 -- Evenements
@@ -1265,15 +1240,13 @@ end
 ns.RegisterModule({
     command = "siege",
     alias = "briques",
-    panelName = "CorpUISiegeOptions",
     icon = ICON,
     title = function() return L.MOD_SIEGE end,
     desc = function() return L.SIE_DESC end,
     Slash = function(rest)
         rest = strlower(strtrim(rest or ""))
-        if rest == "options" or rest == "config" then openPanel() else toggle() end
+        if rest == "options" or rest == "config" then ns.Games.ShowOptions("siege") else toggle() end
     end,
-    Open = openPanel,
 })
 
 -- banc d essai
@@ -1285,5 +1258,5 @@ ns._siege = {
     K = { W = W, H = H, TOP = TOP, R = R, PADDLE_Y = PADDLE_Y, PADDLE_H = PADDLE_H, PADDLE_W = PADDLE_W,
           GRID_TOP = GRID_TOP, COLS = COLS, ROWS = ROWS, DT = DT, BETWEEN = BETWEEN, MAX_ANGLE = MAX_ANGLE,
           SPEED0 = SPEED0, SPEED_GAIN = SPEED_GAIN, LIVES = LIVES, MAX_LIVES = MAX_LIVES },
-    ui = function() return win, canvas, overlay, hud, paddle, panel end,
+    ui = function() return win, canvas, overlay, hud, paddle end,
 }

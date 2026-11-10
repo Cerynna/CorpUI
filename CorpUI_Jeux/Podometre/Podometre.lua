@@ -655,57 +655,6 @@ local function diag()
     say("  cartes inconnues du client : " .. (#missing > 0 and table.concat(missing, " ") or "aucune"))
 end
 
----------------------------------------------------------------------------
--- Reglages (/corp podometre options, page Jeux)
----------------------------------------------------------------------------
-
-local panel
-
-local function buildPanel()
-    panel = ns.UI.Window("CorpUIPedometerOptions", ns.TITLE .. " - " .. L.MOD_PEDO, nil, 440, 360)
-    local icon = panel:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(64, 89)
-    icon:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -36)
-    icon:SetTexture(ns.MEDIA .. "Podometre\\booster")
-    icon:SetTexCoord(0, 1, 0, 392 / 512)
-    local desc = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    desc:SetPoint("TOPLEFT", icon, "TOPRIGHT", 12, -2)
-    desc:SetWidth(350)
-    desc:SetJustifyH("LEFT")
-    desc:SetText(L.PEDO_HINT)
-    local stats = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    stats:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -8)
-    stats:SetWidth(350)
-    stats:SetJustifyH("LEFT")
-    local open = ns.UI.Button(panel, L.PEDO_OPEN, 140, function() if P.ToggleBinder then P.ToggleBinder(true) end end)
-    open:SetPoint("TOPLEFT", stats, "BOTTOMLEFT", 0, -8)
-    local form = ns.UI.Form(panel, -150, function() end)
-    form:Check(L.PEDO_OPT_TOAST, function() return db.opt.toast end, function(v) db.opt.toast = v end)
-    form:Check(L.PEDO_OPT_SOUND, function() return db.opt.sound end, function(v) db.opt.sound = v end)
-    form:Check(L.PEDO_OPT_SHARE, function() return db.opt.share end, function(v)
-        db.opt.share = v
-        if v then P.Share(false) end
-    end)
-    ns.Games.TaxiOptions(form)
-    local foot = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    foot:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, form.y - 6)
-    foot:SetWidth(424)
-    foot:SetJustifyH("LEFT")
-    foot:SetText(L.PEDO_FOOT)
-    table.insert(form.refreshers, function()
-        local T = P.Totals()
-        local own, all = P.OwnedCount()
-        stats:SetText(string.format(L.PEDO_PANEL_STATS, P.Km(T.day), P.Km(T.total), own, all))
-    end)
-    panel:HookScript("OnShow", function() form:Refresh() end)
-end
-
-local function openPanel()
-    if not db then return end
-    if not panel then buildPanel() end
-    ns.ShowPanel(panel)
-end
-
 -- bouton cache, cible du clic de la barre d infos (clic "click" securise)
 local toggleBtn = CreateFrame("Button", "CorpUIPedometerToggle", UIParent)
 toggleBtn:Hide()
@@ -787,13 +736,34 @@ if ns.Games and ns.Games.Register then
         end,
         close = function() if P.CloseBinder then P.CloseBinder() end end,
         shown = function() return P.BinderShown and P.BinderShown() or false end,
+        -- ligne de la page des mini-jeux, avec ses reglages
+        name = function() return L.MOD_PEDO end,
+        ready = function() return db ~= nil end,
+        play = function() if P.ToggleBinder then P.ToggleBinder() end end,
+        playText = function() return L.PEDO_OPEN end,
+        icon = function() return ns.MEDIA .. "Podometre\\booster", 0, 1, 0.13, 0.63 end,
+        tagline = function() return L.PEDO_DESC end,
+        hint = function() return L.PEDO_HINT end,
+        stats = function()
+            local T = P.Totals()
+            local own, all = P.OwnedCount()
+            return string.format(L.PEDO_PANEL_STATS, P.Km(T.day), P.Km(T.total), own, all)
+        end,
+        foot = function() return L.PEDO_FOOT end,
+        options = function(form)
+            form:Check(L.PEDO_OPT_TOAST, function() return db.opt.toast end, function(v) db.opt.toast = v end)
+            form:Check(L.PEDO_OPT_SOUND, function() return db.opt.sound end, function(v) db.opt.sound = v end)
+            form:Check(L.PEDO_OPT_SHARE, function() return db.opt.share end, function(v)
+                db.opt.share = v
+                if v then P.Share(false) end
+            end)
+        end,
     })
 end
 
 ns.RegisterModule({
     command = "podometre",
     alias = "classeur",
-    panelName = "CorpUIPedometerOptions",
     icon = ns.MEDIA .. "Podometre\\booster",
     title = function() return L.MOD_PEDO end,
     desc = function() return L.PEDO_DESC end,
@@ -801,8 +771,7 @@ ns.RegisterModule({
         rest = strlower(strtrim(rest or ""))
         if not db then return end
         if rest == "diag" then diag()
-        elseif rest == "options" or rest == "config" then openPanel()
+        elseif rest == "options" or rest == "config" then if ns.Games and ns.Games.ShowOptions then ns.Games.ShowOptions("classeur") end
         else if P.ToggleBinder then P.ToggleBinder() end end
     end,
-    Open = openPanel,
 })

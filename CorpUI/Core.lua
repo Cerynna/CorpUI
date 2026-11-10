@@ -2805,7 +2805,8 @@ local PAGES = {
     { key = "talents", cmds = { "talents" } },
     { key = "sorts", cmds = { "sorts" } },
     { key = "erreurs", cmds = { "erreurs" } },
-    { key = "jeux", label = "PAGE_GAMES", cmds = { "murloc", "minerais", "eboulis", "joaillier", "siege", "podometre" } },
+    -- une seule carte pour tous les mini-jeux (CorpUI_Jeux/Jeux/Jeux.lua)
+    { key = "jeux", label = "PAGE_GAMES", cmds = { "jeux" }, scroll = true },
 }
 local MEDIA = ns.MEDIA
 local C = ns.COLORS

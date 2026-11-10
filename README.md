@@ -95,7 +95,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Le siège** | Casse-briques : renvoie le boulet avec ton bouclier contre douze murailles (pierres renforcées, plaques de fer, bonus aux icônes de sorts du jeu). | `/corp siege` |
 | **Podomètre** | Les kilomètres parcourus font gagner des boosters de cartes (zones, objets, montures, élites de zone, boss de donjon et de raid en 3D, trophées) à ranger dans un classeur ; très rarement, le butin d'un monstre en cache un (un par jour au plus) ; les doublons donnent des éclats à jouer à la machine à sous pour gagner d'autres boosters ; classement de la semaine avec la guilde. | `/corp podometre` |
 
-Les mini-jeux peuvent s'ouvrir tout seuls pendant les trajets en griffon.
+Les mini-jeux peuvent s'ouvrir tout seuls pendant les trajets en griffon. La page Mini-jeux (`/corp jeux`) les réunit : le jeu à ouvrir en vol se choisit une fois en haut, puis une ligne par jeu avec son record et un bouton Jouer ; un clic sur la ligne déplie ses règles et ses réglages.
 
 ## Installation
 

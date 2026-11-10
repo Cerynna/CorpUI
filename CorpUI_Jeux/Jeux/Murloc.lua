@@ -407,7 +407,8 @@ local function toggle()
 end
 ns.MurlocToggle = toggle
 
--- liste des jeux (ouverture pendant un vol : Jeux.lua)
+-- liste des jeux : ouverture pendant un vol, ligne de la page des
+-- mini-jeux (Jeux.lua), avec ses reglages
 ns.Games.Register("murloc", {
     title = function() return L.MOD_MURLOC end,
     open = function()
@@ -418,53 +419,22 @@ ns.Games.Register("murloc", {
     end,
     close = function() if win then win:Hide() end end,
     shown = function() return win and win:IsShown() or false end,
+    ready = function() return db ~= nil end,
+    play = function() toggle() end,
+    icon = function() return MEDIA .. "murloc", cellCoords(5) end,
+    tagline = function() return L.MURLOC_DESC end,
+    hint = function() return L.MURLOC_HINT end,
+    stats = function()
+        return string.format(L.MURLOC_BEST, db.best or 0) .. "   ·   " .. string.format(L.MURLOC_GAMES, db.games or 0)
+    end,
+    foot = function() return L.MURLOC_CREDITS end,
+    options = function(form)
+        form:Check(L.MURLOC_OPT_SOUND, function() return db.sound end, function(v) db.sound = v end)
+        form:Number(L.MURLOC_OPT_SCALE, function() return math.floor((db.scale or 1) * 100 + 0.5) end,
+            function(v) db.scale = v / 100 end, 60, 150, 5)
+    end,
+    apply = function() if win then win:SetScale(db.scale or 1) end end,
 })
-
----------------------------------------------------------------------------
--- Reglages (/corp murloc)
----------------------------------------------------------------------------
-
-local panel
-
-local function buildPanel()
-    panel = ns.UI.Window("CorpUIMurlocOptions", ns.TITLE .. " - " .. L.MOD_MURLOC, nil, 440, 380)
-    local icon = panel:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(96, 96)
-    icon:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -36)
-    icon:SetTexture(MEDIA .. "murloc")
-    icon:SetTexCoord(cellCoords(5))
-    local desc = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    desc:SetPoint("TOPLEFT", icon, "TOPRIGHT", 10, -6)
-    desc:SetWidth(320)
-    desc:SetJustifyH("LEFT")
-    desc:SetText(L.MURLOC_HINT)
-    local stats = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    stats:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -10)
-    local playBtn = ns.UI.Button(panel, L.MURLOC_PLAY, 120, function() toggle() end)
-    playBtn:SetPoint("TOPLEFT", stats, "BOTTOMLEFT", 0, -10)
-    local form = ns.UI.Form(panel, -146, function()
-        if win then win:SetScale(db.scale or 1) end
-    end)
-    form:Check(L.MURLOC_OPT_SOUND, function() return db.sound end, function(v) db.sound = v end)
-    form:Number(L.MURLOC_OPT_SCALE, function() return math.floor((db.scale or 1) * 100 + 0.5) end,
-        function(v) db.scale = v / 100 end, 60, 150, 5)
-    ns.Games.TaxiOptions(form)
-    local credits = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    credits:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, form.y - 6)
-    credits:SetWidth(424)
-    credits:SetJustifyH("LEFT")
-    credits:SetText(L.MURLOC_CREDITS)
-    table.insert(form.refreshers, function()
-        stats:SetText(string.format(L.MURLOC_BEST, db.best or 0) .. "   ·   " .. string.format(L.MURLOC_GAMES, db.games or 0))
-    end)
-    panel:HookScript("OnShow", function() form:Refresh() end)
-end
-
-local function openPanel()
-    if not db then return end
-    if not panel then buildPanel() end
-    ns.ShowPanel(panel)
-end
 
 ---------------------------------------------------------------------------
 -- Evenements
@@ -498,15 +468,13 @@ end
 ns.RegisterModule({
     command = "murloc",
     alias = "jeu",
-    panelName = "CorpUIMurlocOptions",
     icon = MEDIA .. "icon",
     title = function() return L.MOD_MURLOC end,
     desc = function() return L.MURLOC_DESC end,
     Slash = function(rest)
         rest = strlower(strtrim(rest or ""))
-        if rest == "options" or rest == "config" then openPanel() else toggle() end
+        if rest == "options" or rest == "config" then ns.Games.ShowOptions("murloc") else toggle() end
     end,
-    Open = openPanel,
 })
 
 -- banc d essai

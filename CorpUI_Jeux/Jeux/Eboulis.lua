@@ -953,7 +953,8 @@ local function toggle()
     win:SetShown(not win:IsShown())
 end
 
--- liste des jeux (ouverture pendant un vol : Jeux.lua)
+-- liste des jeux : ouverture pendant un vol, ligne de la page des
+-- mini-jeux (Jeux.lua), avec ses reglages
 ns.Games.Register("eboulis", {
     title = function() return L.MOD_EBOULIS end,
     open = function()
@@ -964,54 +965,27 @@ ns.Games.Register("eboulis", {
     end,
     close = function() if win then win:Hide() end end,
     shown = function() return win and win:IsShown() or false end,
-})
-
----------------------------------------------------------------------------
--- Reglages (/corp eboulis)
----------------------------------------------------------------------------
-
-local panel
-
-local function buildPanel()
-    panel = ns.UI.Window("CorpUIEboulisOptions", ns.TITLE .. " - " .. L.MOD_EBOULIS, nil, 440, 420)
-    local icon = panel:CreateTexture(nil, "ARTWORK")
-    icon:SetSize(64, 64)
-    icon:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -40)
-    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    icon:SetTexture(ns.ItemIcon and ns.ItemIcon(10620) or "Interface\\Icons\\INV_Ore_Thorium_02")
-    local desc = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    desc:SetPoint("TOPLEFT", panel, "TOPLEFT", 92, -40)
-    desc:SetWidth(336)
-    desc:SetJustifyH("LEFT")
-    desc:SetText(L.EBO_HINT)
-    local stats = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    stats:SetPoint("TOPLEFT", desc, "BOTTOMLEFT", 0, -10)
-    stats:SetWidth(336)
-    stats:SetJustifyH("LEFT")
-    local playBtn = ns.UI.Button(panel, L.MURLOC_PLAY, 120, function() toggle() end)
-    playBtn:SetPoint("TOPLEFT", stats, "BOTTOMLEFT", 0, -10)
-    local form = ns.UI.Form(panel, -230, function()
+    ready = function() return db ~= nil end,
+    play = function() toggle() end,
+    icon = function() return ns.ItemIcon and ns.ItemIcon(10620) or "Interface\\Icons\\INV_Ore_Thorium_02" end,
+    tagline = function() return L.EBO_DESC end,
+    hint = function() return L.EBO_HINT end,
+    stats = function()
+        return string.format(L.MURLOC_BEST, db.best or 0) .. "   ·   "
+            .. string.format(L.EBO_STATS, db.games or 0, db.bestLines or 0, db.bestLevel or 0)
+    end,
+    options = function(form)
+        form:Check(L.MURLOC_OPT_SOUND, function() return db.sound end, function(v) db.sound = v end)
+        form:Check(L.MIN_OPT_LETTERS, function() return db.letters end, function(v) db.letters = v end)
+        form:Check(L.EBO_OPT_GHOST, function() return db.ghost end, function(v) db.ghost = v end)
+        form:Number(L.MURLOC_OPT_SCALE, function() return math.floor((db.scale or 1) * 100 + 0.5) end,
+            function(v) db.scale = v / 100 end, 60, 150, 5)
+    end,
+    apply = function()
         if win then win:SetScale(db.scale or 1) end
         dirty = true
-    end)
-    form:Check(L.MURLOC_OPT_SOUND, function() return db.sound end, function(v) db.sound = v end)
-    form:Check(L.MIN_OPT_LETTERS, function() return db.letters end, function(v) db.letters = v end)
-    form:Check(L.EBO_OPT_GHOST, function() return db.ghost end, function(v) db.ghost = v dirty = true end)
-    form:Number(L.MURLOC_OPT_SCALE, function() return math.floor((db.scale or 1) * 100 + 0.5) end,
-        function(v) db.scale = v / 100 end, 60, 150, 5)
-    ns.Games.TaxiOptions(form)
-    table.insert(form.refreshers, function()
-        stats:SetText(string.format(L.MURLOC_BEST, db.best or 0) .. "   ·   "
-            .. string.format(L.EBO_STATS, db.games or 0, db.bestLines or 0, db.bestLevel or 0))
-    end)
-    panel:HookScript("OnShow", function() form:Refresh() end)
-end
-
-local function openPanel()
-    if not db then return end
-    if not panel then buildPanel() end
-    ns.ShowPanel(panel)
-end
+    end,
+})
 
 ---------------------------------------------------------------------------
 -- Evenements
@@ -1050,15 +1024,13 @@ end
 ns.RegisterModule({
     command = "eboulis",
     alias = "blocs",
-    panelName = "CorpUIEboulisOptions",
     icon = ns.ItemIcon and ns.ItemIcon(10620) or nil,
     title = function() return L.MOD_EBOULIS end,
     desc = function() return L.EBO_DESC end,
     Slash = function(rest)
         rest = strlower(strtrim(rest or ""))
-        if rest == "options" or rest == "config" then openPanel() else toggle() end
+        if rest == "options" or rest == "config" then ns.Games.ShowOptions("eboulis") else toggle() end
     end,
-    Open = openPanel,
 })
 
 -- banc d essai
