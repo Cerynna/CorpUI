@@ -22,6 +22,8 @@ Jeux\Strings.lua
 Jeux\Jeux.lua
 Jeux\Murloc.lua
 Jeux\Minerais.lua
+Jeux\StringsEboulis.lua
+Jeux\Eboulis.lua
 Podometre\Strings.lua
 Podometre\Creatures.lua
 Podometre\Cartes.lua

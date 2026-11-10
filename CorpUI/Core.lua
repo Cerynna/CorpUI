@@ -2535,7 +2535,7 @@ end
 -- Un module coupe ne construit rien (ses evenements sont desinscrits des
 -- le premier recu), n a ni page ni commande ; le jeu garde son interface.
 -- Les commandes rangees avec un autre module en prennent la cle.
-local MODULE_OF = { compta = "hv", degats = "compteur", murloc = "jeux", minerais = "jeux",
+local MODULE_OF = { compta = "hv", degats = "compteur", murloc = "jeux", minerais = "jeux", eboulis = "jeux",
                     reactifs = "marchand", menus = "barres" }
 
 -- Module -> addon qui le porte (decoupage du 15/10) ; absent : le noyau.
@@ -2551,7 +2551,7 @@ local ADDON_OF = {
     clics = "CorpUI_Clics",
     persos = "CorpUI_Persos", metiers = "CorpUI_Metiers", hv = "CorpUI_HV", compta = "CorpUI_HV", dez = "CorpUI_HV",
     talents = "CorpUI_Talents", sorts = "CorpUI_Sorts", jeux = "CorpUI_Jeux", murloc = "CorpUI_Jeux",
-    minerais = "CorpUI_Jeux", podometre = "CorpUI_Jeux",
+    minerais = "CorpUI_Jeux", podometre = "CorpUI_Jeux", eboulis = "CorpUI_Jeux",
 }
 function ns.ModuleAddon(key) return ADDON_OF[key] end
 
@@ -2803,7 +2803,7 @@ local PAGES = {
     { key = "talents", cmds = { "talents" } },
     { key = "sorts", cmds = { "sorts" } },
     { key = "erreurs", cmds = { "erreurs" } },
-    { key = "jeux", label = "PAGE_GAMES", cmds = { "murloc", "minerais", "podometre" } },
+    { key = "jeux", label = "PAGE_GAMES", cmds = { "murloc", "minerais", "eboulis", "podometre" } },
 }
 local MEDIA = ns.MEDIA
 local C = ns.COLORS
