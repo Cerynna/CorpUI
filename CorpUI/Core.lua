@@ -1966,6 +1966,83 @@ function ns.NativeAuraSlot(parent, unit, filter, build)
     return o
 end
 
+-- Plusieurs emplacements d aura affiches par le client, chacun place a la
+-- main (un sort suivi par emplacement, 10/11). Le conteneur ne sait pas
+-- retirer un emplacement : n emplacements "s1".."sn" crees d avance,
+-- coupes ; Set(i, conf) en regle un (hors combat) :
+--   conf = { filter, candidate (filtres du client : includeSpellIDs...),
+--            point, relativeTo, relativePoint, x, y, size, time = bool }
+--   ou nil : emplacement coupe.
+-- Renvoie { frame, slots, SetUnit(u), Set(i, conf) } ou nil.
+function ns.NativeAuraSlots(parent, unit, n)
+    if C_AddOns and C_AddOns.LoadAddOn then pcall(C_AddOns.LoadAddOn, "Blizzard_AuraContainer") end
+    local ok, c = pcall(CreateFrame, "AuraContainer", nil, parent, "CustomAuraContainerTemplate")
+    if not ok or type(c) ~= "table" or not c.AddAuraSlot then return nil end
+    pcall(c.SetUnit, c, unit)
+    c:SetSize(1, 1)
+    c:SetPoint("TOPLEFT", parent, "TOPLEFT")
+    local o = { frame = c, slots = {} }
+    for i = 1, n do
+        local e, key = {}, "s" .. i
+        local okS, err = pcall(c.AddAuraSlot, c, key, "HELPFUL", {
+            initializeFrame = function(btn)
+                -- sans souris : les clics passent au cadre dessous
+                pcall(btn.EnableMouse, btn, false)
+                pcall(btn.SetMouseClickEnabled, btn, false)
+                local edge = btn:CreateTexture(nil, "BACKGROUND", nil, -2)
+                edge:SetPoint("TOPLEFT", -1, 1)
+                edge:SetPoint("BOTTOMRIGHT", 1, -1)
+                ns.NoSnap(edge)
+                local bc = ns.COLORS.border
+                edge:SetColorTexture(bc[1], bc[2], bc[3], 1)
+                e.icon = btn:CreateTexture(nil, "ARTWORK")
+                e.icon:SetAllPoints()
+                e.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+                e.cd = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
+                e.cd:SetAllPoints()
+                e.cd:SetReverse(true)
+                e.count = btn:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
+                e.count:SetPoint("BOTTOMRIGHT", 2, -2)
+                pcall(btn.SetIcon, btn, e.icon)
+                pcall(btn.SetDurationCooldown, btn, e.cd)
+                pcall(btn.SetApplicationCount, btn, e.count)
+                e.btn = btn
+            end,
+        })
+        if not okS then geterrorhandler()(err) return nil end
+        pcall(c.SetAuraSlotEnabled, c, key, false)
+        local okF, f = pcall(c.GetAuraSlotFrame, c, key)
+        e.frame = (okF and type(f) == "table") and f or e.btn
+        o.slots[i] = e
+    end
+    function o:SetUnit(u) pcall(c.SetUnit, c, u) end
+    function o:Set(i, conf)
+        local e, key = self.slots[i], "s" .. i
+        if not e then return end
+        if not conf then
+            pcall(c.SetAuraSlotEnabled, c, key, false)
+            return
+        end
+        pcall(c.SetAuraSlotFilterString, c, key, conf.filter)
+        pcall(c.SetAuraSlotCandidateFilters, c, key, conf.candidate or {})
+        local f, size = e.frame, conf.size or 14
+        if f then
+            pcall(f.ClearAllPoints, f)
+            pcall(f.SetPoint, f, conf.point, conf.relativeTo, conf.relativePoint or conf.point, conf.x or 0, conf.y or 0)
+            pcall(f.SetSize, f, size, size)
+        end
+        local font = (ns.FontFile and ns.FontFile("regular")) or STANDARD_TEXT_FONT
+        if e.cd then
+            pcall(e.cd.SetHideCountdownNumbers, e.cd, not conf.time)
+            local okT, fs = pcall(e.cd.GetCountdownFontString, e.cd)
+            if okT and type(fs) == "table" then pcall(fs.SetFont, fs, font, math.max(7, math.floor(size * 0.5)), "OUTLINE") end
+        end
+        if e.count then pcall(e.count.SetFont, e.count, font, math.max(7, math.floor(size * 0.55)), "OUTLINE") end
+        pcall(c.SetAuraSlotEnabled, c, key, true)
+    end
+    return o
+end
+
 -- couleurs par type de debuff, pour les textures inscrites a la main
 function ns.DispelColorMap()
     if not CreateColor then return nil end

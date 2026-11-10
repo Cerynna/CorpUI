@@ -19,6 +19,16 @@
       telle quelle, meme secrete), liseré d aggro, icones de role, de chef et
       marqueur de raid. Une valeur secrete qu on ne peut pas afficher sans la
       lire (menace, marqueur, role) n affiche simplement rien.
+    Sorts suivis (10/11, demande : un druide suit ses HoT, un paladin le
+    buff que posent ses soins, un pretre l Ame affaiblie) : jusqu a 8 sorts
+    par classe (hs.track[classe]), chacun une icone placee au pixel sur le
+    cadre (point, decalage, taille, temps). Affiches par le client
+    (ns.NativeAuraSlots), meme en combat, filtres par numero de sort. Les
+    numeros d un sort (rangs, autres lanceurs) s apprennent par son nom,
+    hors combat, sur les auras du groupe ; ajout par nom, numero, sort glisse
+    du grimoire, aura de la cible ou suggestion de la classe. Le client
+    refuse le filtre par numero sur le debuff d un allie (sauf sorts
+    "jamais secrets") : repli sur "mes debuffs sur ce membre".
 ----------------------------------------------------------------------------]]
 
 local _, ns = ...
@@ -39,6 +49,8 @@ local iconSpec, hotSpec, nativeStyle   -- conteneurs d auras du client (plus bas
 local ICON_MAX = 6      -- icones de debuffs creees par cadre (au plus)
 local HOT_MAX = 6       -- icones de mes soins sur la duree (au plus)
 local HOT_CORNERS = { "topright", "topleft", "bottomright", "bottomleft" }
+local TRACK_MAX = 8     -- sorts suivis par classe (icones placees a la main)
+local TRACK_POS = { "TOPLEFT", "TOP", "TOPRIGHT", "LEFT", "CENTER", "RIGHT", "BOTTOMLEFT", "BOTTOM", "BOTTOMRIGHT" }
 
 -- reglage d un bouton : celui du groupe ou celui du raid
 local function styleOf(b) return b.big and db.partyStyle or db.raidStyle end
@@ -51,6 +63,163 @@ local function hotGeom(b)
     local pos = (hs and hs.hotPos) or "topright"
     local top, right = pos:find("top", 1, true) ~= nil, pos:find("right", 1, true) ~= nil
     return sz, top, right, (top and "TOP" or "BOTTOM") .. (right and "RIGHT" or "LEFT")
+end
+
+---------------------------------------------------------------------------
+-- Sorts suivis : un sort precis par icone, placee au pixel
+---------------------------------------------------------------------------
+
+-- liste de la classe du personnage : { { name, ids = { [numero] = true },
+-- kind = "HELPFUL" | "HARMFUL", mine, pos, x, y, size, time, icon } }
+local function trackList()
+    if not hs then return {} end
+    if type(hs.track) ~= "table" then hs.track = {} end
+    local _, class = UnitClass("player")
+    class = (type(class) == "string" and not issecret(class)) and class or "?"
+    if type(hs.track[class]) ~= "table" then hs.track[class] = {} end
+    return hs.track[class]
+end
+
+-- numeros d un sort suivi (cles numeriques seulement)
+local function trackIDs(t)
+    local ids = {}
+    for id in pairs(type(t.ids) == "table" and t.ids or {}) do
+        local n = tonumber(id)
+        if n then ids[n] = true end
+    end
+    return ids
+end
+
+-- le client laisse-t-il filtrer ces sorts par numero sur un debuff d allie ?
+-- (seulement les sorts "jamais secrets", AuraContainerUtil)
+local function neverSecret(ids)
+    if not (C_Secrets and C_Secrets.GetSpellAuraSecrecy and Enum and Enum.SecrecyLevel) then return false end
+    local never, any = Enum.SecrecyLevel.NeverSecret, false
+    for id in pairs(ids) do
+        local ok, s = pcall(C_Secrets.GetSpellAuraSecrecy, id)
+        if not ok or issecret(s) or s ~= never then return false end
+        any = true
+    end
+    return any
+end
+
+-- filtre du client pour un sort suivi : chaine, filtres par numero, et
+-- vrai si repli (debuff refuse par numero : mes debuffs sur ce membre)
+local function trackFilter(t)
+    local ids = trackIDs(t)
+    if t.kind == "HARMFUL" and not neverSecret(ids) then return "HARMFUL|PLAYER", {}, true end
+    local kind = t.kind == "HARMFUL" and "HARMFUL" or "HELPFUL"
+    return kind .. (t.mine and "|PLAYER" or ""), { includeSpellIDs = ids }, false
+end
+
+-- icones des sorts suivis sur un cadre (hors combat ; le client les montre)
+local function applyTrack(b)
+    if not b.nTrack then return end
+    local list = (hs and hs.trackOn ~= false) and trackList() or {}
+    for i = 1, TRACK_MAX do
+        local t = list[i]
+        if t then
+            local filter, cand = trackFilter(t)
+            b.nTrack:Set(i, { filter = filter, candidate = cand, point = t.pos or "CENTER", relativeTo = b,
+                              x = t.x or 0, y = t.y or 0, size = t.size or 14, time = t.time ~= false })
+        else
+            b.nTrack:Set(i, nil)
+        end
+    end
+end
+
+-- icone d un sort suivi : retenue a l ajout, sinon celle d un de ses numeros
+local function trackIcon(t)
+    if t.icon then return t.icon end
+    for id in pairs(trackIDs(t)) do
+        local tex = ns.SpellIcon and ns.SpellIcon(id)
+        if tex then return tex end
+    end
+    return "Interface\\Icons\\INV_Misc_QuestionMark"
+end
+
+-- numeros d un nom dans le grimoire (tous les rangs qu il liste)
+local function spellbookIDs(name, ids)
+    local cs, en = C_SpellBook, Enum
+    local bank = en and en.SpellBookSpellBank and en.SpellBookSpellBank.Player
+    if not (cs and cs.GetSpellBookItemInfo and bank ~= nil and type(name) == "string") then return end
+    for i = 1, 500 do
+        local ok, item = pcall(cs.GetSpellBookItemInfo, i, bank)
+        if ok and type(item) == "table" then
+            local okR, n, id = pcall(function() return item.name, item.spellID end)
+            if okR and n == name and type(id) == "number" and not issecret(id) then ids[id] = true end
+        end
+    end
+end
+
+-- ajoute un sort suivi : numero (ou nil), nom (ou nil), type, a moi, icone.
+-- Meme nom et meme type deja suivis : ses numeros s y ajoutent. Renvoie
+-- l entree, ou nil et la raison ("unknown", "full").
+local function trackAdd(id, name, kind, mine, icon)
+    local list = trackList()
+    kind = kind == "HARMFUL" and "HARMFUL" or "HELPFUL"
+    if id and not name then name = ns.SpellName(id) end
+    if type(name) ~= "string" or issecret(name) or name == "" then return nil, "unknown" end
+    if not id and C_Spell and C_Spell.GetSpellInfo then
+        local ok, info = pcall(C_Spell.GetSpellInfo, name)
+        if ok and type(info) == "table" and type(info.spellID) == "number" and not issecret(info.spellID) then
+            id = info.spellID
+            icon = icon or info.iconID
+        end
+    end
+    for _, t in ipairs(list) do
+        if t.name == name and (t.kind or "HELPFUL") == kind then
+            if id then t.ids[id] = true end
+            spellbookIDs(name, t.ids)
+            return t
+        end
+    end
+    if #list >= TRACK_MAX then return nil, "full" end
+    -- place libre suivante (le coin haut droit est aux soins sur la duree)
+    local used = {}
+    for _, t in ipairs(list) do used[t.pos or ""] = true end
+    local pos = "CENTER"
+    for _, p in ipairs({ "TOPLEFT", "LEFT", "BOTTOMRIGHT", "TOP", "CENTER", "RIGHT", "BOTTOM", "BOTTOMLEFT" }) do
+        if not used[p] then pos = p break end
+    end
+    local t = { name = name, ids = {}, kind = kind, mine = mine and true or false, pos = pos,
+                x = 0, y = 0, size = 14, time = true, icon = icon }
+    if id then t.ids[id] = true end
+    spellbookIDs(name, t.ids)
+    table.insert(list, t)
+    return t
+end
+
+-- suggestions par classe : premier rang (les autres s apprennent par le nom)
+local TRACK_SUGGEST = {
+    DRUID = { { 774, "HELPFUL" }, { 8936, "HELPFUL" } },
+    PRIEST = { { 139, "HELPFUL" }, { 17, "HELPFUL" }, { 6788, "HARMFUL" }, { 14893, "HELPFUL" } },
+    PALADIN = { { 19977, "HELPFUL" }, { 25771, "HARMFUL" } },
+    SHAMAN = { { 16177, "HELPFUL" } },
+}
+
+-- numeros appris par le nom, hors combat : rangs et autres lanceurs,
+-- d apres les auras ajoutees sur le joueur et le groupe. Vrai si appris.
+local function trackLearn(info)
+    if InCombatLockdown() or not hs or type(info) ~= "table" or issecret(info) then return false end
+    local added = info.addedAuras
+    if type(added) ~= "table" or issecret(added) then return false end
+    local list = trackList()
+    if #list == 0 then return false end
+    local learned = false
+    for _, a in ipairs(added) do
+        local ok, name, id, harmful = pcall(function() return a.name, a.spellId, a.isHarmful end)
+        if ok and type(name) == "string" and not issecret(name) and type(id) == "number" and not issecret(id)
+            and not issecret(harmful) then
+            for _, t in ipairs(list) do
+                if t.name == name and (t.kind == "HARMFUL") == (harmful == true) and not t.ids[id] then
+                    t.ids[id] = true
+                    learned = true
+                end
+            end
+        end
+    end
+    return learned
 end
 
 ---------------------------------------------------------------------------
@@ -204,6 +373,7 @@ local function updateNative(b, unit)
         b.nUnit = unit
         if b.nIcons then b.nIcons:SetUnit(unit) end
         if b.nHots then b.nHots:SetUnit(unit) end
+        if b.nTrack then b.nTrack:SetUnit(unit) end
         if b.nDispel then b.nDispel:SetUnit(unit) end
     end
     -- appele a chaque changement d aura (souvent en combat) : on ne touche
@@ -212,17 +382,19 @@ local function updateNative(b, unit)
     local on = not b.down
     local icons, disp = (hs and hs.icons and on) and true or false, (hs and hs.dispel and on) and true or false
     local hots = (hs and hs.hots and on) and true or false
+    local track = (hs and hs.trackOn ~= false and on) and true or false
     local filter, style, alpha = dispelFilter(), hs and hs.dispelStyle, hs and hs.tintAlpha
     local st = b.nSt
     if st and st.icons == icons and st.disp == disp and st.filter == filter and st.style == style
-        and st.alpha == alpha and st.mine == b.dispelMine and st.hots == hots then return end
+        and st.alpha == alpha and st.mine == b.dispelMine and st.hots == hots and st.track == track then return end
     if InCombatLockdown() then return end
     if not st then st = {} b.nSt = st end
     st.icons, st.disp, st.filter, st.style, st.alpha, st.mine = icons, disp, filter, style, alpha, b.dispelMine
-    st.hots = hots
+    st.hots, st.track = hots, track
     b.nState = true
     if b.nIcons then pcall(b.nIcons.frame.SetShown, b.nIcons.frame, (hs and hs.icons and on) and true or false) end
     if b.nHots then pcall(b.nHots.frame.SetShown, b.nHots.frame, hots) end
+    if b.nTrack then pcall(b.nTrack.frame.SetShown, b.nTrack.frame, track) end
     if b.nDispel then
         pcall(b.nDispel.frame.SetShown, b.nDispel.frame, (hs and hs.dispel and on) and true or false)
         b.nDispel:SetFilter(dispelFilter())
@@ -239,13 +411,15 @@ local function updateAuras(b, unit)
             b.tint:Hide()
             for i = 1, ICON_MAX do b.icons[i]:Hide() end
             for i = 1, HOT_MAX do b.hotIcons[i]:Hide() end
+            for i = 1, TRACK_MAX do b.trackIcons[i]:Hide() end
             b.legacyHidden = true
         end
         updateNative(b, unit)
         return
     end
-    -- mes soins sur la duree : seul le client les montre (aucun ancien chemin)
+    -- mes soins sur la duree, sorts suivis : seul le client les montre
     for i = 1, HOT_MAX do b.hotIcons[i]:Hide() end
+    for i = 1, TRACK_MAX do b.trackIcons[i]:Hide() end
     -- surbrillance : couleur du type du premier debuff a dissiper
     local edgeOn, tintOn = false, false
     b.legacyDispel = false
@@ -380,6 +554,19 @@ local function layoutIcons(b)
         f:SetSize(hz, hz)
         f:SetPoint(corner, b.hp, corner, right and -dx or dx, top and -1 or 1)
         pcall(f.time.SetFont, f.time, reg, math.max(7, math.floor(hz * 0.45)), "OUTLINE")
+    end
+    -- sorts suivis : le client (vrais cadres), nos cases (apercu), meme place
+    applyTrack(b)
+    local list = trackList()
+    for i = 1, TRACK_MAX do
+        local f, t = b.trackIcons[i], list[i]
+        if t then
+            local sz = t.size or 14
+            f:ClearAllPoints()
+            f:SetSize(sz, sz)
+            f:SetPoint(t.pos or "CENTER", b, t.pos or "CENTER", t.x or 0, t.y or 0)
+            pcall(f.time.SetFont, f.time, reg, math.max(7, math.floor(sz * 0.5)), "OUTLINE")
+        end
     end
 end
 
@@ -522,6 +709,7 @@ local function fakeAuras(b, d)
     if not InCombatLockdown() then
         if b.nIcons then pcall(b.nIcons.frame.SetShown, b.nIcons.frame, false) end
         if b.nHots then pcall(b.nHots.frame.SetShown, b.nHots.frame, false) end
+        if b.nTrack then pcall(b.nTrack.frame.SetShown, b.nTrack.frame, false) end
         if b.nDispel then pcall(b.nDispel.frame.SetShown, b.nDispel.frame, false) end
         b.nState, b.nSt = nil, nil
     end
@@ -569,6 +757,19 @@ local function fakeAuras(b, d)
         end
     end
     for i = h + 1, HOT_MAX do b.hotIcons[i]:Hide() end
+    -- sorts suivis : chacun a sa place, sur tous les membres en vie (pour
+    -- regler la position d un coup d oeil)
+    local list = (hs and hs.trackOn ~= false and not b.down) and trackList() or {}
+    for i = 1, TRACK_MAX do
+        local f, t = b.trackIcons[i], list[i]
+        if t then
+            f.tex:SetTexture(trackIcon(t))
+            f.time:SetText(t.time ~= false and tostring(4 + (b.fakeIndex or 1) % 9) or "")
+            f:Show()
+        else
+            f:Hide()
+        end
+    end
 end
 
 local function fakeButton(b)
@@ -871,11 +1072,30 @@ local function makeButton(parent, unit, big)
         f:Hide()
         b.hotIcons[i] = f
     end
+    -- sorts suivis : cases de l apercu (le vrai passe par le client)
+    b.trackIcons = {}
+    for i = 1, TRACK_MAX do
+        local f = CreateFrame("Frame", nil, b.ov)
+        f:SetSize(14, 14)
+        f:SetFrameLevel(b.ov:GetFrameLevel() + 2)
+        f.border = f:CreateTexture(nil, "BACKGROUND")
+        f.border:SetPoint("TOPLEFT", -1, 1)
+        f.border:SetPoint("BOTTOMRIGHT", 1, -1)
+        f.border:SetColorTexture(bc[1], bc[2], bc[3], 1)
+        f.tex = f:CreateTexture(nil, "ARTWORK")
+        f.tex:SetAllPoints()
+        f.tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        f.time = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        f.time:SetPoint("CENTER", 0, 0)
+        f:Hide()
+        b.trackIcons[i] = f
+    end
     -- en combat, seul le client peut lire les auras : conteneurs a lui
     -- (icones + surbrillance de dissipation), habilles par nous
     if ns.NativeAuras then
         b.nIcons = ns.NativeAuras(b.ov, unit, iconSpec(b))
         b.nHots = ns.NativeAuras(b.ov, unit, hotSpec(b))
+        if ns.NativeAuraSlots then b.nTrack = ns.NativeAuraSlots(b.ov, unit, TRACK_MAX) end
         b.nDispel = ns.NativeAuraSlot(b.ov, unit, "HARMFUL|RAID", function(btn) buildDispelSlot(b, btn) end)
         b.nUnit = unit
     end
@@ -1231,6 +1451,171 @@ function ns.FramesOpt.Healers(parent, y)
     hotTip:SetJustifyH("LEFT")
     hotTip:SetText(L.GROUP_HOTS_HINT)
     heal:Gap(30)
+    -- sorts suivis (10/11) : un sort precis par icone, placee au pixel ;
+    -- liste de la classe du personnage
+    local className, classTok = UnitClass("player")
+    heal:Header(string.format(L.GROUP_TRACK_HEAD, type(className) == "string" and className or "?"))
+    hcheck(L.GROUP_TRACK_ON, "trackOn")
+    local sel = 1                      -- sort regle
+    local function cur() return trackList()[sel] end
+    local function label(t)
+        return "|T" .. trackIcon(t) .. ":14:14:0:0:64:64:5:59:5:59|t " .. t.name
+    end
+    local function added(t, why)
+        if t then
+            for i, x in ipairs(trackList()) do if x == t then sel = i end end
+            ns.Say(string.format(L.GROUP_TRACK_ADDED, t.name))
+        else
+            ns.Say(why == "full" and string.format(L.GROUP_TRACK_FULL, TRACK_MAX) or L.GROUP_TRACK_UNKNOWN)
+        end
+        heal.Changed()
+    end
+    -- ajout : nom ou numero tape, ou sort glisse du grimoire
+    local y0 = heal.y
+    local edit = ns.UI.EditBox(parent, 150, 22)
+    edit:SetPoint("TOPLEFT", parent, "TOPLEFT", 8, y0 - 2)
+    edit:SetMaxLetters(60)
+    local ph = edit:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    ph:SetPoint("LEFT", 6, 0)
+    ph:SetText(L.GROUP_TRACK_INPUT)
+    local function syncPh() ph:SetShown((edit:GetText() or "") == "" and not edit:HasFocus()) end
+    edit:HookScript("OnEditFocusGained", syncPh)
+    edit:HookScript("OnEditFocusLost", syncPh)
+    edit:SetScript("OnTextChanged", syncPh)
+    local function addTyped()
+        local text = strtrim(edit:GetText() or "")
+        edit:SetText("")
+        edit:ClearFocus()
+        if text == "" then return end
+        local id = tonumber(text)
+        added(trackAdd(id, not id and text or nil, "HELPFUL", true))
+    end
+    edit:SetScript("OnEnterPressed", addTyped)
+    local function dropSpell()
+        local ok, kind, a, b2, c = pcall(GetCursorInfo)
+        if not ok or kind ~= "spell" then return end
+        local id = c
+        if not id and C_SpellBook and C_SpellBook.GetSpellBookItemInfo then
+            local okI, info = pcall(C_SpellBook.GetSpellBookItemInfo, a, b2)
+            if okI and type(info) == "table" then id = info.spellID end
+        end
+        ClearCursor()
+        if type(id) == "number" and not issecret(id) then added(trackAdd(id, nil, "HELPFUL", true)) end
+    end
+    edit:SetScript("OnReceiveDrag", dropSpell)
+    edit:HookScript("OnMouseDown", dropSpell)
+    local addBtn = ns.UI.Button(parent, L.GROUP_TRACK_ADD, 70, addTyped)
+    addBtn:SetPoint("LEFT", edit, "RIGHT", 6, 0)
+    -- ou une aura de la cible (sinon du joueur), ou une suggestion de la classe
+    local function auraEntry(id, name, kind, mine, icon)
+        local tex = (type(icon) == "number" or type(icon) == "string") and not issecret(icon) and icon
+            or "Interface\\Icons\\INV_Misc_QuestionMark"
+        local txt = "|T" .. tex .. ":14:14:0:0:64:64:5:59:5:59|t " .. name
+        if kind == "HARMFUL" then txt = txt .. " |cffff7070(" .. L.GROUP_TRACK_DEBUFF .. ")|r" end
+        return { value = { id = id, name = name, kind = kind, mine = mine, icon = tex }, text = txt }
+    end
+    local function pickOptions()
+        local out = { width = 260 }
+        local unit = "player"
+        if UnitExists("target") then
+            local okA, can = pcall(UnitCanAssist, "player", "target")
+            if okA and can == true then unit = "target" end
+        end
+        local okN, uname = pcall(UnitName, unit)
+        out[#out + 1] = { title = true, text = string.format(L.GROUP_TRACK_FROM,
+            (okN and type(uname) == "string" and not issecret(uname)) and uname or "?") }
+        local n = 0
+        if InCombatLockdown() then
+            out[#out + 1] = { title = true, text = L.GROUP_TRACK_COMBAT }
+        elseif C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
+            for _, kind in ipairs({ "HELPFUL", "HARMFUL" }) do
+                for i = 1, 40 do
+                    local ok, a = pcall(C_UnitAuras.GetAuraDataByIndex, unit, i, kind)
+                    if not ok or type(a) ~= "table" then break end
+                    local okR, name, id, icon, src = pcall(function() return a.name, a.spellId, a.icon, a.sourceUnit end)
+                    if okR and type(name) == "string" and not issecret(name) and type(id) == "number" and not issecret(id) then
+                        local mine = false
+                        if type(src) == "string" and not issecret(src) then
+                            local okU, same = pcall(UnitIsUnit, src, "player")
+                            mine = okU and same == true
+                        end
+                        out[#out + 1] = auraEntry(id, name, kind, mine, icon)
+                        n = n + 1
+                    end
+                end
+            end
+            if n == 0 then out[#out + 1] = { title = true, text = L.GROUP_TRACK_NONE } end
+        end
+        local sug = TRACK_SUGGEST[classTok]
+        if sug then
+            out[#out + 1] = { title = true, text = L.GROUP_TRACK_SUGGEST }
+            for _, s in ipairs(sug) do
+                local name = ns.SpellName(s[1])
+                if type(name) == "string" and not issecret(name) then
+                    out[#out + 1] = auraEntry(s[1], name, s[2], s[2] == "HELPFUL", ns.SpellIcon and ns.SpellIcon(s[1]))
+                end
+            end
+        end
+        return out
+    end
+    local pick = ns.UI.Select(parent, 170, pickOptions, function() return nil end, function(v)
+        if type(v) == "table" then added(trackAdd(v.id, v.name, v.kind, v.mine, v.icon)) end
+    end)
+    pick:SetPoint("LEFT", addBtn, "RIGHT", 6, 0)
+    function pick:Refresh() self:SetText(L.GROUP_TRACK_PICK) end
+    pick:Refresh()
+    -- sort a regler, et le retirer
+    heal.y = y0 - 30
+    local which = ns.UI.Select(parent, 236, function()
+        local out = {}
+        for i, t in ipairs(trackList()) do out[#out + 1] = { value = i, text = label(t) } end
+        if #out == 0 then out[1] = { title = true, text = L.GROUP_TRACK_EMPTY } end
+        return out
+    end, function() return sel end, function(v) sel = v heal:Refresh() end)
+    which:SetPoint("TOPLEFT", parent, "TOPLEFT", 8, heal.y - 2)
+    local remove = ns.UI.Button(parent, L.GROUP_TRACK_REMOVE, 90, function()
+        local list = trackList()
+        if list[sel] then table.remove(list, sel) end
+        sel = math.max(1, math.min(sel, #list))
+        heal.Changed()
+    end)
+    remove:SetPoint("LEFT", which, "RIGHT", 6, 0)
+    heal.y = heal.y - 30
+    -- reglages du sort choisi (rien sans sort : valeurs par defaut, sans effet)
+    local function tget(k, def)
+        return function()
+            local t = cur()
+            if not t or t[k] == nil then return def end
+            return t[k]
+        end
+    end
+    local function tset(k) return function(v) local t = cur() if t then t[k] = v end end end
+    local trackPosNames = {}
+    for _, p in ipairs(TRACK_POS) do trackPosNames[p] = L["GROUP_TRACK_P_" .. p] end
+    heal:Columns(2)
+    heal:Cycle(L.GROUP_TRACK_POS, TRACK_POS, trackPosNames, tget("pos", "CENTER"), tset("pos"))
+    heal:Cycle(L.GROUP_TRACK_KIND, { "HELPFUL", "HARMFUL" }, { HELPFUL = L.GROUP_TRACK_BUFF, HARMFUL = L.GROUP_TRACK_DEBUFF },
+        tget("kind", "HELPFUL"), tset("kind"))
+    heal:Number(L.GROUP_TRACK_X, tget("x", 0), tset("x"), -60, 60)
+    heal:Number(L.GROUP_TRACK_Y, tget("y", 0), tset("y"), -60, 60)
+    heal:Number(L.GROUP_TRACK_SIZE, tget("size", 14), tset("size"), 6, 40)
+    heal:Check(L.GROUP_TRACK_MINE, tget("mine", false), tset("mine"))
+    heal:Check(L.GROUP_TRACK_TIME, tget("time", true), tset("time"))
+    heal:EndColumns()
+    local trackTip = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    trackTip:SetPoint("TOPLEFT", parent, "TOPLEFT", 8, heal.y - 4)
+    trackTip:SetWidth(420)
+    trackTip:SetJustifyH("LEFT")
+    table.insert(heal.refreshers, function()
+        local list = trackList()
+        if sel > #list then sel = math.max(1, #list) end
+        local t = list[sel]
+        which:SetText(t and label(t) or L.GROUP_TRACK_EMPTY)
+        remove:SetEnabled(t ~= nil)
+        local fallback = t and select(3, trackFilter(t))
+        trackTip:SetText(L.GROUP_TRACK_HINT .. (fallback and ("\n|cffffd100" .. L.GROUP_TRACK_FALLBACK .. "|r") or ""))
+    end)
+    heal:Gap(70)
     local note = parent:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     note:SetPoint("TOPLEFT", parent, "TOPLEFT", 8, heal.y - 4)
     note:SetWidth(420)
@@ -1261,7 +1646,8 @@ local function rosterFlush()
 end
 
 local ev = CreateFrame("Frame")
-ev:SetScript("OnEvent", function(_, event, unit)
+local trackSpellsQueued = false
+ev:SetScript("OnEvent", function(_, event, unit, info)
     if ns.ModuleOff("groupe", ev) then return end
     if event == "PLAYER_LOGIN" then
         local root = ns.InitRoot()
@@ -1290,7 +1676,7 @@ ev:SetScript("OnEvent", function(_, event, unit)
                             marker = true, tintAlpha = 35,
                             markPos = "top", markSize = 16, markX = 0, markY = 0, markAlpha = 100,
                             hots = true, hotTime = true, hotMax = 3, hotSize = 12, hotPos = "topright",
-                            hotDur = 60 }) do
+                            hotDur = 60, trackOn = true }) do
             if hs[k] == nil then hs[k] = v end
         end
         -- demande du 06/10 : le cadre entier prend la couleur du debuff
@@ -1321,11 +1707,27 @@ ev:SetScript("OnEvent", function(_, event, unit)
             local u = b:GetAttribute("unit")
             if b:IsVisible() and u and UnitExists(u) and not b.fakeIndex then updateIcons(b, u) end
         end
+    elseif event == "SPELLS_CHANGED" then
+        -- nouveau rang appris : numeros des sorts suivis relus dans le
+        -- grimoire (un passage, hors combat)
+        if trackSpellsQueued then return end
+        trackSpellsQueued = true
+        C_Timer.After(1, function()
+            trackSpellsQueued = false
+            if InCombatLockdown() or not hs then return end
+            for _, t in ipairs(trackList()) do spellbookIDs(t.name, t.ids) end
+            for _, b in pairs(buttons) do applyTrack(b) end
+        end)
     elseif unit then
         -- un evenement d unite : le cadre de cette unite (les cadres sont
         -- ranges par unite), seulement la partie concernee pour les
         -- evenements frequents. Apercu : tous montrent "player".
         if issecret(unit) or type(unit) ~= "string" then return end
+        -- sorts suivis : numeros appris par le nom (hors combat, groupe)
+        if event == "UNIT_AURA" and (unit == "player" or unit:find("^party%d") or unit:find("^raid%d"))
+            and trackLearn(info) then
+            for _, b in pairs(buttons) do applyTrack(b) end
+        end
         if previewing then
             if unit ~= "player" then return end
             for _, b in pairs(buttons) do
@@ -1358,7 +1760,7 @@ for _, e in ipairs({ "PLAYER_LOGIN", "GROUP_ROSTER_UPDATE", "PLAYER_REGEN_ENABLE
                      "UNIT_MAXHEALTH", "UNIT_POWER_UPDATE", "UNIT_MAXPOWER", "UNIT_NAME_UPDATE",
                      "UNIT_CONNECTION", "UNIT_LEVEL", "UNIT_DISPLAYPOWER", "UNIT_FLAGS", "UNIT_AURA",
                      "UNIT_HEAL_PREDICTION", "UNIT_THREAT_SITUATION_UPDATE", "RAID_TARGET_UPDATE",
-                     "PARTY_LEADER_CHANGED", "PLAYER_ROLES_ASSIGNED" }) do
+                     "PARTY_LEADER_CHANGED", "PLAYER_ROLES_ASSIGNED", "SPELLS_CHANGED" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
 
@@ -1409,3 +1811,7 @@ ns.Listen(function()
     lastMovers, lastPreview = ns.moversShown, pv
     applyVisibility()
 end)
+
+-- banc d essai : sorts suivis (hs : reglages poses par le banc)
+ns._groupTrack = { add = trackAdd, filter = trackFilter, apply = applyTrack, learn = trackLearn, list = trackList,
+                   icon = trackIcon, hs = function(t) if t then hs = t end return hs end }

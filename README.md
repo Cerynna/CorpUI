@@ -36,7 +36,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | Module | Ce qu'il fait | Commande |
 | --- | --- | --- |
 | **Cadres d'unité** | Joueur, cible, cible de la cible, focalisation, familier, boss, arène ; barres de sort, auras, ressources, totems actifs du chaman, minuteur de coups blancs, icône de raid réglable, emblème JcJ (avec le compte à rebours quand il se coupe). Un seul éditeur pour tous les cadres. | `/corp cadres` |
-| **Groupe et raid** | Cadres de groupe et de raid à nous : débuffs, dissipation, soins entrants, tes soins sur la durée (HoT, boucliers) avec leur temps restant, aggro, icône de raid, réglages pour les soigneurs. | `/corp groupe` |
+| **Groupe et raid** | Cadres de groupe et de raid à nous : débuffs, dissipation, soins entrants, tes soins sur la durée (HoT, boucliers) avec leur temps restant, sorts suivis au choix (un sort précis par icône, placée au pixel : un HoT, le buff de tes soins, l'Âme affaiblie…), aggro, icône de raid, réglages pour les soigneurs. | `/corp groupe` |
 | **Barres d'action** | Neuf barres, barre du familier, barre des totems, bouton de sortie de véhicule ; taille, espacement, fond, visibilité par condition, fondu au survol ou hors combat, raccourcis rapides façon ElvUI ; le bouton s'allume quand tu appuies sur sa touche. | `/corp barres` |
 | **Menus** | Barre des postures et formes, micro-menu et barre des sacs, réglables comme les barres d'action. | `/corp menus` |
 | **Barres de sort** | Barres d'incantation du joueur, de la cible et de la focalisation ; sort non interruptible, interruption prête. | `/corp incantations` |
