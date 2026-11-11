@@ -2536,7 +2536,7 @@ end
 -- le premier recu), n a ni page ni commande ; le jeu garde son interface.
 -- Les commandes rangees avec un autre module en prennent la cle.
 local MODULE_OF = { compta = "hv", degats = "compteur", murloc = "jeux", minerais = "jeux", eboulis = "jeux",
-                    joaillier = "jeux", siege = "jeux",
+                    joaillier = "jeux", siege = "jeux", chats = "jeux",
                     reactifs = "marchand", menus = "barres" }
 
 -- Module -> addon qui le porte (decoupage du 15/10) ; absent : le noyau.
@@ -2553,7 +2553,7 @@ local ADDON_OF = {
     persos = "CorpUI_Persos", metiers = "CorpUI_Metiers", hv = "CorpUI_HV", compta = "CorpUI_HV", dez = "CorpUI_HV",
     talents = "CorpUI_Talents", sorts = "CorpUI_Sorts", jeux = "CorpUI_Jeux", murloc = "CorpUI_Jeux",
     minerais = "CorpUI_Jeux", podometre = "CorpUI_Jeux", eboulis = "CorpUI_Jeux",
-    joaillier = "CorpUI_Jeux", siege = "CorpUI_Jeux",
+    joaillier = "CorpUI_Jeux", siege = "CorpUI_Jeux", chats = "CorpUI_Jeux",
 }
 function ns.ModuleAddon(key) return ADDON_OF[key] end
 

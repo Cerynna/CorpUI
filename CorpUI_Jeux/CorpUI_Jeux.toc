@@ -28,6 +28,8 @@ Jeux\StringsJoaillier.lua
 Jeux\Joaillier.lua
 Jeux\StringsSiege.lua
 Jeux\Siege.lua
+Jeux\StringsChats.lua
+Jeux\Chats.lua
 Podometre\Strings.lua
 Podometre\Creatures.lua
 Podometre\Cartes.lua

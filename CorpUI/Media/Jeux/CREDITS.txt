@@ -5,6 +5,10 @@ Vol du griffon : vol_griffon.tga, vol_wyverne.tga, vol_objets.tga, vol_ciel.tga,
   Generees le 08/10/2026 avec Nano Banana Pro (Google, modele gemini-3-pro-image)
   pour CorpUI, puis detourees (fond vert), decoupees en planches de 4 x 2 cases
   de 256 px, et rendues raccordables horizontalement (fonds, sol).
+Chats de l auberge : chats.tga (9 chats, coeur, empreinte, pelote ; planche de
+  4 x 4 cases de 128 px), chats_icone.tga
+  Generes le 12/11/2026 avec Nano Banana Pro (gemini-3-pro-image) pour CorpUI,
+  detoures (fond vert) et ranges en planche.
 
 Les murlocs, griffons, wyvernes et dragonnets sont des creatures de World of
 Warcraft (Blizzard Entertainment) ; ces mini-jeux sont un clin d'oeil a usage
