@@ -5,9 +5,11 @@
     (verte, bleue, violette), d apres la table de desenchantement de Classic
     (poussiere, essence, eclat selon le niveau d objet et la qualite ; les
     armes donnent surtout de l essence, les armures surtout de la poussiere)
-    et la valeur marche des composants a l HV. Tranches de niveau verifiees
-    le 09/11 dans la table ItemDisenchantLoot du jeu Forever : verts et
-    bleus a partir du niveau d objet 5, violets a partir de 40.
+    et la valeur des composants a l HV (12/11 : valeur marche, ou celle du
+    dernier jour releve si elle est plus basse ; on revend maintenant).
+    Tranches de niveau verifiees le 09/11 dans la table ItemDisenchantLoot
+    du jeu Forever : verts et bleus a partir du niveau d objet 5, violets a
+    partir de 40.
     Un desenchantement est un tirage (09/11 : la moyenne seule trompait,
     gonflee par l eclat a 5 % alors que 3 fois sur 4 on a la poussiere) :
     on garde toute la distribution, resultat par resultat, quantite
@@ -244,7 +246,7 @@ function AH.DEDistRaw(item)
     if not parts then return nil end
     local d = { mean = 0, missing = 0, points = {}, parts = parts, seen = n }
     for _, p in ipairs(parts) do
-        local v = ns.AHSource and ns.AHSource(p[1], "market")
+        local v = ns.AHSource and ns.AHSource(p[1], "sell")
         if not (v and v > 0) then
             if p[2] >= RARE then d.missing = d.missing + 1 end
             v = 0

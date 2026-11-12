@@ -26,7 +26,9 @@
                                         pour une fleche ; arrondir apres la
                                         multiplication par la quantite)
           ns.AHValues(item)          -> { min, market, hist, qty, age... }
-          ns.AHSource(item, cle)     -> une valeur : "min", "market", "hist"
+          ns.AHSource(item, cle)     -> une valeur : "min", "market", "hist",
+                                        "sell" (marche ou dernier jour, le
+                                        plus bas)
           ns.AHCost(item, n)         -> cout reel d achat des n moins chers
                                         (echelle du dernier scan), quantite
                                         couverte (< n : pas assez en vente),
@@ -399,20 +401,37 @@ local function dayValue(rec, days)
 end
 
 -- valeur marche : moyenne des valeurs marche des MARKET_DAYS derniers
--- jours, ponderee (aujourd hui compte 14, il y a 13 jours : 1). Cuivre
--- non arrondi, nombre de jours ; nil si rien de recent.
+-- jours, ponderee (aujourd hui compte 14, il y a 13 jours : 1), sans les
+-- jours a plus du double ou moins de la moitie de la mediane ponderee
+-- (12/11 : le jour d ouverture du serveur, essence du neant superieure a
+-- 30 po, tenait encore la valeur a 4,66 po quand elle se vendait 87 pa).
+-- Cuivre non arrondi, nombre de jours gardes ; nil si rien de recent.
+local SPREAD = 2
 local function marketValue(rec)
     local now, val = today(), dayValue(rec, MARKET_DAYS)
-    local s, w, n = 0, 0, 0
+    local days, w = {}, 0
     for _, e in ipairs(rec.hist) do
         local age, v = now - e.day, val(e)
         if v and age >= 0 and age < MARKET_DAYS then
-            local k = MARKET_DAYS - age
-            s, w, n = s + v * k, w + k, n + 1
+            days[#days + 1] = { v, MARKET_DAYS - age }
+            w = w + MARKET_DAYS - age
         end
     end
     if w == 0 then return nil, 0 end
-    return s / w, n
+    table.sort(days, function(a, b) return a[1] < b[1] end)
+    local med, acc = days[#days][1], 0
+    for _, d in ipairs(days) do
+        acc = acc + d[2]
+        if acc >= w / 2 then
+            med = d[1]
+            break
+        end
+    end
+    local s, sw, n = 0, 0, 0
+    for _, d in ipairs(days) do
+        if d[1] <= med * SPREAD and d[1] * SPREAD >= med then s, sw, n = s + d[1] * d[2], sw + d[2], n + 1 end
+    end
+    return s / sw, n
 end
 
 -- historique : mediane des valeurs marche (sinon minimums) des `days`
@@ -539,9 +558,10 @@ end
 -- le plus bas), qty (exemplaires vus), age (secondes), seen (horodatage),
 -- market (valeur marche, 14 jours ponderes ; repli : historique, puis
 -- min), marketDays, hist (mediane des valeurs marche sur opts.days
--- jours), histDays, lad (echelle des prix, a lire seulement, ou nil).
--- nil si inconnu ou argument secret. nocache : lecture sans garder l objet
--- decode (parcours de toute la base).
+-- jours), histDays, cur (valeur marche du dernier jour releve, sinon
+-- dernier prix le plus bas), lad (echelle des prix, a lire seulement, ou
+-- nil). nil si inconnu ou argument secret. nocache : lecture sans garder
+-- l objet decode (parcours de toute la base).
 function ns.AHValues(item, nocache)
     local id = itemIDOf(item)
     local rec
@@ -559,8 +579,10 @@ function ns.AHValues(item, nocache)
     local days = (opts and opts.days) or 7
     local m, mn = marketValue(rec)
     local h, hn = histValue(rec, days)
+    local last = rec.hist[1]
     return { id = id, min = rec.p, qty = rec.q, age = math.max(0, time() - rec.t), seen = rec.t,
-             market = m or h or rec.p, marketDays = mn, hist = h, histDays = hn, lad = rec.lad }
+             market = m or h or rec.p, marketDays = mn, hist = h, histDays = hn,
+             cur = last and last.mv or rec.p, lad = rec.lad }
 end
 
 -- echelle des prix du dernier releve (copie) : { { prix unitaire, quantite } }
@@ -583,12 +605,15 @@ function ns.AHNextItem(prev)
     if ok then return id end
 end
 
--- une source de prix : "min", "market" ou "hist" (cuivre non arrondi)
+-- une source de prix : "min", "market", "hist" ou "sell" (ce qu on en
+-- tire en vendant maintenant : la valeur marche, ou celle du dernier jour
+-- releve si elle est plus basse, marche qui baisse) ; cuivre non arrondi
 function ns.AHSource(item, key)
     local v = ns.AHValues(item)
     if not v then return nil end
     if key == "min" then return v.min end
     if key == "hist" then return v.hist end
+    if key == "sell" then return math.min(v.market, v.cur) end
     return v.market
 end
 
