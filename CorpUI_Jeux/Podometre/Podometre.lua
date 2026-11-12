@@ -492,19 +492,97 @@ end)
 local Comm
 local lastShare, lastSig = -SHARE_EVERY, nil
 local replied = {}
+local MAX_ALTS = 30       -- personnages retenus par compte de la guilde
+
+---------------------------------------------------------------------------
+-- Rerolls : les km et le classeur sont ceux du compte, chaque personnage
+-- envoyait donc la meme fiche sous son nom. Une fiche porte maintenant
+-- l identifiant du compte (tire une fois) et le personnage principal :
+-- un joueur = une ligne au classement, a son nom de main.
+---------------------------------------------------------------------------
+
+local ID_CHARS = "0123456789abcdefghijklmnopqrstuvwxyz"
+
+local function accountId()
+    if type(db.id) ~= "string" or not db.id:match("^[0-9a-z]+$") or #db.id ~= 10 then
+        local t = {}
+        for i = 1, 10 do
+            local n = math.random(1, #ID_CHARS)
+            t[i] = ID_CHARS:sub(n, n)
+        end
+        db.id = table.concat(t)
+    end
+    return db.id
+end
+
+-- royaume d une cle "Nom-Royaume"
+local function keyRealm(key)
+    return type(key) == "string" and key:match("^[^%-]+%-(.+)$") or nil
+end
+
+-- personnages du compte qui peuvent etre le main : ceux du podometre, sur
+-- ce royaume et dans cette faction (le module Persos donne niveau et faction)
+function P.Characters()
+    local list = {}
+    if not db then return list end
+    local realm = keyRealm(ns.CharKey())
+    local alts = ns.root and type(ns.root.alts) == "table" and ns.root.alts or {}
+    local okF, faction = pcall(UnitFactionGroup, "player")
+    if not okF or issecret(faction) then faction = nil end
+    for key, ch in pairs(db.chars) do
+        local a = alts[key]
+        if type(a) ~= "table" then a = {} end
+        local sameFaction = not faction or not a.faction or issecret(a.faction) or a.faction == faction
+        if type(ch) == "table" and keyRealm(key) == realm and sameFaction then
+            local lv = math.max(num(ch.level) or 0, num(a.level) or 0)
+            list[#list + 1] = {
+                key = key, name = ch.name or a.name or key:match("^[^%-]+") or key, id = ch.id,
+                class = ch.class or a.class, level = lv, km = num(ch.total) or 0,
+            }
+        end
+    end
+    table.sort(list, function(x, y)
+        if x.level ~= y.level then return x.level > y.level end
+        if x.km ~= y.km then return x.km > y.km end
+        return x.key < y.key
+    end)
+    return list
+end
+
+-- main du compte : celui choisi (onglet Guilde), sinon le plus haut niveau,
+-- a egalite le plus de km ; repli sur le personnage connecte
+function P.Main()
+    local list = P.Characters()
+    local pick = db and db.opt.main
+    for _, c in ipairs(list) do
+        if c.key == pick then return c end
+    end
+    if list[1] then return list[1] end
+    local _, class = UnitClass("player")
+    return { key = ns.CharKey(), name = UnitName("player"), id = ns.Names and ns.Names.Me() or nil, class = class }
+end
+
+-- identite affichee du main (forme des messages : "Prenom Nom" ou "Nom-Royaume")
+local function mainIdentity(m)
+    return m.id or m.name or "?"
+end
 
 local function signature()
     local T = P.Totals()
     local own = P.OwnedCount and P.OwnedCount() or 0
-    return T.keys.week .. ":" .. math.floor(T.week / 100) .. ":" .. own
+    return T.keys.week .. ":" .. math.floor(T.week / 100) .. ":" .. own .. ":" .. mainIdentity(P.Main())
 end
 
+-- champs 9 a 11 (compte, main, classe du main) : ignores par les anciens CorpUI
 local function payload(ask)
     local T = P.Totals()
     local own = P.OwnedCount and P.OwnedCount() or 0
     local _, class = UnitClass("player")
+    local m = P.Main()
+    local mainName = mainIdentity(m):gsub(";", "")
     return table.concat({ "1", T.keys.week, math.floor(T.week), math.floor(T.total), own,
-        P.OwnedBits and P.OwnedBits() or "", class or "", ask and "1" or "0" }, ";")
+        P.OwnedBits and P.OwnedBits() or "", class or "", ask and "1" or "0",
+        accountId(), mainName, m.class or "" }, ";")
 end
 
 local function inGuild()
@@ -542,10 +620,33 @@ local function onPedo(sender, data, channel)
     local bits = f[6] or ""
     if #bits > 128 or not bits:match("^[0-9a-f]*$") then bits = "" end
     local class = (f[7] or ""):match("^[A-Z]+$")
-    db.guild[sender] = {
+    local fiche = {
         w = week, wy = math.max(0, wy), ty = math.max(0, ty), c = math.max(0, own),
         b = bits, cl = class, at = time(),
     }
+    local id = (f[9] or ""):match("^[0-9a-z]+$")
+    if id and #id >= 6 and #id <= 16 then
+        -- fiche d un compte : rangee sous son identifiant, au nom du main
+        local main = f[10]
+        if type(main) ~= "string" or main == "" or #main > 64 then main = sender end
+        fiche.n = main
+        fiche.cl = (f[11] or ""):match("^[A-Z]+$") or class
+        local old = db.guild["@" .. id]
+        local alts = type(old) == "table" and type(old.alts) == "table" and old.alts or {}
+        if not alts[sender] then
+            local n = 0
+            for _ in pairs(alts) do n = n + 1 end
+            if n >= MAX_ALTS then alts = {} end
+            alts[sender] = true
+        end
+        fiche.alts = alts
+        db.guild["@" .. id] = fiche
+        -- anciennes fiches au nom du personnage (CorpUI d avant)
+        db.guild[sender] = nil
+        if main ~= sender and type(db.guild[main]) == "table" and not db.guild[main].alts then db.guild[main] = nil end
+    else
+        db.guild[sender] = fiche
+    end
     P.Changed("guild")
     -- une demande (connexion) : notre fiche en prive, une fois par minute
     if f[8] == "1" and channel ~= "WHISPER" and db.opt.share then
@@ -558,21 +659,50 @@ local function onPedo(sender, data, channel)
 end
 
 -- fiches de la guilde : { name, week (m), total (m), cards, bits, class, me }
+-- Un joueur = une ligne : les fiches d un compte (cle "@id") sont au nom de
+-- son main ; les anciennes fiches au nom d un de ses personnages, et celles
+-- de nos propres personnages, sont ecartees ; deux comptes qui annoncent le
+-- meme main (deux comptes de jeu) : la fiche la plus recente.
 function P.GuildBoard()
     local list = {}
     if not db then return list end
     local T = P.Totals()
     local own = P.OwnedCount and P.OwnedCount() or 0
-    local _, myClass = UnitClass("player")
-    table.insert(list, { name = UnitName("player"), week = T.week, total = T.total, cards = own,
-        class = myClass, me = true })
-    for sender, e in pairs(db.guild) do
-        if type(e) == "table" then
-            table.insert(list, {
-                name = sender, week = (e.w == T.keys.week) and (e.wy or 0) or 0, total = e.ty or 0,
-                cards = e.c or 0, bits = e.b, class = e.cl, at = e.at,
-            })
+    local m = P.Main()
+    table.insert(list, { name = mainIdentity(m), week = T.week, total = T.total, cards = own,
+        class = m.class, me = true })
+    -- noms a ne pas montrer seuls : nos personnages, les rerolls connus
+    local hide, hideShort = {}, {}
+    local function short(n) return type(n) == "string" and n:match("^([^%s%-]+)") or n end
+    for _, ch in pairs(db.chars) do
+        if type(ch) == "table" and ch.id then hide[ch.id] = true end
+    end
+    local byMain = {}
+    for key, e in pairs(db.guild) do
+        if type(e) == "table" and e.alts and key ~= "@" .. (db.id or "") then
+            for alt in pairs(e.alts) do hide[alt] = true end
+            if e.n then
+                hide[e.n] = true
+                -- main connu par son seul prenom (pas connecte depuis) : ses
+                -- anciennes fiches "Prenom Nom" / "Nom-Royaume" aussi
+                if short(e.n) == e.n then hideShort[e.n] = true end
+            end
+            local prev = e.n and byMain[e.n]
+            if not prev or (tonumber(e.at) or 0) > (tonumber(prev.at) or 0) then byMain[e.n or key] = e end
         end
+    end
+    local function add(name, e)
+        table.insert(list, {
+            name = name, week = (e.w == T.keys.week) and (e.wy or 0) or 0, total = e.ty or 0,
+            cards = e.c or 0, bits = e.b, class = e.cl, at = e.at,
+        })
+    end
+    hide[mainIdentity(m)] = true
+    for name, e in pairs(byMain) do
+        if name ~= mainIdentity(m) then add(name, e) end
+    end
+    for sender, e in pairs(db.guild) do
+        if type(e) == "table" and not e.alts and not hide[sender] and not hideShort[short(sender)] then add(sender, e) end
     end
     table.sort(list, function(a, b)
         if a.week ~= b.week then return a.week > b.week end
@@ -702,6 +832,10 @@ ev:SetScript("OnEvent", function(_, event)
         me.name = UnitName("player")
         local _, class = UnitClass("player")
         me.class = class
+        -- identite (forme des messages) et niveau : choix du main du compte
+        local id = ns.Names and ns.Names.Me and ns.Names.Me()
+        if type(id) == "string" and not issecret(id) then me.id = id end
+        me.level = num(UnitLevel("player")) or me.level
         -- bienvenue : un premier booster pour decouvrir le classeur
         if not db.welcome then
             db.welcome = true
@@ -719,9 +853,11 @@ ev:SetScript("OnEvent", function(_, event)
     elseif (event == "LOOT_READY" or event == "LOOT_OPENED") and db then
         -- les deux : avec le butin automatique, l un peut arriver fenetre deja videe
         onLoot()
+    elseif event == "PLAYER_LEVEL_UP" and me then
+        C_Timer.After(1, function() me.level = num(UnitLevel("player")) or me.level end)
     end
 end)
-for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "LOOT_READY", "LOOT_OPENED" }) do
+for _, e in ipairs({ "PLAYER_LOGIN", "PLAYER_ENTERING_WORLD", "LOOT_READY", "LOOT_OPENED", "PLAYER_LEVEL_UP" }) do
     pcall(ev.RegisterEvent, ev, e)
 end
 
