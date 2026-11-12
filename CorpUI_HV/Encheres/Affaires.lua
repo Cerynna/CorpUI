@@ -17,6 +17,10 @@
         (AH.DEChance) ; sous la chance mini (o.deSafe, 60 % par defaut,
         /corp hv) l affaire est ecartee : plus de "bon plan" qui ne paie
         que si l eclat a 5 % tombe.
+      - Fab. -> marchand (12/11, AffairesFab.lua) : recettes dont les
+        composants achetes (HV, marchand) coutent moins que ce que paie
+        un marchand pour l objet fabrique ; clic = liste d achats des
+        composants (onglet Achats). Parcourues apres les objets de la base.
     Chaque liste a son seuil, ses objets ignores et ses 150 places. Pour
     chaque objet : les exemplaires a acheter (echelle des prix du dernier
     releve), le profit et la rentabilite (profit net / depense, 12/10 :
@@ -42,7 +46,10 @@ local ROW_H = 34
 local SLICE = 300           -- objets examines par image
 local MAX_DEALS = 150       -- par liste
 local CUT = 0.95
-local CATS = { "resale", "de" }
+local CATS = { "resale", "de", "craft" }
+local F = AH.Fab            -- fabrication -> marchand (AffairesFab.lua)
+
+local function fabReady() return F ~= nil and F.Ready() end
 
 local function opts()
     local db = AH.DB()
@@ -58,7 +65,9 @@ local function opts()
     if o.announce == nil then o.announce = true end
     if type(o.ignore) ~= "table" then o.ignore = {} end
     if type(o.ignoreDE) ~= "table" then o.ignoreDE = {} end
-    if o.cat ~= "resale" and o.cat ~= "de" then o.cat = "resale" end
+    if type(o.ignoreCraft) ~= "table" then o.ignoreCraft = {} end
+    if o.craftMine == nil then o.craftMine = false end
+    if o.cat ~= "resale" and o.cat ~= "de" and o.cat ~= "craft" then o.cat = "resale" end
     if o.sort ~= "profit" and o.sort ~= "roi" then o.sort = "roi" end
     o.de = nil   -- ancienne case "Desenchantement" (remplacee par la liste dez)
     return o
@@ -117,8 +126,10 @@ local function evaluate(id, o)
 end
 AH.DealOf = evaluate
 
-local deals = { resale = {}, de = {} }   -- resultat de la derniere recherche
-local job                     -- recherche en cours { prev, found = { resale, de }, seen }
+local deals = { resale = {}, de = {}, craft = {} }   -- resultat de la derniere recherche
+-- recherche en cours { phase ("items" puis "craft"), prev, found = { resale,
+-- de, craft }, seen, ctx (contexte des recettes), retry }
+local job
 local builtAt                 -- fin de la derniere recherche (GetTime)
 local dirty = true            -- base changee depuis
 local announceNext = false
@@ -133,11 +144,13 @@ local function countItems()
     return n
 end
 
-local function startSearch(announce)
+-- retry : seconde recherche apres la demande au client des objets
+-- fabriques pas encore connus (une seule fois)
+local function startSearch(announce, retry)
     local o = opts()
     if not o or not ns.AHNextItem then return end
-    job = { prev = nil, found = { resale = {}, de = {} }, seen = 0 }
-    total = countItems()
+    job = { phase = "items", prev = nil, found = { resale = {}, de = {}, craft = {} }, seen = 0, retry = retry }
+    total = countItems() + (fabReady() and F.Count() or 0)
     announceNext = announce or false
 end
 AH.DealSearch = startSearch
@@ -166,17 +179,23 @@ local function finish()
         sortDeals(found, opts())
         deals[cat] = found
     end
+    -- objets fabriques demandes au client : seconde recherche, une fois
+    local again = job.ctx and job.ctx.loading > 0 and not job.retry
     job = nil
     builtAt = GetTime()
     dirty = false
     local o = opts()
     if announceNext and o and o.announce then
-        local r, d = deals.resale, deals.de
+        local r, d, c = deals.resale, deals.de, deals.craft
         if #r > 0 then ns.Say(string.format(L.DEAL_FOUND, #r, AH.ItemLabel(r[1].id), AH.Money(r[1].profit))) end
         if #d > 0 then ns.Say(string.format(L.DEAL_FOUND_DE, #d, AH.ItemLabel(d[1].id), AH.Money(d[1].profit))) end
+        if #c > 0 then ns.Say(string.format(L.DEAL_FOUND_CRAFT, #c, AH.ItemLabel(c[1].id), AH.Money(c[1].profit))) end
     end
     announceNext = false
     AH.Refresh("deals")
+    if again and C_Timer and C_Timer.After then
+        C_Timer.After(3, function() if not job then startSearch(false, true) end end)
+    end
 end
 
 -- au plus SLICE objets par image, et au plus BUDGET_MS millisecondes
@@ -189,13 +208,27 @@ local function stepSearch()
     local t0 = clock and clock()
     for _ = 1, SLICE do
         if t0 and clock() - t0 > BUDGET_MS then return end
-        local id = ns.AHNextItem(job.prev)
-        if id == nil then finish() return end
-        job.prev = id
-        job.seen = job.seen + 1
-        local r, d = evaluate(id, o)
-        if r then job.found.resale[#job.found.resale + 1] = r end
-        if d then job.found.de[#job.found.de + 1] = d end
+        if job.phase == "items" then
+            local id = ns.AHNextItem(job.prev)
+            if id == nil then
+                -- objets de la base faits : les recettes (module Metiers)
+                if not fabReady() then finish() return end
+                job.phase, job.prev, job.ctx = "craft", nil, F.Context()
+            else
+                job.prev = id
+                job.seen = job.seen + 1
+                local r, d = evaluate(id, o)
+                if r then job.found.resale[#job.found.resale + 1] = r end
+                if d then job.found.de[#job.found.de + 1] = d end
+            end
+        else
+            local id = F.Next(job.prev)
+            if id == nil then finish() return end
+            job.prev = id
+            job.seen = job.seen + 1
+            local c = F.Of(id, o, job.ctx)
+            if c then job.found.craft[#job.found.craft + 1] = c end
+        end
     end
 end
 
@@ -244,13 +277,18 @@ local function makeRow(list, i)
         if not d then return end
         if button == "RightButton" then
             local o = opts()
-            local c = d.kind == "de" and "de" or "resale"
-            if o then (c == "de" and o.ignoreDE or o.ignore)[d.id] = true end
+            local c = (d.kind == "de" or d.kind == "craft") and d.kind or "resale"
+            if o then
+                if c == "craft" then o.ignoreCraft[d.spell] = true
+                else (c == "de" and o.ignoreDE or o.ignore)[d.id] = true end
+            end
             for k, x in ipairs(deals[c]) do
                 if x == d then table.remove(deals[c], k) break end
             end
             ns.Say(string.format(L.DEAL_IGNORED, AH.ItemLabel(d.id)))
             AH.Refresh("deals")
+        elseif d.kind == "craft" then
+            F.Shop(d)
         else
             AH.Search(d.id)
         end
@@ -258,6 +296,14 @@ local function makeRow(list, i)
     row:SetScript("OnEnter", function(self)
         local d = self.d
         if not d then return end
+        if d.kind == "craft" then
+            local extra = F.TipLines(d)
+            extra[#extra + 1] = { string.format(L.DEAL_TIP_ROI, math.floor((d.roi or 0) + 0.5), AH.Money(d.profit), AH.Money(d.cost)),
+                                  0.42, 0.88, 0.46 }
+            extra[#extra + 1] = { L.FAB_TIP_CLICK, 0.7, 0.7, 0.7 }
+            AH.ItemTip(self, d.id, extra)
+            return
+        end
         local extra = { { kindText(d) } }
         if d.kind == "de" then
             -- chaque resultat possible, puis ce que donnent les exemplaires a acheter
@@ -278,9 +324,12 @@ local function fillRow(row, d, i)
     row.d = d
     row.stripe:SetShown(i % 2 == 0)
     row.icon:SetTexture(ns.ItemIcon(d.id))
-    row.name:SetText(AH.QualityHex(d.id) .. AH.ItemLabel(d.id) .. "|r")
+    row.name:SetText(AH.QualityHex(d.id) .. AH.ItemLabel(d.id) .. "|r"
+        .. ((d.count or 1) > 1 and ("|cffffffff x" .. d.count .. "|r") or ""))
     row.right:SetText("|cff6be070+" .. AH.Money(d.profit) .. "|r")
-    if d.kind == "de" then
+    if d.kind == "craft" then
+        row.sub:SetText(F.RowText(d))
+    elseif d.kind == "de" then
         -- ligne courte : valeur, chance de rembourser, achat
         row.sub:SetText("|cffc080ff" .. string.format(L.DEAL_K_DE_ROW, AH.Money(d.ref)) .. "|r|cff9d9d9d · |r" .. safeText(d)
             .. "|cff9d9d9d · " .. string.format(L.DEAL_BUY_SHORT, d.q, AH.Money(d.cost)) .. "|r")
@@ -336,13 +385,23 @@ end
 
 local function build(page)
     ui.page = page
-    -- les deux listes, cote a cote
-    local half = (AH.W - 2 * PAD - 6) / 2
-    ui.cats = { resale = catButton(page, "resale"), de = catButton(page, "de") }
-    ui.cats.resale:SetSize(half, 22)
+    -- les trois listes, cote a cote
+    local third = (AH.W - 2 * PAD - 12) / 3
+    ui.cats = { resale = catButton(page, "resale"), de = catButton(page, "de"), craft = catButton(page, "craft") }
+    ui.cats.resale:SetSize(third, 22)
     ui.cats.resale:SetPoint("TOPLEFT", page, "TOPLEFT", PAD, -4)
-    ui.cats.de:SetSize(half, 22)
+    ui.cats.de:SetSize(third, 22)
     ui.cats.de:SetPoint("LEFT", ui.cats.resale, "RIGHT", 6, 0)
+    ui.cats.craft:SetSize(third, 22)
+    ui.cats.craft:SetPoint("LEFT", ui.cats.de, "RIGHT", 6, 0)
+    -- trois boutons de 104 px : petite police, texte coupe a la largeur
+    for _, b in pairs(ui.cats) do
+        b:SetNormalFontObject("GameFontHighlightSmall")
+        b:SetHighlightFontObject("GameFontHighlightSmall")
+        b.cuiText:SetFontObject("GameFontHighlightSmall")
+        b.cuiText:SetWidth(third - 6)
+        b.cuiText:SetWordWrap(false)
+    end
     ui.summary = AH.Text(page, "GameFontHighlightSmall", "LEFT")
     ui.summary:SetPoint("TOPLEFT", page, "TOPLEFT", PAD, -36)
     ui.summary:SetPoint("RIGHT", page, "RIGHT", -PAD - 90, 0)
@@ -372,6 +431,15 @@ local function build(page)
     y = y - 36
     ui.vendor = ns.UI.Check(page, L.DEAL_VENDOR, function(v) local o = opts() if o then o.vendor = v end end)
     ui.vendor:SetPoint("TOPLEFT", page, "TOPLEFT", PAD - 4, y)
+    -- fab. -> marchand : seulement les recettes connues ou des metiers de mes personnages
+    ui.mine = ns.UI.Check(page, L.DEAL_CRAFT_MINE, function(v)
+        local o = opts()
+        if o then o.craftMine = v end
+        ui.list.offset = 0
+        lastPaint = 0
+        AH.Refresh("deals")
+    end)
+    ui.mine:SetPoint("TOPLEFT", page, "TOPLEFT", PAD - 4, y)
     ui.sort = ns.UI.Button(page, "", 120, function()
         local o = opts()
         if not o then return end
@@ -418,22 +486,40 @@ local function refresh(page)
     local o = opts()
     if not o then return end
     local c = o.cat
-    local list = deals[c]
+    -- fab. -> marchand, option "mes metiers" : filtre a l affichage
+    local shown = {}
+    for _, key in ipairs(CATS) do
+        local l = deals[key]
+        if key == "craft" and o.craftMine then
+            local f = {}
+            for _, d in ipairs(l) do
+                if d.mine then f[#f + 1] = d end
+            end
+            l = f
+        end
+        shown[key] = l
+    end
+    local list = shown[c]
+    local CAT_LABEL = { resale = L.DEAL_CAT_RESALE, de = L.DEAL_CAT_DE, craft = L.DEAL_CAT_CRAFT }
     for _, key in ipairs(CATS) do
         local b = ui.cats[key]
-        local n = #deals[key]
-        b:SetText(string.format("%s (%d)", key == "de" and L.DEAL_CAT_DE or L.DEAL_CAT_RESALE, n))
+        b:SetText(string.format("%s (%d)", CAT_LABEL[key], #shown[key]))
         local on = key == c
         b.line:SetShown(on)
         if on then b.cuiText:SetTextColor(C.gold[1], C.gold[2], C.gold[3]) else b.cuiText:SetTextColor(0.75, 0.75, 0.75) end
     end
+    -- seuil en % : revente et dez seulement
     ui.fields[1].label:SetText(c == "de" and L.DEAL_DE_PCT or L.DEAL_PCT)
+    ui.fields[1]:SetShown(c ~= "craft")
+    ui.fields[1].label:SetShown(c ~= "craft")
     for _, e in ipairs(ui.fields) do
         if not e:HasFocus() then e:SetText(e.get()) end
     end
     ui.vendor:SetChecked(o.vendor)
+    ui.mine:SetChecked(o.craftMine)
     ui.sort:SetText(o.sort == "profit" and L.DEAL_SORT_PROFIT or L.DEAL_SORT_ROI)
     ui.vendor:SetShown(c == "resale")
+    ui.mine:SetShown(c == "craft")
     if job then
         ui.summary:SetText(string.format(L.DEAL_SCANNING, total > 0 and math.floor(job.seen * 100 / total) or 0))
         ui.refresh:SetEnabled(false)
@@ -445,9 +531,12 @@ local function refresh(page)
         ui.refresh:SetEnabled(true)
     end
     ui.list:SetData(list)
-    ui.empty:SetText(c == "de" and L.DEAL_EMPTY_DE or L.DEAL_EMPTY)
+    local empty = L.DEAL_EMPTY
+    if c == "de" then empty = L.DEAL_EMPTY_DE
+    elseif c == "craft" then empty = fabReady() and L.DEAL_EMPTY_CRAFT or L.DEAL_NO_CRAFT end
+    ui.empty:SetText(empty)
     ui.empty:SetShown(#list == 0 and not job)
-    ui.hint:SetText(c == "de" and L.DEAL_HINT_DE or L.DEAL_HINT_RES)
+    ui.hint:SetText(c == "de" and L.DEAL_HINT_DE or c == "craft" and L.DEAL_HINT_CRAFT or L.DEAL_HINT_RES)
 end
 
 AH.AddTab({ key = "deals", order = 4, label = function() return L.AHP_TAB_DEALS end, build = build, refresh = refresh,
@@ -488,6 +577,7 @@ table.insert(ns.AHPanelHooks, function(panel, form)
         if o then
             wipe(o.ignore)
             wipe(o.ignoreDE)
+            wipe(o.ignoreCraft)
         end
         self:SetText(string.format(L.DEAL_RESET_IGNORE, 0))
     end)
@@ -498,6 +588,7 @@ table.insert(ns.AHPanelHooks, function(panel, form)
         local n = 0
         for _ in pairs(o and o.ignore or {}) do n = n + 1 end
         for _ in pairs(o and o.ignoreDE or {}) do n = n + 1 end
+        for _ in pairs(o and o.ignoreCraft or {}) do n = n + 1 end
         btn:SetText(string.format(L.DEAL_RESET_IGNORE, n))
         btn:SetEnabled(n > 0)
     end)
