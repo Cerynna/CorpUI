@@ -731,9 +731,25 @@ function ns.UI.HeadFont(fs, size)
     fs:SetShadowOffset(1, -1)
 end
 
+-- Coordonnees des textures d un fond (Backdrop.lua de Blizzard, a chaque
+-- changement de taille) : un fond pose sur un cadre de Blizzard prend sa
+-- taille, qui peut etre secrete (infobulle d une unite en instance : 38 000
+-- erreurs « arithmetic on local 'width' », vu en jeu le 12/11). Nos fonds
+-- sont des aplats (W8), les coordonnees n y changent rien : on saute le
+-- calcul tant que la taille est secrete, il repasse au changement suivant.
+local function safeTexCoords(self)
+    local okW, w = pcall(self.GetWidth, self)
+    local okH, h = pcall(self.GetHeight, self)
+    if not okW or not okH or issecret(w) or issecret(h) then return end
+    return BackdropTemplateMixin.SetupTextureCoordinates(self)
+end
+
 -- Fond plat : obsidienne, liseré violet de 1 px
 function ns.UI.SetBackdrop(f, alpha)
     if not f.SetBackdrop then return end
+    if BackdropTemplateMixin and BackdropTemplateMixin.SetupTextureCoordinates then
+        f.SetupTextureCoordinates = safeTexCoords
+    end
     f:SetBackdrop({ bgFile = W8, edgeFile = W8, edgeSize = 1 })
     f:SetBackdropColor(C.bg[1], C.bg[2], C.bg[3], alpha or 0.92)
     f:SetBackdropBorderColor(C.border[1], C.border[2], C.border[3], 1)
