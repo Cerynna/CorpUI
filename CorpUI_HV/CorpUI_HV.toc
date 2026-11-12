@@ -29,6 +29,7 @@ Encheres\StringsEnvoi.lua
 Encheres\StringsEssences.lua
 Encheres\Encheres.lua
 Encheres\Panneau.lua
+Encheres\DesenchantInterdits.lua
 Encheres\Desenchant.lua
 Encheres\Vente.lua
 Encheres\Mes.lua

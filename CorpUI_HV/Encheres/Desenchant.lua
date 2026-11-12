@@ -35,8 +35,10 @@
     chances et les quantites de la table sont corrigees par ces releves (la
     table compte pour 20 desenchantements, ses quantites pour 4). Base du
     compte (CorpUIDB.auction.deLearn), tous royaumes ; /corp hv l oublie.
-    Chemises et tabards ne se desenchantent pas. Infos d objet du client
-    absentes (pas encore en cache) : rien.
+    Chemises et tabards ne se desenchantent pas, ni les objets que le jeu
+    interdit de desenchanter (12/11 : baguettes d enchanteur, recompenses
+    JcJ... ; liste tiree des tables du jeu, DesenchantInterdits.lua). Infos
+    d objet du client absentes (pas encore en cache) : rien.
 ----------------------------------------------------------------------------]]
 
 local _, ns = ...
@@ -117,9 +119,26 @@ local function itemInfo(item)
     return num(quality), num(level), num(classID), str(equipLoc)
 end
 
+-- objets que le jeu interdit de desenchanter (DesenchantInterdits.lua),
+-- decodes au premier besoin : { [itemID] = true }
+local forbidden
+local function isForbidden(item)
+    if not forbidden then
+        forbidden = {}
+        local id = 0
+        for d in (ns.DENoDisenchant or ""):gmatch("[^,]+") do
+            id = id + (tonumber(d, 36) or 0)
+            forbidden[id] = true
+        end
+    end
+    local id = type(item) == "number" and item or tonumber(tostring(item):match("item:(%d+)") or "")
+    return id ~= nil and forbidden[id] == true
+end
+
 -- tranche d un objet : cle (releves) et resultats de la table
 -- { { itemID, chance, mini, maxi } } ; nil s il ne se desenchante pas
 local function tierOf(item)
+    if item ~= nil and not issecret(item) and isForbidden(item) then return nil end
     local quality, lvl, classID, loc = itemInfo(item)
     if not (quality and lvl and classID) then return nil end
     if classID ~= 2 and classID ~= 4 then return nil end
