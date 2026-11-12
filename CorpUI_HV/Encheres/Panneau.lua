@@ -229,12 +229,13 @@ end
 
 -- Recherche d un objet dans l HV : son nom dans la barre de recherche de
 -- Blizzard, et une requete de liste si la liste des resultats est a
--- l ecran (sinon le joueur clique Rechercher). Aucun achat.
-function AH.Search(id)
+-- l ecran (sinon le joueur clique Rechercher). Aucun achat. text : texte
+-- cherche a la place du nom (Essences : la partie commune des deux formes).
+function AH.Search(id, text)
     if InCombatLockdown() then ns.Say(L.COMBAT_BLOCKED) return end
     local ahf = ns.AHFrame and ns.AHFrame()
     if not ahf then return end
-    local name = ns.ItemName(id)
+    local name = AH.str(text) or ns.ItemName(id)
     if not name then return end
     local sbar = AH.field(ahf, "SearchBar")
     if not AH.visible(sbar) then ns.Say(L.SHOP_AH_BUY_TAB) return end

@@ -26,6 +26,7 @@ Encheres\StringsAchats.lua
 Encheres\StringsCompta.lua
 Encheres\StringsPlus.lua
 Encheres\StringsEnvoi.lua
+Encheres\StringsEssences.lua
 Encheres\Encheres.lua
 Encheres\Panneau.lua
 Encheres\Desenchant.lua
@@ -37,5 +38,6 @@ Encheres\Compta.lua
 Encheres\Releve.lua
 Encheres\Envoi.lua
 Encheres\Accepter.lua
+Encheres\Essences.lua
 Dez\Strings.lua
 Dez\Dez.lua

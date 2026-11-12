@@ -2535,7 +2535,7 @@ end
 -- Un module coupe ne construit rien (ses evenements sont desinscrits des
 -- le premier recu), n a ni page ni commande ; le jeu garde son interface.
 -- Les commandes rangees avec un autre module en prennent la cle.
-local MODULE_OF = { compta = "hv", degats = "compteur", murloc = "jeux", minerais = "jeux", eboulis = "jeux",
+local MODULE_OF = { compta = "hv", essences = "hv", degats = "compteur", murloc = "jeux", minerais = "jeux", eboulis = "jeux",
                     joaillier = "jeux", siege = "jeux", chats = "jeux",
                     reactifs = "marchand", menus = "barres" }
 
@@ -2551,6 +2551,7 @@ local ADDON_OF = {
     note = "CorpUI_Notes", raid = "CorpUI_Raid", inv = "CorpUI_Invitations", couches = "CorpUI_Couches",
     clics = "CorpUI_Clics",
     persos = "CorpUI_Persos", metiers = "CorpUI_Metiers", hv = "CorpUI_HV", compta = "CorpUI_HV", dez = "CorpUI_HV",
+    essences = "CorpUI_HV",
     talents = "CorpUI_Talents", sorts = "CorpUI_Sorts", jeux = "CorpUI_Jeux", murloc = "CorpUI_Jeux",
     minerais = "CorpUI_Jeux", podometre = "CorpUI_Jeux", eboulis = "CorpUI_Jeux",
     joaillier = "CorpUI_Jeux", siege = "CorpUI_Jeux", chats = "CorpUI_Jeux",
@@ -2800,8 +2801,8 @@ local PAGES = {
     { cat = "CAT_TOOLS" },
     { key = "persos", cmds = { "persos" } },
     { key = "metiers", cmds = { "metiers", "dez" } },
-    -- hotel des ventes : reglages (prix, vente, volet) et comptabilite
-    { key = "hv", cmds = { "hv", "compta" } },
+    -- hotel des ventes : reglages (prix, vente, volet), comptabilite, swap d essences
+    { key = "hv", cmds = { "hv", "compta", "essences" } },
     { key = "talents", cmds = { "talents" } },
     { key = "sorts", cmds = { "sorts" } },
     { key = "erreurs", cmds = { "erreurs" } },

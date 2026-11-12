@@ -9,7 +9,7 @@
     ns.ModuleOn / ns.ModuleOff) ne laisse rien construire a un module coupe
     et retire sa page et sa commande.
     Commandes rangees avec un autre module (Core.lua, MODULE_OF) : compta
-    avec l HV, degats avec le compteur, reactifs avec le marchand, menus
+    et essences avec l HV, degats avec le compteur, reactifs avec le marchand, menus
     avec les barres, les mini-jeux ensemble.
     Depuis le decoupage (15/10), chaque module vit dans un addon CorpUI_Xxx :
     l interrupteur active ou desactive aussi l addon (liste des addons du

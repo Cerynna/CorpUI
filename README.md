@@ -79,6 +79,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Désenchanteur** | Une icône pour désenchanter un par un les objets des sacs. | `/corp dez` |
 | **Hôtel des ventes** | Scan, valeur marché et historique, aide à la vente, mes enchères, listes d'achats, bonnes affaires, façon TSM ; bons plans à désenchanter avec leurs chances de rembourser l'achat (le dez est un tirage, corrigé par tes propres désenchantements) ; achat d'une marchandise même quand les prix bougent (« n'est plus disponible »). | `/corp hv` |
 | **Comptabilité** | Ventes, achats, frais de l'hôtel des ventes, or de tous les personnages. | `/corp compta` |
+| **Swap d'essences** | Essences d'enchantement : 3 inférieures = 1 supérieure. Quand l'écart de prix couvre la commission de 5 % et ta marge : quoi acheter, combien, et ce que ça rapporte ; suivi des achats, des ventes et du bénéfice, essences en vente. Onglet Essences du volet de l'HV. | `/corp essences` |
 | **Talents** | Export et import des talents. | `/corp talents` |
 | **Sorts à venir** | Les prochains sorts et le niveau pour les apprendre. | `/corp sorts` |
 | **Profils** | Réglages par personnage, copie, partage. | `/corp profils` |
