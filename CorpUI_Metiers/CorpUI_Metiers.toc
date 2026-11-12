@@ -24,3 +24,5 @@ Metiers\Courses.lua
 Metiers\Donnees.lua
 Metiers\StringsMontee.lua
 Metiers\Montee.lua
+Metiers\StringsDez.lua
+Metiers\Dez.lua

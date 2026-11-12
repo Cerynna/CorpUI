@@ -7,8 +7,9 @@
         direct), quantite libre + "Ajouter a la file" (la recette courante
         est lue par SchematicForm:GetRecipeInfo, qui renvoie seulement son
         champ currentRecipeInfo) ;
-      - a droite du rail d onglets, NOTRE volet : onglets "File" et
-        "Courses" (Courses.lua), repliable.
+      - a droite du rail d onglets, NOTRE volet : onglets "File",
+        "Courses" (Courses.lua), "Montee" (Montee.lua) et "Dez" (Dez.lua),
+        repliable.
     File : par personnage (CorpUIDB.crafting.queues["Nom-Royaume"]), entrees
     { id = recette, n = fabrications, skill = metier, prof = nom }. A l ajout,
     les composants manquants que le personnage sait fabriquer (index de ses
@@ -1161,8 +1162,13 @@ end
 -- ajoute n fabrications de la recette affichee (meme chemin pour les
 -- boutons +N et le champ) ; vrai si quelque chose est entre dans la file
 local function addSelected(n)
+    return M.AddAndSay(M.SelectedRecipe(), n)
+end
+
+-- ajoute n fabrications d une recette du metier ouvert et le dit (barre
+-- sous la recette, onglet Dez)
+function M.AddAndSay(id, n)
     if InCombatLockdown() then ns.Say(L.CRAFT_COMBAT) return false end
-    local id = M.SelectedRecipe()
     if not id then ns.Say(L.CRAFT_NO_RECIPE) return false end
     local skill, prof = M.CurrentProf()
     if not skill or not M.OwnSkill() then ns.Say(L.CRAFT_NOT_OWN) return false end
@@ -1318,9 +1324,11 @@ local function showTab(key)
         t.cuiText:SetTextColor(c[1], c[2], c[3])
     end
     if key == "skill" and not M.skillView then key = "queue" end
-    queueView:SetShown(key ~= "shop" and key ~= "skill")
+    if key == "dez" and not M.dezView then key = "queue" end
+    queueView:SetShown(key ~= "shop" and key ~= "skill" and key ~= "dez")
     if M.shopView then M.shopView.frame:SetShown(key == "shop") end
     if M.skillView then M.skillView.frame:SetShown(key == "skill") end
+    if M.dezView then M.dezView.frame:SetShown(key == "dez") end
     M.Changed()
 end
 
@@ -1473,14 +1481,21 @@ local function buildPane()
         tabs[key] = b
         return b
     end
-    local tq = tabButton("queue", string.format(L.CRAFT_TAB_QUEUE, 0), 6)
-    tq:SetWidth(72)
-    local ts = tabButton("shop", L.CRAFT_TAB_SHOP, 80)
-    ts:SetWidth(72)
-    -- montee de la competence (Montee.lua)
-    if M.BuildSkillView then
-        local tk = tabButton("skill", L.CRAFT_TAB_SKILL, 154)
-        tk:SetWidth(72)
+    -- File, Courses, Montee (Montee.lua), Dez (Dez.lua) : largeur partagee
+    -- entre le bord et le bouton pour replier, petite police au-dela de 3
+    local keys = { { "queue", string.format(L.CRAFT_TAB_QUEUE, 0) }, { "shop", L.CRAFT_TAB_SHOP } }
+    if M.BuildSkillView then keys[#keys + 1] = { "skill", L.CRAFT_TAB_SKILL } end
+    if M.BuildDezView then keys[#keys + 1] = { "dez", L.CRAFT_TAB_DEZ } end
+    local tabW = math.min(72, math.floor((PANE_W - 6 - 34 - (#keys - 1) * 2) / #keys))
+    for i, k in ipairs(keys) do
+        local b = tabButton(k[1], k[2], 6 + (i - 1) * (tabW + 2))
+        b:SetWidth(tabW)
+        if #keys > 3 then
+            b.cuiText:SetFontObject("GameFontHighlightSmall")
+            b:SetNormalFontObject("GameFontHighlightSmall")
+            b:SetHighlightFontObject("GameFontHighlightSmall")
+            b:SetDisabledFontObject("GameFontDisableSmall")
+        end
     end
     local fold = iconButton(pane, nil, L.CRAFT_HIDE, function()
         db.pane.collapsed = true
@@ -1549,6 +1564,13 @@ local function buildPane()
         M.skillView.frame:SetPoint("BOTTOMRIGHT", -6, 8)
     end
 
+    -- fabriquer pour desenchanter (Dez.lua)
+    if M.BuildDezView then
+        M.dezView = M.BuildDezView(pane)
+        M.dezView.frame:SetPoint("TOPLEFT", 6, -HEAD - 4)
+        M.dezView.frame:SetPoint("BOTTOMRIGHT", -6, 8)
+    end
+
     pane:SetScript("OnShow", function() M.Changed() end)
 
     -- volet replie : petit bouton pour le rouvrir
@@ -1560,7 +1582,7 @@ local function buildPane()
     expander:SetSize(22, 22)
     expander:Hide()
 
-    showTab(db.pane.tab == "shop" and "shop" or "queue")
+    showTab((db.pane.tab == "shop" or db.pane.tab == "dez") and db.pane.tab or "queue")
 end
 
 table.insert(M.listeners, refreshQueue)

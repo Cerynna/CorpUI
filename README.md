@@ -75,7 +75,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | Module | Ce qu'il fait | Commande |
 | --- | --- | --- |
 | **Persos** | Tous tes personnages : niveau, or, métiers, objets, raids verrouillés. | `/corp persos` |
-| **Métiers** | File de fabrication et liste de courses façon Skillet, bénéfice par recette ; chance de montée et coût par point de compétence (onglet Montée). | `/corp metiers` |
+| **Métiers** | File de fabrication et liste de courses façon Skillet, bénéfice par recette ; chance de montée et coût par point de compétence (onglet Montée) ; recettes rentables à fabriquer pour désenchanter, tous composants achetés (onglet Dez, « dez +X » en vert sur les lignes des recettes). | `/corp metiers` |
 | **Désenchanteur** | Une icône pour désenchanter un par un les objets des sacs. | `/corp dez` |
 | **Hôtel des ventes** | Scan, valeur marché et historique, aide à la vente, mes enchères, listes d'achats, bonnes affaires, façon TSM ; bons plans à désenchanter avec leurs chances de rembourser l'achat (le dez est un tirage, corrigé par tes propres désenchantements) ; achat d'une marchandise même quand les prix bougent (« n'est plus disponible »). | `/corp hv` |
 | **Comptabilité** | Ventes, achats, frais de l'hôtel des ventes, or de tous les personnages. | `/corp compta` |

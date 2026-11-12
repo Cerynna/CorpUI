@@ -318,10 +318,14 @@ function S.RowText(r, skill, gathered)
     return text
 end
 
+-- texte en plus a droite des lignes (Dez.lua : gain du desenchantement) :
+-- S.RowExtra(recette) -> texte ou nil, S.RowExtraOn() -> option cochee
 local function paintRows()
     local d = DB()
     local sb = recipeList()
-    local on = sb and d and d.skillRows ~= false and own()
+    local skillRows = d and d.skillRows ~= false
+    local extraOn = S.RowExtra and S.RowExtraOn and S.RowExtraOn()
+    local on = sb and d and (skillRows or extraOn) and own()
     local skill = on and S.CurrentSkill()
     local seen = {}
     if on and skill then
@@ -330,7 +334,9 @@ local function paintRows()
         for _, frame in ipairs(type(frames) == "table" and frames or {}) do
             local id = rowRecipe(frame)
             local r = id and S.Recipe(id)
-            local text = r and S.RowText(r, skill, gathered)
+            local text = skillRows and r and S.RowText(r, skill, gathered) or nil
+            local extra = extraOn and id and S.RowExtra(id)
+            if extra then text = text and (text .. "  " .. extra) or extra end
             if text then
                 local o = overlay(frame)
                 o.text:SetText(text)
