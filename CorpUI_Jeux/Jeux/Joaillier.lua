@@ -1625,6 +1625,186 @@ local function buildSide()
     hud.new:SetPoint("BOTTOMLEFT", side, "BOTTOMLEFT", 0, 0)
 end
 
+-- souris : clic puis clic, ou glisser une gemme vers sa voisine
+local function onBoardDown(self, button)
+    if button ~= "LeftButton" then return end
+    local x0, y0 = cursorPoint(self)
+    self.downX, self.downY, self.downCell = x0, y0, cellAt(x0, y0)
+end
+
+local function onBoardUp(self, button)
+    if button == "RightButton" then
+        sel = nil
+        placeMarks()
+        return
+    end
+    local from = self.downCell
+    local x0, y0 = self.downX, self.downY
+    self.downX, self.downY, self.downCell = nil, nil, nil
+    if not from then return end
+    local x1, y1 = cursorPoint(self)
+    if not x1 then return end
+    local dx, dy = x1 - x0, y1 - y0
+    if math.max(math.abs(dx), math.abs(dy)) >= DRAG then
+        local r, c = rc(from)
+        if math.abs(dx) > math.abs(dy) then c = c + (dx > 0 and 1 or -1) else r = r + (dy > 0 and 1 or -1) end
+        if r >= 1 and r <= N and c >= 1 and c <= N then
+            sel = nil
+            doSwap(from, idx(r, c))
+        end
+    elseif cellAt(x1, y1) == from then
+        click(from)
+    end
+end
+
+-- animation de la grille, a chaque image
+local function onBoardUpdate(self, dt)
+    animStep(dt)
+    stepFx(dt)
+    local now = GetTime()
+    -- gemmes speciales vivantes : halo qui respire, rayons qui
+    -- tournent, etoile qui tourne autour des filantes, traits qui
+    -- scintillent
+    local p = 0.35 + 0.2 * math.sin(now * 5)
+    for j = 1, used do
+        local f = tiles[j]
+        if f.glow:IsShown() then f.glow:SetAlpha(p) end
+        if f.rays:IsShown() then
+            rotate(f.rays, now * 0.8)
+            f.rays:SetAlpha(f.k == DIAMOND and 0.55 or 0.35)
+        end
+        if f.orbit:IsShown() then
+            local a = now * 4 + j
+            local rr = (f.size or TILE) * 0.36
+            f.orbit:ClearAllPoints()
+            f.orbit:SetPoint("CENTER", f, "CENTER", math.cos(a) * rr, math.sin(a) * rr)
+        end
+        if f.bars[1]:IsShown() then
+            local ba = 0.55 + 0.4 * math.sin(now * 7 + j)
+            f.bars[1]:SetAlpha(ba)
+            f.bars[2]:SetAlpha(ba)
+        end
+    end
+    -- gemme choisie qui palpite
+    if sel and not anim and cellTile[sel] then
+        local s = TILE * (1.04 + 0.05 * math.sin(now * 8))
+        cellTile[sel]:SetSize(s, s)
+        cellTile[sel].size = nil
+    end
+    if hint then hintBox:SetAlpha(0.5 + 0.5 * math.sin(now * 4)) end
+    -- survol
+    local hx, hy
+    if not st.over and self:IsMouseOver() then hx, hy = cursorPoint(self) end
+    local hc = hx and cellAt(hx, hy)
+    if hc and hc ~= sel then
+        local cx, cy = posOf(hc)
+        hoverBox:ClearAllPoints()
+        hoverBox:SetPoint("CENTER", self, "TOPLEFT", cx, cy)
+        hoverBox:SetSize(TILE, TILE)
+        hoverBox:Show()
+    else
+        hoverBox:Hide()
+    end
+    -- score qui monte jusqu au vrai
+    if hud.disp ~= st.score then
+        local d = st.score - (hud.disp or 0)
+        if math.abs(d) < 1 or d < 0 then hud.disp = st.score
+        else hud.disp = hud.disp + math.max(1, d * math.min(1, dt * 7)) end
+        if hud.disp > st.score then hud.disp = st.score end
+    end
+    hud.score:SetText(fmt(hud.disp))
+    -- bandeau
+    if banT then
+        banT = banT + dt
+        local q = banT / banLife
+        if q >= 1 then
+            banT = nil
+            ban:Hide()
+        else
+            local sc = q < 0.15 and (0.6 + 0.6 * (q / 0.15)) or (q < 0.25 and (1.2 - 0.2 * ((q - 0.15) / 0.1)) or 1)
+            ban:SetScale(sc)
+            ban:SetAlpha(q < 0.1 and q / 0.1 or (q > 0.75 and (1 - q) / 0.25 or 1))
+        end
+    end
+    -- secousse
+    if shakeT > 0 then
+        shakeT = shakeT - dt
+        local a = shakeT > 0 and shakeAmp * (shakeT / 0.25) or 0
+        self:ClearAllPoints()
+        self:SetPoint("TOPLEFT", win, "TOPLEFT", PAD + (math.random() * 2 - 1) * a, -TOP + (math.random() * 2 - 1) * a)
+    end
+    if not anim and not st.over and db.hint then
+        idle = idle + dt
+        if idle >= HINT_DELAY and not hint then
+            local a, b = findMove()
+            if a then
+                hint = { a, b }
+                placeMarks()
+            end
+        end
+    end
+    if msg and now >= msgUntil then
+        msg = nil
+        refresh()
+    end
+end
+
+-- fin de partie, clavier, ouverture et fermeture (hors de build : le Lua
+-- du jeu refuse une fonction a plus de 60 variables exterieures)
+local function buildOverlay()
+    overlay = CreateFrame("Frame", nil, board)
+    overlay:SetAllPoints()
+    overlay:SetFrameLevel(board:GetFrameLevel() + 20)
+    local shade = overlay:CreateTexture(nil, "BACKGROUND")
+    shade:SetAllPoints()
+    shade:SetColorTexture(0, 0, 0, 0.66)
+    overlay.title = overlay:CreateFontString(nil, "OVERLAY")
+    ns.UI.HeadFont(overlay.title, 24)
+    overlay.title:SetPoint("CENTER", 0, 52)
+    overlay.title:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
+    overlay.line = overlay:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    overlay.line:SetPoint("TOP", overlay.title, "BOTTOM", 0, -12)
+    overlay.line:SetWidth(BOARD - 30)
+    overlay.line:SetSpacing(4)
+    overlay.b1 = ns.UI.Button(overlay, "", 130, function(self) if self.fn then self.fn() end end)
+    overlay.b1:SetPoint("TOP", overlay.line, "BOTTOM", 0, -16)
+    overlay:Hide()
+    -- clavier : seulement Echap est garde
+    win:SetScript("OnKeyDown", function(self, key)
+        if InCombatLockdown() then return end
+        if key == "ESCAPE" then
+            self:SetPropagateKeyboardInput(false)
+            self:Hide()
+        else
+            self:SetPropagateKeyboardInput(true)
+        end
+    end)
+    win:SetScript("OnKeyUp", function(self)
+        if not InCombatLockdown() then self:SetPropagateKeyboardInput(true) end
+    end)
+    win:SetScript("OnShow", function()
+        setKeyboard(true)
+        if not st.ready and not load() then newGame() end
+        idle, hint = 0, nil
+        hud.disp = st.score
+        drawFinal()
+        refresh()
+    end)
+    win:SetScript("OnHide", function()
+        setKeyboard(false)
+        finishAnim()
+        clearFx()
+        if board then
+            board:ClearAllPoints()
+            board:SetPoint("TOPLEFT", win, "TOPLEFT", PAD, -TOP)
+        end
+        sel, hint = nil, nil
+        save()
+        local S = Scores()
+        if S and S.Changed then S.Changed("joaillier") end
+    end)
+end
+
 local function build()
     db.pos = db.pos or { point = "CENTER", x = 0, y = 40 }
     win = CreateFrame("Frame", "CorpUIJoaillierGame", UIParent)
@@ -1748,179 +1928,11 @@ local function build()
     hud.status:SetPoint("TOP", mb, "BOTTOM", 0, -7)
     hud.status:SetWidth(BOARD)
     buildSide()
-    -- souris : clic puis clic, ou glisser une gemme vers sa voisine
     board:EnableMouse(true)
-    board:SetScript("OnMouseDown", function(self, button)
-        if button ~= "LeftButton" then return end
-        local x0, y0 = cursorPoint(self)
-        self.downX, self.downY, self.downCell = x0, y0, cellAt(x0, y0)
-    end)
-    board:SetScript("OnMouseUp", function(self, button)
-        if button == "RightButton" then
-            sel = nil
-            placeMarks()
-            return
-        end
-        local from = self.downCell
-        local x0, y0 = self.downX, self.downY
-        self.downX, self.downY, self.downCell = nil, nil, nil
-        if not from then return end
-        local x1, y1 = cursorPoint(self)
-        if not x1 then return end
-        local dx, dy = x1 - x0, y1 - y0
-        if math.max(math.abs(dx), math.abs(dy)) >= DRAG then
-            local r, c = rc(from)
-            if math.abs(dx) > math.abs(dy) then c = c + (dx > 0 and 1 or -1) else r = r + (dy > 0 and 1 or -1) end
-            if r >= 1 and r <= N and c >= 1 and c <= N then
-                sel = nil
-                doSwap(from, idx(r, c))
-            end
-        elseif cellAt(x1, y1) == from then
-            click(from)
-        end
-    end)
-    board:SetScript("OnUpdate", function(self, dt)
-        animStep(dt)
-        stepFx(dt)
-        local now = GetTime()
-        -- gemmes speciales vivantes : halo qui respire, rayons qui
-        -- tournent, etoile qui tourne autour des filantes, traits qui
-        -- scintillent
-        local p = 0.35 + 0.2 * math.sin(now * 5)
-        for j = 1, used do
-            local f = tiles[j]
-            if f.glow:IsShown() then f.glow:SetAlpha(p) end
-            if f.rays:IsShown() then
-                rotate(f.rays, now * 0.8)
-                f.rays:SetAlpha(f.k == DIAMOND and 0.55 or 0.35)
-            end
-            if f.orbit:IsShown() then
-                local a = now * 4 + j
-                local rr = (f.size or TILE) * 0.36
-                f.orbit:ClearAllPoints()
-                f.orbit:SetPoint("CENTER", f, "CENTER", math.cos(a) * rr, math.sin(a) * rr)
-            end
-            if f.bars[1]:IsShown() then
-                local ba = 0.55 + 0.4 * math.sin(now * 7 + j)
-                f.bars[1]:SetAlpha(ba)
-                f.bars[2]:SetAlpha(ba)
-            end
-        end
-        -- gemme choisie qui palpite
-        if sel and not anim and cellTile[sel] then
-            local s = TILE * (1.04 + 0.05 * math.sin(now * 8))
-            cellTile[sel]:SetSize(s, s)
-            cellTile[sel].size = nil
-        end
-        if hint then hintBox:SetAlpha(0.5 + 0.5 * math.sin(now * 4)) end
-        -- survol
-        local hx, hy
-        if not st.over and self:IsMouseOver() then hx, hy = cursorPoint(self) end
-        local hc = hx and cellAt(hx, hy)
-        if hc and hc ~= sel then
-            local cx, cy = posOf(hc)
-            hoverBox:ClearAllPoints()
-            hoverBox:SetPoint("CENTER", self, "TOPLEFT", cx, cy)
-            hoverBox:SetSize(TILE, TILE)
-            hoverBox:Show()
-        else
-            hoverBox:Hide()
-        end
-        -- score qui monte jusqu au vrai
-        if hud.disp ~= st.score then
-            local d = st.score - (hud.disp or 0)
-            if math.abs(d) < 1 or d < 0 then hud.disp = st.score
-            else hud.disp = hud.disp + math.max(1, d * math.min(1, dt * 7)) end
-            if hud.disp > st.score then hud.disp = st.score end
-        end
-        hud.score:SetText(fmt(hud.disp))
-        -- bandeau
-        if banT then
-            banT = banT + dt
-            local q = banT / banLife
-            if q >= 1 then
-                banT = nil
-                ban:Hide()
-            else
-                local sc = q < 0.15 and (0.6 + 0.6 * (q / 0.15)) or (q < 0.25 and (1.2 - 0.2 * ((q - 0.15) / 0.1)) or 1)
-                ban:SetScale(sc)
-                ban:SetAlpha(q < 0.1 and q / 0.1 or (q > 0.75 and (1 - q) / 0.25 or 1))
-            end
-        end
-        -- secousse
-        if shakeT > 0 then
-            shakeT = shakeT - dt
-            local a = shakeT > 0 and shakeAmp * (shakeT / 0.25) or 0
-            self:ClearAllPoints()
-            self:SetPoint("TOPLEFT", win, "TOPLEFT", PAD + (math.random() * 2 - 1) * a, -TOP + (math.random() * 2 - 1) * a)
-        end
-        if not anim and not st.over and db.hint then
-            idle = idle + dt
-            if idle >= HINT_DELAY and not hint then
-                local a, b = findMove()
-                if a then
-                    hint = { a, b }
-                    placeMarks()
-                end
-            end
-        end
-        if msg and now >= msgUntil then
-            msg = nil
-            refresh()
-        end
-    end)
-    -- fin de partie
-    overlay = CreateFrame("Frame", nil, board)
-    overlay:SetAllPoints()
-    overlay:SetFrameLevel(board:GetFrameLevel() + 20)
-    local shade = overlay:CreateTexture(nil, "BACKGROUND")
-    shade:SetAllPoints()
-    shade:SetColorTexture(0, 0, 0, 0.66)
-    overlay.title = overlay:CreateFontString(nil, "OVERLAY")
-    ns.UI.HeadFont(overlay.title, 24)
-    overlay.title:SetPoint("CENTER", 0, 52)
-    overlay.title:SetTextColor(C.gold[1], C.gold[2], C.gold[3])
-    overlay.line = overlay:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    overlay.line:SetPoint("TOP", overlay.title, "BOTTOM", 0, -12)
-    overlay.line:SetWidth(BOARD - 30)
-    overlay.line:SetSpacing(4)
-    overlay.b1 = ns.UI.Button(overlay, "", 130, function(self) if self.fn then self.fn() end end)
-    overlay.b1:SetPoint("TOP", overlay.line, "BOTTOM", 0, -16)
-    overlay:Hide()
-    -- clavier : seulement Echap est garde
-    win:SetScript("OnKeyDown", function(self, key)
-        if InCombatLockdown() then return end
-        if key == "ESCAPE" then
-            self:SetPropagateKeyboardInput(false)
-            self:Hide()
-        else
-            self:SetPropagateKeyboardInput(true)
-        end
-    end)
-    win:SetScript("OnKeyUp", function(self)
-        if not InCombatLockdown() then self:SetPropagateKeyboardInput(true) end
-    end)
-    win:SetScript("OnShow", function()
-        setKeyboard(true)
-        if not st.ready and not load() then newGame() end
-        idle, hint = 0, nil
-        hud.disp = st.score
-        drawFinal()
-        refresh()
-    end)
-    win:SetScript("OnHide", function()
-        setKeyboard(false)
-        finishAnim()
-        clearFx()
-        if board then
-            board:ClearAllPoints()
-            board:SetPoint("TOPLEFT", win, "TOPLEFT", PAD, -TOP)
-        end
-        sel, hint = nil, nil
-        save()
-        local S = Scores()
-        if S and S.Changed then S.Changed("joaillier") end
-    end)
+    board:SetScript("OnMouseDown", onBoardDown)
+    board:SetScript("OnMouseUp", onBoardUp)
+    board:SetScript("OnUpdate", onBoardUpdate)
+    buildOverlay()
     win:Hide()
 end
 
