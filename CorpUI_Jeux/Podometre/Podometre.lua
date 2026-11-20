@@ -497,70 +497,21 @@ local MAX_ALTS = 30       -- personnages retenus par compte de la guilde
 ---------------------------------------------------------------------------
 -- Rerolls : les km et le classeur sont ceux du compte, chaque personnage
 -- envoyait donc la meme fiche sous son nom. Une fiche porte maintenant
--- l identifiant du compte (tire une fois) et le personnage principal :
--- un joueur = une ligne au classement, a son nom de main.
+-- l identifiant du compte et le personnage principal : un joueur = une
+-- ligne au classement, a son nom de main. Le compte et le choix du main
+-- sont communs aux classements des mini-jeux (ns.Games.Account, Jeux.lua).
 ---------------------------------------------------------------------------
 
-local ID_CHARS = "0123456789abcdefghijklmnopqrstuvwxyz"
+local Account = ns.Games and ns.Games.Account
 
-local function accountId()
-    if type(db.id) ~= "string" or not db.id:match("^[0-9a-z]+$") or #db.id ~= 10 then
-        local t = {}
-        for i = 1, 10 do
-            local n = math.random(1, #ID_CHARS)
-            t[i] = ID_CHARS:sub(n, n)
-        end
-        db.id = table.concat(t)
-    end
-    return db.id
-end
+local function accountId() return Account.Id() end
 
--- royaume d une cle "Nom-Royaume"
-local function keyRealm(key)
-    return type(key) == "string" and key:match("^[^%-]+%-(.+)$") or nil
-end
+-- personnages du compte qui peuvent etre le main, tries
+function P.Characters() return Account.Characters() end
 
--- personnages du compte qui peuvent etre le main : ceux du podometre, sur
--- ce royaume et dans cette faction (le module Persos donne niveau et faction)
-function P.Characters()
-    local list = {}
-    if not db then return list end
-    local realm = keyRealm(ns.CharKey())
-    local alts = ns.root and type(ns.root.alts) == "table" and ns.root.alts or {}
-    local okF, faction = pcall(UnitFactionGroup, "player")
-    if not okF or issecret(faction) then faction = nil end
-    for key, ch in pairs(db.chars) do
-        local a = alts[key]
-        if type(a) ~= "table" then a = {} end
-        local sameFaction = not faction or not a.faction or issecret(a.faction) or a.faction == faction
-        if type(ch) == "table" and keyRealm(key) == realm and sameFaction then
-            local lv = math.max(num(ch.level) or 0, num(a.level) or 0)
-            list[#list + 1] = {
-                key = key, name = ch.name or a.name or key:match("^[^%-]+") or key, id = ch.id,
-                class = ch.class or a.class, level = lv, km = num(ch.total) or 0,
-            }
-        end
-    end
-    table.sort(list, function(x, y)
-        if x.level ~= y.level then return x.level > y.level end
-        if x.km ~= y.km then return x.km > y.km end
-        return x.key < y.key
-    end)
-    return list
-end
-
--- main du compte : celui choisi (onglet Guilde), sinon le plus haut niveau,
--- a egalite le plus de km ; repli sur le personnage connecte
-function P.Main()
-    local list = P.Characters()
-    local pick = db and db.opt.main
-    for _, c in ipairs(list) do
-        if c.key == pick then return c end
-    end
-    if list[1] then return list[1] end
-    local _, class = UnitClass("player")
-    return { key = ns.CharKey(), name = UnitName("player"), id = ns.Names and ns.Names.Me() or nil, class = class }
-end
+-- main du compte : celui choisi, sinon le plus haut niveau, a egalite le
+-- plus de km ; repli sur le personnage connecte
+function P.Main() return Account.Main() end
 
 -- identite affichee du main (forme des messages : "Prenom Nom" ou "Nom-Royaume")
 local function mainIdentity(m)
@@ -679,7 +630,7 @@ function P.GuildBoard()
     end
     local byMain = {}
     for key, e in pairs(db.guild) do
-        if type(e) == "table" and e.alts and key ~= "@" .. (db.id or "") then
+        if type(e) == "table" and e.alts and key ~= "@" .. (accountId() or "") then
             for alt in pairs(e.alts) do hide[alt] = true end
             if e.n then
                 hide[e.n] = true
@@ -847,6 +798,8 @@ ev:SetScript("OnEvent", function(_, event)
         checkMilestones(keysAt(time()))
         Comm = ns.Comm
         if Comm and Comm.On then Comm.On("PEDO", onPedo) end
+        -- main change (ici ou dans la page des mini-jeux) : fiche renvoyee
+        Account.OnChange(function() P.Share(false) P.Changed("guild") end)
         C_Timer.After(25, function() P.Share(true) end)
     elseif event == "PLAYER_ENTERING_WORLD" then
         last = nil

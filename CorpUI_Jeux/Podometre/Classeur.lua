@@ -1638,32 +1638,10 @@ local function buildGuild(page)
         if v then P.Share(false) end
     end)
     p.share:SetPoint("BOTTOMLEFT", p, "BOTTOMLEFT", 8, 10)
-    -- main du compte : le nom de la ligne au classement (rerolls compris)
-    local function mainOptions()
-        local list = {}
-        local auto = P.Characters()[1]
-        list[1] = { value = "auto", text = string.format(L.PEDO_MAIN_AUTO, auto and auto.name or "?") }
-        for _, c in ipairs(P.Characters()) do
-            local lv = (c.level or 0) > 0 and (" |cff999999" .. c.level .. "|r") or ""
-            list[#list + 1] = { value = c.key, text = (c.name or c.key) .. lv }
-        end
-        return list
-    end
-    p.main = ns.UI.Select(p, 200, mainOptions, function()
-        local d = db()
-        local pick = d and d.opt.main
-        for _, c in ipairs(P.Characters()) do
-            if c.key == pick then return pick end
-        end
-        return "auto"
-    end, function(v)
-        local d = db()
-        if not d then return end
-        d.opt.main = (v ~= "auto") and v or nil
-    end, function()
-        P.Share(false)
-        refreshPage()
-    end)
+    -- main du compte : le nom de la ligne au classement (rerolls compris) ;
+    -- choix commun aux classements des mini-jeux (ns.Games.Account)
+    local A = ns.Games.Account
+    p.main = ns.UI.Select(p, 200, A.Options, A.Choice, A.SetChoice, function() refreshPage() end)
     p.main:SetPoint("BOTTOMRIGHT", p, "BOTTOMRIGHT", -12, 10)
     p.mainLabel = text(p, "GameFontHighlightSmall")
     p.mainLabel:SetPoint("RIGHT", p.main, "LEFT", -8, 0)
