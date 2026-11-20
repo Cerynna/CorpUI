@@ -234,6 +234,149 @@ local NO_TYPE = { 0.8, 0, 0 }
 -- numero du type dans les donnees du jeu (abscisse de la courbe de couleur)
 local DISPEL_IDS = { Magic = 1, Curse = 2, Disease = 3, Poison = 4 }
 
+---------------------------------------------------------------------------
+-- Aspect de la surbrillance de dissipation (20/11, reglages du module
+-- Dissipation, partages dans db.heal) : epaisseur, opacite et place du
+-- liseré, opacite et zone de la teinte, icone (icone du debuff ou symbole
+-- du type) et sa place, couleur de chaque type. Tout dans DL (une seule
+-- variable du fichier).
+-- Les textures inscrites chez le client (AddDispelTypeTexture) ont leur
+-- transparence, leur teinte et leur visibilite secretes : on regle leur
+-- taille, leurs points et leur couleur de base (opacite) ; une texture
+-- "cachee" passe a 0,001 px. Les couleurs voulues sont copiees par le
+-- client a l inscription : on desinscrit et reinscrit si elles changent.
+---------------------------------------------------------------------------
+
+local DL = {}
+
+-- couleurs proposees, dans l ordre des pastilles : { cle, r, g, b }
+DL.PALETTE = {
+    { "blue", 0.2, 0.6, 1 }, { "cyan", 0, 0.85, 1 }, { "green", 0.1, 0.8, 0.1 }, { "lime", 0.6, 1, 0.15 },
+    { "yellow", 1, 0.9, 0.1 }, { "orange", 1, 0.55, 0 }, { "brown", 0.6, 0.4, 0 }, { "red", 1, 0.15, 0.15 },
+    { "pink", 1, 0.4, 0.8 }, { "violet", 0.6, 0, 1 }, { "white", 1, 1, 1 },
+}
+DL.PAL = {}
+for _, p in ipairs(DL.PALETTE) do DL.PAL[p[1]] = { p[2], p[3], p[4] } end
+DL.TYPES = { "Magic", "Curse", "Disease", "Poison" }
+
+-- couleur d un type : celle choisie (hs.dColors), sinon celle du jeu
+function DL.Color(t)
+    local key = hs and type(hs.dColors) == "table" and hs.dColors[t]
+    return (key and DL.PAL[key]) or DISPEL_COLORS[t] or NO_TYPE
+end
+
+-- empreinte des couleurs (reinscription des textures quand elle change)
+function DL.ColorsKey()
+    local out = {}
+    for _, t in ipairs(DL.TYPES) do
+        local c = DL.Color(t)
+        out[#out + 1] = string.format("%.2f,%.2f,%.2f", c[1], c[2], c[3])
+    end
+    return table.concat(out, ";")
+end
+
+-- options d inscription des textures teintes par le client
+function DL.Opts()
+    local style = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
+    if not (style and CreateColor) then return nil end
+    local map = { None = CreateColor(NO_TYPE[1], NO_TYPE[2], NO_TYPE[3]) }
+    for _, t in ipairs(DL.TYPES) do
+        local c = DL.Color(t)
+        map[t] = CreateColor(c[1], c[2], c[3])
+    end
+    return { style = style.PreserveAsset, showWhenHarmful = true, customDispelColorMap = map }
+end
+
+function DL.EdgeSize() return math.max(1, math.min(8, math.floor((hs and hs.edgeSize) or 2))) end
+function DL.EdgeAlpha() return math.max(0.1, math.min(1, ((hs and hs.edgeAlpha) or 100) / 100)) end
+function DL.TintAlpha() return math.max(0.05, math.min(1, ((hs and hs.tintAlpha) or 35) / 100)) end
+function DL.IconSize() return math.max(8, math.min(48, math.floor((hs and hs.dIconSize) or 18))) end
+
+-- liseré (4 textures) autour d un cadre, a l interieur ou a l exterieur ;
+-- les cotes s arretent aux bandes du haut et du bas (pas de coins plus
+-- sombres quand le liseré est transparent)
+function DL.LayoutEdges(e, anchor, size, out)
+    local o = out and size or 0
+    local function P(t, ...) pcall(t.SetPoint, t, ...) end
+    for i = 1, 4 do pcall(e[i].ClearAllPoints, e[i]) end
+    P(e[1], "TOPLEFT", anchor, "TOPLEFT", -o, o)
+    P(e[1], "TOPRIGHT", anchor, "TOPRIGHT", o, o)
+    pcall(e[1].SetHeight, e[1], size)
+    P(e[2], "BOTTOMLEFT", anchor, "BOTTOMLEFT", -o, -o)
+    P(e[2], "BOTTOMRIGHT", anchor, "BOTTOMRIGHT", o, -o)
+    pcall(e[2].SetHeight, e[2], size)
+    P(e[3], "TOPLEFT", anchor, "TOPLEFT", -o, o - size)
+    P(e[3], "BOTTOMLEFT", anchor, "BOTTOMLEFT", -o, -o + size)
+    pcall(e[3].SetWidth, e[3], size)
+    P(e[4], "TOPRIGHT", anchor, "TOPRIGHT", o, o - size)
+    P(e[4], "BOTTOMRIGHT", anchor, "BOTTOMRIGHT", o, -o + size)
+    pcall(e[4].SetWidth, e[4], size)
+end
+
+-- icone a sa place (centre ou un bord du cadre) ; cachee = 0,001 px
+DL.POS = { CENTER = { 0, 0 }, LEFT = { 2, 0 }, RIGHT = { -2, 0 }, TOP = { 0, -2 }, BOTTOM = { 0, 2 } }
+function DL.PlaceIcon(t, b, on)
+    if not t then return end
+    local pos = (hs and DL.POS[hs.dIconPos]) and hs.dIconPos or "CENTER"
+    local off, size = DL.POS[pos], on and DL.IconSize() or 0.001
+    pcall(t.ClearAllPoints, t)
+    pcall(t.SetPoint, t, pos, b, pos, off[1], off[2])
+    pcall(t.SetSize, t, size, size)
+end
+
+-- symbole du type (atlas du jeu, celui de ses cadres de raid) ou nil
+function DL.TypeAtlas(t)
+    if not (t and AuraUtil and AuraUtil.GetAuraDispelTypeIcon) then return nil end
+    local ok, a = pcall(AuraUtil.GetAuraDispelTypeIcon, t)
+    if ok and type(a) == "string" and not issecret(a) and a ~= "" then return a end
+end
+
+-- chiffres du compte a rebours a la taille de l icone
+function DL.CdFont(cd, size)
+    local okT, fs = pcall(cd.GetCountdownFontString, cd)
+    if okT and type(fs) == "table" then
+        local font = (ns.FontFile and ns.FontFile("regular")) or STANDARD_TEXT_FONT
+        pcall(fs.SetFont, fs, font, math.max(7, math.floor(size * 0.5)), "OUTLINE")
+    end
+end
+
+-- icone de l apercu et de l ancien chemin (textures a nous) : type t,
+-- icone tex ; fake = compte a rebours fictif. false si rien a montrer.
+function DL.ShowIcon(b, t, tex, fake)
+    local mode = hs and hs.dIcon
+    if not b.dIcon or (mode ~= "aura" and mode ~= "type") then return false end
+    if mode == "type" then
+        local atlas = DL.TypeAtlas(t)
+        if not atlas or not pcall(b.dIcon.SetAtlas, b.dIcon, atlas) then return false end
+        b.dIcon:SetTexCoord(0, 1, 0, 1)
+        b.dIconEdge:Hide()
+        b.dIconCd:Hide()
+    else
+        if tex == nil or not pcall(b.dIcon.SetTexture, b.dIcon, tex) then return false end
+        b.dIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        b.dIconEdge:Show()
+        if fake and hs.dIconTime ~= false then
+            b.dIconCd:Show()
+            pcall(b.dIconCd.SetCooldown, b.dIconCd, GetTime() - 4, 12)
+        else
+            b.dIconCd:Hide()
+        end
+    end
+    b.dIcon:Show()
+    return true
+end
+
+function DL.HideIcon(b)
+    if not b.dIcon then return end
+    b.dIcon:Hide()
+    b.dIconEdge:Hide()
+    b.dIconCd:Hide()
+end
+
+-- couleurs et palette pour les reglages (module Dissipation)
+ns.DispelLook = { PALETTE = DL.PALETTE, TYPES = DL.TYPES, Color = function(t) return DL.Color(t) end,
+                  Default = function(t) return DISPEL_COLORS[t] end }
+
 -- Courbe de couleur par type : C_UnitAuras.GetAuraDispelTypeColor l evalue
 -- cote client, ce qui marche meme quand le type du debuff est secret (la
 -- couleur rendue l est aussi, et SetVertexColor l accepte telle quelle).
@@ -249,7 +392,7 @@ local function getCurve()
             end
             pcall(cv.AddPoint, cv, 0, CreateColor(NO_TYPE[1], NO_TYPE[2], NO_TYPE[3], 1))
             for name, id in pairs(DISPEL_IDS) do
-                local k = DISPEL_COLORS[name]
+                local k = DL.Color(name)
                 pcall(cv.AddPoint, cv, id, CreateColor(k[1], k[2], k[3], 1))
             end
             pcall(cv.AddPoint, cv, 5, CreateColor(NO_TYPE[1], NO_TYPE[2], NO_TYPE[3], 1))
@@ -284,7 +427,7 @@ local function auraColor(unit, e)
     -- type lisible : notre couleur ; secret (ou aura illisible) : courbe du client
     local okD, d = pcall(function() return e.aura.dispelName end)
     if okD and not issecret(d) then
-        local k = (type(d) == "string" and DISPEL_COLORS[d]) or NO_TYPE
+        local k = (type(d) == "string" and DISPEL_COLORS[d] and DL.Color(d)) or NO_TYPE
         return true, k[1], k[2], k[3], 1
     end
     local cv = getCurve()
@@ -409,6 +552,7 @@ local function updateAuras(b, unit)
         if not b.legacyHidden then
             b.dispel.Show(false)
             b.tint:Hide()
+            DL.HideIcon(b)
             for i = 1, ICON_MAX do b.icons[i]:Hide() end
             for i = 1, HOT_MAX do b.hotIcons[i]:Hide() end
             for i = 1, TRACK_MAX do b.trackIcons[i]:Hide() end
@@ -421,7 +565,7 @@ local function updateAuras(b, unit)
     for i = 1, HOT_MAX do b.hotIcons[i]:Hide() end
     for i = 1, TRACK_MAX do b.trackIcons[i]:Hide() end
     -- surbrillance : couleur du type du premier debuff a dissiper
-    local edgeOn, tintOn = false, false
+    local edgeOn, tintOn, iconOn = false, false, false
     b.legacyDispel = false
     if hs and hs.dispel and not b.down and b.dispelMine ~= false then
         local e = findDispel(unit)
@@ -429,15 +573,18 @@ local function updateAuras(b, unit)
             b.legacyDispel = true
             local ok, r, g, bl = auraColor(unit, e)
             if ok then
-                if hs.dispelStyle ~= "tint" then edgeOn = b.dispel.Color(r, g, bl, 1) end
+                if hs.dispelStyle ~= "tint" then edgeOn = b.dispel.Color(r, g, bl, DL.EdgeAlpha()) end
                 if hs.dispelStyle ~= "border" then
-                    tintOn = pcall(b.tint.SetVertexColor, b.tint, r, g, bl, (hs.tintAlpha or 35) / 100)
+                    tintOn = pcall(b.tint.SetVertexColor, b.tint, r, g, bl, DL.TintAlpha())
                 end
             end
+            local okI, ic, dn = pcall(function() return e.aura.icon, e.aura.dispelName end)
+            if okI then iconOn = DL.ShowIcon(b, (not issecret(dn)) and dn or nil, ic, false) end
         end
     end
     b.dispel.Show(edgeOn)
     b.tint:SetShown(tintOn)
+    if not iconOn then DL.HideIcon(b) end
     -- icones : debuffs (tous, ou seulement ceux a dissiper)
     local n = 0
     if hs and hs.icons and not b.down then
@@ -713,17 +860,22 @@ local function fakeAuras(b, d)
         if b.nDispel then pcall(b.nDispel.frame.SetShown, b.nDispel.frame, false) end
         b.nState, b.nSt = nil, nil
     end
-    local edgeOn, tintOn = false, false
-    if hs and hs.dispel and not b.down and d.dispel then
-        local k = DISPEL_COLORS[d.dispel]
-        if hs.dispelStyle ~= "tint" then edgeOn = b.dispel.Color(k[1], k[2], k[3], 1) end
+    -- surbrillance : comme en jeu (types de ma classe seulement, sauf
+    -- "tous les debuffs dissipables"), avec les vrais reglages d aspect
+    local edgeOn, tintOn, iconOn = false, false, false
+    local can = not (hs and hs.dispelAll) and ns.Dispel and ns.Dispel.CanDispel
+    if hs and hs.dispel and not b.down and d.dispel and (not can or can(d.dispel)) then
+        local k = DL.Color(d.dispel)
+        if hs.dispelStyle ~= "tint" then edgeOn = b.dispel.Color(k[1], k[2], k[3], DL.EdgeAlpha()) end
         if hs.dispelStyle ~= "border" then
-            b.tint:SetVertexColor(k[1], k[2], k[3], (hs.tintAlpha or 35) / 100)
+            b.tint:SetVertexColor(k[1], k[2], k[3], DL.TintAlpha())
             tintOn = true
         end
+        iconOn = DL.ShowIcon(b, d.dispel, PV_ICON[d.dispel], true)
     end
     b.dispel.Show(edgeOn)
     b.tint:SetShown(tintOn)
+    if not iconOn then DL.HideIcon(b) end
     local n = 0
     if hs and hs.icons and not b.down then
         local max = math.min(ICON_MAX, hs.iconMax)
@@ -733,7 +885,7 @@ local function fakeAuras(b, d)
                 n = n + 1
                 local f = b.icons[n]
                 f.tex:SetTexture(a.icon)
-                local k = (a.type and DISPEL_COLORS[a.type]) or NO_TYPE
+                local k = (a.type and DL.Color(a.type)) or NO_TYPE
                 f.border:SetVertexColor(k[1], k[2], k[3], 1)
                 f.count:SetText(a.count and tostring(a.count) or "")
                 f:Show()
@@ -859,41 +1011,81 @@ end
 -- surbrillance de dissipation : liseré (4 bords) et teinte, teints par le
 -- client selon le type du premier debuff a dissiper
 local function buildDispelSlot(b, btn)
-    local map = ns.DispelColorMap and ns.DispelColorMap()
-    local style = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
-    local function reg(t)
-        if style then
-            pcall(btn.AddDispelTypeTexture, btn, t, { style = style.PreserveAsset, showWhenHarmful = true,
-                customDispelColorMap = map })
-        end
-    end
+    local opts = DL.Opts()
+    local function reg(t) if opts then pcall(btn.AddDispelTypeTexture, btn, t, opts) end end
     local e = {}
     for i = 1, 4 do
         e[i] = btn:CreateTexture(nil, "OVERLAY", nil, 6)
         e[i]:SetColorTexture(1, 1, 1, 1)
     end
-    e[1]:SetPoint("TOPLEFT", b, "TOPLEFT")
-    e[1]:SetPoint("TOPRIGHT", b, "TOPRIGHT")
-    e[1]:SetHeight(2)
-    e[2]:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT")
-    e[2]:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT")
-    e[2]:SetHeight(2)
-    e[3]:SetPoint("TOPLEFT", b, "TOPLEFT")
-    e[3]:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT")
-    e[3]:SetWidth(2)
-    e[4]:SetPoint("TOPRIGHT", b, "TOPRIGHT")
-    e[4]:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT")
-    e[4]:SetWidth(2)
+    DL.LayoutEdges(e, b, DL.EdgeSize(), hs and hs.edgeOut == true)
     local tint = btn:CreateTexture(nil, "ARTWORK")
-    tint:SetAllPoints(b.hp)
+    tint:SetAllPoints((hs and hs.tintArea == "frame") and b or b.hp)
     tint:SetColorTexture(1, 1, 1, 1)
-    b.nEdges, b.nTint = e, tint
+    -- icone du debuff a dissiper : le client y met l icone et le temps
+    local icon = btn:CreateTexture(nil, "OVERLAY", nil, 7)
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    local edge = btn:CreateTexture(nil, "OVERLAY", nil, 5)
+    edge:SetPoint("TOPLEFT", icon, "TOPLEFT", -1, 1)
+    edge:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 1, -1)
+    local bc = ns.COLORS.border
+    edge:SetColorTexture(bc[1], bc[2], bc[3], 1)
+    local cd = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
+    cd:SetAllPoints(icon)
+    cd:SetReverse(true)
+    -- symbole du type (atlas du jeu, pose par le client)
+    local sym = btn:CreateTexture(nil, "OVERLAY", nil, 7)
+    b.nEdges, b.nTint, b.nIcon, b.nIconEdge, b.nIconCd, b.nSym = e, tint, icon, edge, cd, sym
+    b.nReg = { e[1], e[2], e[3], e[4], tint }
+    b.nColorKey = DL.ColorsKey()
     -- son a l apparition : Groupe regarde si cette case devient visible
     b.nDispelBtn = btn
     -- style pose avant l inscription (la teinte du client vient ensuite)
     nativeStyle(b)
     for i = 1, 4 do reg(e[i]) end
     reg(tint)
+    pcall(btn.SetIcon, btn, icon)
+    pcall(btn.SetDurationCooldown, btn, cd)
+    local style = Enum and Enum.CustomAuraButtonDispelTypeTextureStyle
+    if style and style.Icon then pcall(btn.AddDispelTypeTexture, btn, sym, { style = style.Icon, showWhenHarmful = true }) end
+end
+
+-- forme de la surbrillance d un cadre (hors combat) : liseré, zone de la
+-- teinte, icone de l apercu ; textures du client si elles sont permises,
+-- et leurs couleurs (reinscription) si le joueur les a changees
+function DL.Look(b)
+    if not hs or InCombatLockdown() then return end
+    local size, out = DL.EdgeSize(), hs.edgeOut == true
+    local area = hs.tintArea == "frame" and b or b.hp
+    DL.LayoutEdges(b.dispel, b, size, out)
+    b.tint:ClearAllPoints()
+    b.tint:SetAllPoints(area)
+    if b.dIcon then
+        DL.PlaceIcon(b.dIcon, b, true)
+        DL.CdFont(b.dIconCd, DL.IconSize())
+    end
+    if not b.nEdges then return end
+    local okF, forbidden = pcall(b.nDispelBtn.IsForbidden, b.nDispelBtn)
+    if not okF or forbidden then return end
+    DL.LayoutEdges(b.nEdges, b, size, out)
+    pcall(b.nTint.ClearAllPoints, b.nTint)
+    pcall(b.nTint.SetAllPoints, b.nTint, area)
+    local time = hs.dIconTime ~= false
+    pcall(b.nIconCd.SetHideCountdownNumbers, b.nIconCd, not time)
+    pcall(b.nIconCd.SetDrawSwipe, b.nIconCd, time)
+    DL.CdFont(b.nIconCd, DL.IconSize())
+    local key = DL.ColorsKey()
+    if b.nColorKey ~= key then
+        local opts = DL.Opts()
+        if opts then
+            for _, t in ipairs(b.nReg) do
+                pcall(b.nDispelBtn.RemoveDispelTypeTexture, b.nDispelBtn, t)
+                pcall(b.nDispelBtn.AddDispelTypeTexture, b.nDispelBtn, t, opts)
+            end
+        end
+        b.nColorKey = key
+    end
+    nativeStyle(b)
 end
 
 -- style choisi (liseré / teinte / les deux) : par l opacite de la couleur
@@ -918,9 +1110,14 @@ nativeStyle = function(b)
     if not okF or forbidden then return end
     -- repartition en raid (Dissipation) : rien sur les groupes des autres
     local mine = b.dispelMine ~= false
-    local edge = (mine and hs.dispelStyle ~= "tint") and 1 or 0
+    local edge = (mine and hs.dispelStyle ~= "tint") and DL.EdgeAlpha() or 0
     for i = 1, 4 do setAlphaSafe(b.nEdges[i], edge) end
-    setAlphaSafe(b.nTint, (mine and hs.dispelStyle ~= "border") and ((hs.tintAlpha or 35) / 100) or 0)
+    setAlphaSafe(b.nTint, (mine and hs.dispelStyle ~= "border") and DL.TintAlpha() or 0)
+    -- icone ou symbole du type : a sa place, ou 0,001 px
+    local aura, sym = mine and hs.dIcon == "aura", mine and hs.dIcon == "type"
+    DL.PlaceIcon(b.nIcon, b, aura)
+    DL.PlaceIcon(b.nSym, b, sym)
+    if b.nIconEdge then pcall(b.nIconEdge.SetAlpha, b.nIconEdge, aura and 1 or 0) end
 end
 
 -- mes groupes (repartition du module Dissipation), hors combat
@@ -960,8 +1157,12 @@ function ns.GroupDispelRefresh()
         dispelPending = true
     else
         dispelPending = false
+        dispelCurve = nil   -- couleurs peut-etre changees
         refreshMine()
-        for _, b in pairs(buttons) do b.nState, b.nSt = nil, nil end
+        for _, b in pairs(buttons) do
+            b.nState, b.nSt = nil, nil
+            DL.Look(b)
+        end
     end
     for _, b in pairs(buttons) do
         if b:IsVisible() then update(b) end
@@ -1027,6 +1228,19 @@ local function makeButton(parent, unit, big)
     b.ov:SetAllPoints(b)
     b.ov:SetFrameLevel(lv + 5)
     b.dispel = makeEdge(b.ov, false, 2, 6)
+    -- icone de la surbrillance : apercu et ancien chemin (le vrai : le client)
+    b.dIcon = b.ov:CreateTexture(nil, "OVERLAY", nil, 7)
+    b.dIcon:Hide()
+    b.dIconEdge = b.ov:CreateTexture(nil, "OVERLAY", nil, 5)
+    b.dIconEdge:SetPoint("TOPLEFT", b.dIcon, "TOPLEFT", -1, 1)
+    b.dIconEdge:SetPoint("BOTTOMRIGHT", b.dIcon, "BOTTOMRIGHT", 1, -1)
+    local ic = ns.COLORS.border
+    b.dIconEdge:SetColorTexture(ic[1], ic[2], ic[3], 1)
+    b.dIconEdge:Hide()
+    b.dIconCd = CreateFrame("Cooldown", nil, b.ov, "CooldownFrameTemplate")
+    b.dIconCd:SetAllPoints(b.dIcon)
+    b.dIconCd:SetReverse(true)
+    b.dIconCd:Hide()
     b.aggro = makeEdge(b.ov, true, 2, 7)
     b.aggro.Color(1, 0.1, 0.1, 1)
     b.roleIcon = b.ov:CreateTexture(nil, "OVERLAY")
@@ -1099,6 +1313,7 @@ local function makeButton(parent, unit, big)
         b.nDispel = ns.NativeAuraSlot(b.ov, unit, "HARMFUL|RAID", function(btn) buildDispelSlot(b, btn) end)
         b.nUnit = unit
     end
+    DL.Look(b)
     b:SetScript("OnShow", update)
     buttons[unit] = b
     return b
@@ -1676,7 +1891,10 @@ ev:SetScript("OnEvent", function(_, event, unit, info)
                             marker = true, tintAlpha = 35,
                             markPos = "top", markSize = 16, markX = 0, markY = 0, markAlpha = 100,
                             hots = true, hotTime = true, hotMax = 3, hotSize = 12, hotPos = "topright",
-                            hotDur = 60, trackOn = true }) do
+                            hotDur = 60, trackOn = true,
+                            -- aspect de la surbrillance (20/11, module Dissipation)
+                            edgeSize = 2, edgeAlpha = 100, edgeOut = false, tintArea = "hp",
+                            dIcon = "none", dIconSize = 18, dIconPos = "CENTER", dIconTime = true }) do
             if hs[k] == nil then hs[k] = v end
         end
         -- demande du 06/10 : le cadre entier prend la couleur du debuff

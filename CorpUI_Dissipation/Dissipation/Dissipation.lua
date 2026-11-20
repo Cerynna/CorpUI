@@ -18,7 +18,11 @@
       Une repartition recue d un simple membre est ignoree.
 
     Reglages d affichage : CorpUIDB.group.heal (partages avec Groupe :
-    dispel, dispelAll, dispelStyle, tintAlpha). Le reste : CorpUIDB.dispel.
+    dispel, dispelAll, dispelStyle, tintAlpha ; 20/11 : edgeSize,
+    edgeAlpha, edgeOut, tintArea, dIcon, dIconPos, dIconSize, dIconTime,
+    dColors), rendus par Groupe.lua (DL). Apercu des cadres de groupe et
+    de raid tant que la page est ouverte (ns.PreviewPanel). Le reste :
+    CorpUIDB.dispel.
     Rien de securise ici.
 ----------------------------------------------------------------------------]]
 
@@ -77,6 +81,12 @@ end
 local function unitClass(unit)
     local ok, _, c = pcall(UnitClass, unit)
     return ok and str(c) or nil
+end
+
+-- ma classe retire-t-elle ce type de debuff ? (apercu des cadres, Groupe)
+function D.CanDispel(t)
+    local c = unitClass("player")
+    return c ~= nil and CAN[c] ~= nil and CAN[c][t] == true
 end
 
 ---------------------------------------------------------------------------
@@ -440,6 +450,22 @@ local function buildWindow()
     local function hcheck(text, key)
         form:Check(text, function() return hs[key] end, function(v) hs[key] = v end)
     end
+    local function hnum(fmt, key, lo, hi, step, def)
+        form:Number(fmt, function() return hs[key] or def end, function(v) hs[key] = v end, lo, hi, step)
+    end
+    local function hcycle(fmt, key, values, names, def)
+        form:Cycle(fmt, values, names, function() return hs[key] or def end, function(v) hs[key] = v end)
+    end
+    -- apercu (20/11) : faux membres sur les cadres de groupe et de raid tant
+    -- que la page est ouverte, rendus avec ces reglages (Groupe.lua)
+    if ns.PreviewPanel then ns.PreviewPanel(win) end
+    local pv = win:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    pv:SetPoint("TOPLEFT", win, "TOPLEFT", 8, form.y)
+    pv:SetWidth(WIN_W - 16)
+    pv:SetJustifyH("LEFT")
+    pv:SetWordWrap(true)
+    pv:SetText(L.DSP_PREVIEW)
+    form.y = form.y - 30
     form:Header(L.DSP_ALERT_HEAD)
     hcheck(L.DSP_OPT_HIGHLIGHT, "dispel")
     hcheck(L.DSP_OPT_ALL, "dispelAll")
@@ -447,7 +473,6 @@ local function buildWindow()
     form:Cycle(L.DSP_OPT_STYLE, { "border", "tint", "both" },
         { border = L.GROUP_HEAL_BORDER, tint = L.GROUP_HEAL_TINT, both = L.GROUP_HEAL_BOTH },
         function() return hs.dispelStyle end, function(v) hs.dispelStyle = v end)
-    form:Number(L.DSP_OPT_TINT, function() return hs.tintAlpha end, function(v) hs.tintAlpha = v end, 10, 90, 5)
     form:EndColumns()
     -- son : liste a intertitres (jeu, CorpUI, rigolos) ; le choix le joue
     local soundSel = form:Select(L.DSP_OPT_SOUND, ns.SoundChoices,
@@ -455,6 +480,91 @@ local function buildWindow()
     local test = ns.UI.Button(win, L.DSP_TEST, 100, function() playSound(db.sound) end)
     test:SetPoint("LEFT", soundSel, "RIGHT", 8, 0)
     form:Check(L.DSP_OPT_MINE, function() return db.onlyMine end, function(v) db.onlyMine = v end)
+    -- liseré
+    form:Header(L.DSP_EDGE_HEAD)
+    form:Columns(2)
+    hnum(L.DSP_OPT_EDGE_SIZE, "edgeSize", 1, 8, 1, 2)
+    hnum(L.DSP_OPT_EDGE_ALPHA, "edgeAlpha", 10, 100, 5, 100)
+    form:EndColumns()
+    hcheck(L.DSP_OPT_EDGE_OUT, "edgeOut")
+    -- teinte
+    form:Header(L.DSP_TINT_HEAD)
+    form:Columns(2)
+    hnum(L.DSP_OPT_TINT, "tintAlpha", 5, 100, 5, 35)
+    hcycle(L.DSP_OPT_TINT_AREA, "tintArea", { "hp", "frame" }, { hp = L.DSP_AREA_HP, frame = L.DSP_AREA_FRAME }, "hp")
+    form:EndColumns()
+    -- icone : celle du debuff (avec son temps) ou le symbole du type
+    form:Header(L.DSP_ICON_HEAD)
+    form:Columns(2)
+    hcycle(L.DSP_OPT_ICON, "dIcon", { "none", "aura", "type" },
+        { none = L.DSP_ICON_NONE, aura = L.DSP_ICON_AURA, type = L.DSP_ICON_TYPE }, "none")
+    hcycle(L.DSP_OPT_ICON_POS, "dIconPos", { "CENTER", "LEFT", "RIGHT", "TOP", "BOTTOM" },
+        { CENTER = L.DSP_POS_CENTER, LEFT = L.DSP_POS_LEFT, RIGHT = L.DSP_POS_RIGHT, TOP = L.DSP_POS_TOP,
+          BOTTOM = L.DSP_POS_BOTTOM }, "CENTER")
+    hnum(L.DSP_OPT_ICON_SIZE, "dIconSize", 10, 40, 1, 18)
+    form:EndColumns()
+    hcheck(L.DSP_OPT_ICON_TIME, "dIconTime")
+    -- couleur de chaque type (palette de Groupe.lua)
+    local look = ns.DispelLook
+    if look then
+        form:Header(L.DSP_COLOR_HEAD)
+        local gold = ns.COLORS.gold
+        for _, t in ipairs(look.TYPES) do
+            local y = form.y
+            local fs = win:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            fs:SetPoint("TOPLEFT", win, "TOPLEFT", 8, y - 3)
+            fs:SetText(L["DSP_T_" .. string.upper(t)])
+            -- pastille 1 : la couleur du jeu ; puis la palette
+            local keys = { false }
+            for _, p in ipairs(look.PALETTE) do keys[#keys + 1] = p end
+            local sw = {}
+            for i, p in ipairs(keys) do
+                local s = CreateFrame("Button", nil, win)
+                s:SetSize(18, 14)
+                s:SetPoint("TOPLEFT", win, "TOPLEFT", 112 + (i - 1) * 25, y - 2)
+                s.ring = s:CreateTexture(nil, "BACKGROUND")
+                s.ring:SetPoint("TOPLEFT", -2, 2)
+                s.ring:SetPoint("BOTTOMRIGHT", 2, -2)
+                s.ring:SetColorTexture(gold[1], gold[2], gold[3], 1)
+                local edge = s:CreateTexture(nil, "BORDER")
+                edge:SetAllPoints()
+                edge:SetColorTexture(0, 0, 0, 1)
+                s.fill = s:CreateTexture(nil, "ARTWORK")
+                s.fill:SetPoint("TOPLEFT", 1, -1)
+                s.fill:SetPoint("BOTTOMRIGHT", -1, 1)
+                local key = p and p[1] or false
+                if p then
+                    s.fill:SetColorTexture(p[2], p[3], p[4], 1)
+                else
+                    local c = look.Default(t)
+                    s.fill:SetColorTexture(c[1], c[2], c[3], 1)
+                    s:SetScript("OnEnter", function(self)
+                        local tip = ns.Tooltip(self, "ANCHOR_TOP")
+                        tip:AddLine(L.DSP_COLOR_GAME)
+                        tip:Show()
+                    end)
+                    s:SetScript("OnLeave", ns.HideTooltip)
+                end
+                s:SetScript("OnClick", function()
+                    if type(hs.dColors) ~= "table" then hs.dColors = {} end
+                    hs.dColors[t] = key or nil
+                    form.Changed()
+                end)
+                sw[i] = { s = s, key = key }
+            end
+            form.y = y - 22
+            table.insert(form.refreshers, function()
+                local cur = type(hs.dColors) == "table" and hs.dColors[t] or false
+                for _, e in ipairs(sw) do e.s.ring:SetShown(e.key == cur) end
+            end)
+        end
+        local reset = ns.UI.Button(win, L.DSP_COLOR_RESET, 140, function()
+            hs.dColors = nil
+            form.Changed()
+        end)
+        reset:SetPoint("TOPLEFT", win, "TOPLEFT", 8, form.y - 2)
+        form.y = form.y - 30
+    end
     form:Gap(6)
     form:Header(L.DSP_ASSIGN_HEAD)
     -- en-tete des colonnes de groupes
