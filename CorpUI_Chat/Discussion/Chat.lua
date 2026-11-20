@@ -717,8 +717,11 @@ local function layoutButtons()
     -- (taint.log du 10/10 : "action was blocked in combat ...
     -- CorpUIChatColumn:SetShown()", message rouge a chaque releve). Seuls les
     -- liseres suivent ; le reste se refait hors combat.
-    local okP, protected = pcall(column.IsProtected, column)
-    if InCombatLockdown() and (not okP or protected) then
+    -- 20/11 : plus de test IsProtected. Il repondait "non" pour la colonne
+    -- alors que le jeu refusait de montrer, cacher ou deplacer la case du
+    -- journal de combat et la barre (4053 "Frame:SetShown()" refuses en une
+    -- soiree, Un'Goro) : en combat, rien ne bouge, quoi qu il reponde.
+    if InCombatLockdown() then
         for _, e in ipairs(slots) do
             local slot = e.slot
             if slot and slot:IsShown() and slot.cuiBorder then
@@ -1100,7 +1103,10 @@ local function refresh()
         if s.eb and s.field and s.eb:IsVisible() then
             local r, g, b = channelColor(s.eb)
             local fd = s.field
-            local focus = s.eb:HasFocus() and true or false
+            -- HasFocus rend un booleen secret en combat (16/11 : 1217 erreurs
+            -- "boolean test on a secret boolean value") : secret = pas de focus
+            local okF, hf = pcall(s.eb.HasFocus, s.eb)
+            local focus = okF and not issecret(hf) and hf == true
             if fd.r ~= r or fd.g ~= g or fd.b ~= b or fd.focus ~= focus then
                 fd.r, fd.g, fd.b, fd.focus = r, g, b, focus
                 local a = focus and 0.95 or 0.45
