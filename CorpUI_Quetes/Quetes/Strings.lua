@@ -178,3 +178,18 @@ ns.AddStrings({
     zhTW = { QUESTS_PARTY = "進行此任務的隊友：" },
     koKR = { QUESTS_PARTY = "이 퀘스트를 진행 중인 파티원:" },
 })
+
+-- Infobulle du suivi : infos de la quete (22/11) : niveau, groupe conseille,
+-- argent demande
+ns.AddStrings({
+    enUS = { QUESTS_TIP_LEVEL = "Level %d", QUESTS_TIP_GROUP = "Group (%d)", QUESTS_TIP_MONEY_REQ = "Money required: %s" },
+    frFR = { QUESTS_TIP_LEVEL = "Niveau %d", QUESTS_TIP_GROUP = "Groupe (%d)", QUESTS_TIP_MONEY_REQ = "Argent demandé : %s" },
+    deDE = { QUESTS_TIP_LEVEL = "Stufe %d", QUESTS_TIP_GROUP = "Gruppe (%d)", QUESTS_TIP_MONEY_REQ = "Benötigtes Geld: %s" },
+    esES = { QUESTS_TIP_LEVEL = "Nivel %d", QUESTS_TIP_GROUP = "Grupo (%d)", QUESTS_TIP_MONEY_REQ = "Dinero necesario: %s" },
+    ptBR = { QUESTS_TIP_LEVEL = "Nível %d", QUESTS_TIP_GROUP = "Grupo (%d)", QUESTS_TIP_MONEY_REQ = "Dinheiro necessário: %s" },
+    itIT = { QUESTS_TIP_LEVEL = "Livello %d", QUESTS_TIP_GROUP = "Gruppo (%d)", QUESTS_TIP_MONEY_REQ = "Denaro richiesto: %s" },
+    ruRU = { QUESTS_TIP_LEVEL = "Уровень %d", QUESTS_TIP_GROUP = "Группа (%d)", QUESTS_TIP_MONEY_REQ = "Нужно денег: %s" },
+    zhCN = { QUESTS_TIP_LEVEL = "等级 %d", QUESTS_TIP_GROUP = "小队（%d）", QUESTS_TIP_MONEY_REQ = "需要金钱：%s" },
+    zhTW = { QUESTS_TIP_LEVEL = "等級 %d", QUESTS_TIP_GROUP = "隊伍（%d）", QUESTS_TIP_MONEY_REQ = "需要金錢：%s" },
+    koKR = { QUESTS_TIP_LEVEL = "레벨 %d", QUESTS_TIP_GROUP = "파티 (%d)", QUESTS_TIP_MONEY_REQ = "필요 금액: %s" },
+})

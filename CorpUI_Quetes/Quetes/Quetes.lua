@@ -33,9 +33,12 @@
     de Blizzard, si elle est ouverte, garde sa quete).
     Le suivi de Blizzard est range dans le cadre cache.
 
-    Infobulle d une quete : ses recompenses (22/11 : experience et part du
-    niveau, argent, objets, objets au choix ; lues par numero de quete),
-    la progression du groupe, puis les aides.
+    Infobulle d une quete (22/11) : ses infos (niveau, type, groupe
+    conseille, zone, texte de l objectif ou de fin, argent demande), ses
+    recompenses (experience et part du niveau, argent, objets, objets au
+    choix ; lues sur la quete selectionnee un instant comme le journal du
+    jeu, sinon par numero ; demandees au serveur si absentes, l infobulle
+    se refait), la progression du groupe, puis les aides.
 ----------------------------------------------------------------------------]]
 
 local _, ns = ...
@@ -752,11 +755,13 @@ local function number(v)
     return v
 end
 
--- objet de recompense : "icone nom xN" et sa couleur de qualite, ou nil
--- (pas encore connu du client)
-local function rewardItem(fn, i, questID)
-    local name, tex, count, quality = call(fn, i, questID)
-    if not plainText(name) then return nil end
+-- objet de recompense : "icone nom xN" et sa couleur de qualite ; nil et
+-- true si le client ne le connait pas encore. sel : quete selectionnee
+-- (forme sans numero, celle du journal du jeu)
+local function rewardItem(sel, fn, i, questID)
+    local name, tex, count, quality
+    if sel then name, tex, count, quality = call(fn, i) else name, tex, count, quality = call(fn, i, questID) end
+    if not plainText(name) then return nil, true end
     local icon = (not issecret(tex) and (type(tex) == "number" or type(tex) == "string")) and ("|T" .. tex .. ":14:14|t ") or ""
     count = number(count)
     local text = icon .. name .. ((count and count > 1) and (" x" .. count) or "")
@@ -774,14 +779,70 @@ local function rewardItem(fn, i, questID)
     return { text, r, g, b }
 end
 
+-- recompenses lues d une facon : par numero de quete (sel = false, comme
+-- QuestUtils), ou sur la quete selectionnee (sel = true, comme le journal)
+local function rewardData(questID, sel)
+    local function ask(fn)
+        if sel then return call(fn) end
+        return call(fn, questID)
+    end
+    local d = { items = {}, choices = {} }
+    d.xp = number((ask(GetQuestLogRewardXP)))
+    d.money = number((ask(GetQuestLogRewardMoney)))
+    for i = 1, number((ask(GetNumQuestLogRewards))) or 0 do
+        local e, missing = rewardItem(sel, GetQuestLogRewardInfo, i, questID)
+        if e then d.items[#d.items + 1] = e elseif missing then d.missing = true end
+    end
+    for i = 1, number((call(GetNumQuestLogChoices, questID, true))) or 0 do
+        local e, missing = rewardItem(sel, GetQuestLogChoiceInfo, i, questID)
+        if e then d.choices[#d.choices + 1] = e elseif missing then d.missing = true end
+    end
+    d.any = (d.xp or 0) > 0 or (d.money or 0) > 0 or #d.items > 0 or #d.choices > 0
+    return d
+end
+
+-- la quete selectionnee un instant (le journal du jeu lit ainsi ses
+-- recompenses ; l abandon de Blizzard fait de meme), puis l ancienne remise.
+-- nil si la selection n a pas pris
+local function rewardBySelection(questID)
+    local Q = C_QuestLog
+    if not (Q and Q.GetSelectedQuest and Q.SetSelectedQuest) then return nil end
+    return withSelected(questID, function()
+        local cur = call(Q.GetSelectedQuest)
+        if issecret(cur) or cur ~= questID then return nil end
+        return rewardData(questID, true)
+    end)
+end
+
+local asked = {}   -- quetes dont on a deja demande les donnees au serveur
+
 -- Recompenses de la quete (22/11, demande : "au minimum l exp") :
 -- experience et sa part du niveau, argent, objets, objets au choix. Lues
--- par numero de quete (API du journal moderne de Forever, comme le fait
--- QuestUtils du jeu), sans selectionner la quete : aucun etat du jeu ne
--- change. Rien d affiche si rien n est connu.
+-- sur la quete selectionnee un instant, comme le journal du jeu ; sinon
+-- par numero de quete (QuestUtils). Donnees pas encore la : demandees au
+-- serveur, et le second retour vaut true (l infobulle se refait).
+-- Rend : bloc ajoute, donnees manquantes.
 local function addRewards(t, questID)
+    local Q = C_QuestLog
+    local show = call(Q and Q.ShouldShowQuestRewards, questID)
+    if not issecret(show) and show == false then return false, false end
+    local missing = false
+    local have = call(HaveQuestRewardData, questID)
+    if not issecret(have) and have == false then
+        missing = true
+        if not asked[questID] then
+            asked[questID] = true
+            call(Q and Q.RequestLoadQuestByID, questID)
+        end
+    end
+    local d = rewardBySelection(questID)
+    if not d or not d.any then
+        local byID = rewardData(questID, false)
+        if byID.any or not d then d = byID end
+    end
+    if d.missing then missing = true end
     local list = {}
-    local xp = number((call(GetQuestLogRewardXP, questID)))
+    local xp = d.xp
     if xp and xp > 0 then
         local text = call(BreakUpLargeNumbers, xp) or tostring(xp)
         if not plainText(text) then text = tostring(xp) end
@@ -792,27 +853,65 @@ local function addRewards(t, questID)
             list[#list + 1] = { string.format(L.QUESTS_TIP_XP_ONLY, text), 0.7, 0.55, 1 }
         end
     end
-    local money = number((call(GetQuestLogRewardMoney, questID)))
-    if money and money > 0 then list[#list + 1] = { ns.FormatMoney(money), 1, 1, 1 } end
-    for i = 1, number((call(GetNumQuestLogRewards, questID))) or 0 do
-        local e = rewardItem(GetQuestLogRewardInfo, i, questID)
-        if e then list[#list + 1] = e end
-    end
-    local choices = {}
-    for i = 1, number((call(GetNumQuestLogChoices, questID, true))) or 0 do
-        local e = rewardItem(GetQuestLogChoiceInfo, i, questID)
-        if e then choices[#choices + 1] = e end
-    end
-    if #list == 0 and #choices == 0 then return false end
+    if d.money and d.money > 0 then list[#list + 1] = { ns.FormatMoney(d.money), 1, 1, 1 } end
+    for _, e in ipairs(d.items) do list[#list + 1] = e end
+    if #list == 0 and #d.choices == 0 then return false, missing end
     t:AddLine(" ")
     t:AddLine(L.QUESTS_TIP_REWARDS, 1, 0.82, 0)
     for _, e in ipairs(list) do t:AddLine(e[1], e[2], e[3], e[4]) end
-    if #choices > 0 then
+    if #d.choices > 0 then
         t:AddLine(L.QUESTS_TIP_CHOICE, 0.8, 0.8, 0.8)
-        for _, e in ipairs(choices) do t:AddLine("  " .. e[1], e[2], e[3], e[4]) end
+        for _, e in ipairs(d.choices) do t:AddLine("  " .. e[1], e[2], e[3], e[4]) end
     end
-    return true
+    return true, missing
 end
+
+-- Infos de la quete (22/11), comme l infobulle du journal du jeu : niveau,
+-- type (elite, donjon...), groupe conseille et zone ; puis le texte de
+-- l objectif (ou celui de fin si elle est prete a rendre) et l argent
+-- demande. Lu par la place dans le journal, sans rien selectionner.
+local function addInfo(t, questID)
+    local Q = C_QuestLog
+    if not Q then return end
+    local idx = number((call(Q.GetLogIndexForQuestID, questID)))
+    local info = idx and call(Q.GetInfo, idx)
+    if issecret(info) or type(info) ~= "table" then info = nil end
+    local parts = {}
+    local level = (info and number(info.level)) or number((call(Q.GetQuestDifficultyLevel, questID)))
+    if level and level > 0 then
+        local r, g, b = levelColor(level)
+        local function hex(v) return math.floor(math.max(0, math.min(1, v)) * 255 + 0.5) end
+        parts[#parts + 1] = string.format("|cff%02x%02x%02x%s|r", hex(r), hex(g), hex(b), string.format(L.QUESTS_TIP_LEVEL, level))
+    end
+    local tag = call(Q.GetQuestTagInfo, questID)
+    if not issecret(tag) and type(tag) == "table" and plainText(tag.tagName) then parts[#parts + 1] = tag.tagName end
+    local group = info and number(info.suggestedGroup)
+    if group and group > 1 then parts[#parts + 1] = string.format(L.QUESTS_TIP_GROUP, group) end
+    local h = number((call(Q.GetHeaderIndexForQuest, questID)))
+    local head = h and call(Q.GetInfo, h)
+    if not issecret(head) and type(head) == "table" and plainText(head.title) then parts[#parts + 1] = head.title end
+    if #parts > 0 then t:AddLine(table.concat(parts, "  ·  "), 0.75, 0.75, 0.75) end
+    -- texte : fin de quete, ou resume de l objectif
+    local text
+    local done = call(Q.IsComplete, questID)
+    if not issecret(done) and done then
+        text = idx and call(GetQuestLogCompletionText, idx)
+        if not plainText(text) then text = gstr("QUEST_WATCH_QUEST_READY", L.QUESTS_READY) end
+    elseif idx then
+        text = select(2, call(GetQuestLogQuestText, idx))
+    end
+    if plainText(text) then
+        t:AddLine(" ")
+        t:AddLine(text, 1, 1, 1, true)
+    end
+    local need = number((call(Q.GetRequiredMoney, questID)))
+    if need and need > 0 then
+        t:AddLine(string.format(L.QUESTS_TIP_MONEY_REQ, ns.FormatMoney(need)), 1, 1, 1)
+    end
+end
+
+-- donnees manquantes : l infobulle se refait un peu plus tard (4 fois au plus)
+local retryID, retryN = nil, 0
 
 local function showTip(blk)
     local C = ns.COLORS
@@ -821,10 +920,11 @@ local function showTip(blk)
     local right = x and (x * frame:GetEffectiveScale() > UIParent:GetWidth() * UIParent:GetEffectiveScale() / 2)
     local t = ns.Tooltip(blk.first, right and "ANCHOR_LEFT" or "ANCHOR_RIGHT")
     t:AddLine(blk.title, C.gold[1], C.gold[2], C.gold[3])
-    -- recompenses, puis le groupe : un blanc avant les aides
-    local gap = addRewards(t, blk.id)
-    if addPartyProgress(t, blk.id) then gap = true end
-    if gap then t:AddLine(" ") end
+    -- infos, recompenses, puis le groupe : un blanc avant les aides
+    addInfo(t, blk.id)
+    local _, missing = addRewards(t, blk.id)
+    addPartyProgress(t, blk.id)
+    t:AddLine(" ")
     tipCombat = combat() and true or false
     if tipCombat then
         t:AddLine(L.QUESTS_TIP_COMBAT, 1, 0.45, 0.45)
@@ -834,6 +934,15 @@ local function showTip(blk)
     t:AddLine(L.QUESTS_TIP_RIGHT, 0.5, 0.8, 1)
     t:AddLine(L.QUESTS_TIP_SHIFT, 0.5, 0.8, 1)
     t:Show()
+    if retryID ~= blk.id then retryID, retryN = blk.id, 0 end
+    if missing and retryN < 4 and C_Timer and C_Timer.After then
+        retryN = retryN + 1
+        local id = blk.id
+        C_Timer.After(0.5, function()
+            local b = hoverID == id and blocks[id]
+            if b then showTip(b) end
+        end)
+    end
 end
 
 -- refresh : mise a jour de la liste pendant le survol (pas de nouvelle infobulle)
@@ -843,7 +952,10 @@ hoverOn = function(blk, refresh)
     hover:SetPoint("TOPLEFT", body, "TOPLEFT", 1, -(blk.y1 - 1))
     hover:SetPoint("BOTTOMRIGHT", body, "TOPRIGHT", -1, -(blk.y2 - 1))
     hover:Show()
-    if not refresh or tipCombat ~= (combat() and true or false) then showTip(blk) end
+    if not refresh or tipCombat ~= (combat() and true or false) then
+        if not refresh then retryID = nil end   -- nouveau survol : nouvelles relances
+        showTip(blk)
+    end
     placeClick(blk)
 end
 
