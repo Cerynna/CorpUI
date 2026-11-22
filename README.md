@@ -44,7 +44,7 @@ CorpUI remplace l'interface du jeu par un ensemble de modules cohérents, du cad
 | **Expérience** | Barre d'XP : quêtes, repos, XP par heure, temps avant le niveau. | `/corp xp` |
 | **Minicarte** | Minicarte carrée avec zone, coordonnées et heure ; icônes rangées dans une boîte. Points de vol sur la carte du monde : bleu pour l'Alliance, rouge pour la Horde, vert pour les deux factions. Icône de la plante, du minerai ou du coffre à la place du point jaune des recherches. Boutons des addons dans un tiroir à chevron, du côté du bord de l'écran. | `/corp minicarte` |
 | **Barres d'infos** | Jusqu'à dix bandeaux : or, sacs, durabilité, FPS, latence, heure, coordonnées, amis, guilde. | `/corp infos` |
-| **Suivi de quêtes** | Quêtes suivies et leurs objectifs, couleur de difficulté, progression du groupe dans l'infobulle, menu au clic droit. | `/corp quetes` |
+| **Suivi de quêtes** | Quêtes suivies et leurs objectifs, couleur de difficulté, infos et récompenses dans l'infobulle, membres du groupe qui ont la quête et leur progression (partagée entre CorpUI), menu au clic droit. | `/corp quetes` |
 | **Plaques de nom** | Plaques des unités : sort en cours, tes débuffs, points de combo, cible actuelle, icône de raid. | `/corp plaques` |
 | **Infobulles** | Infobulles au style CorpUI, prix de l'hôtel des ventes, objets possédés par tes personnages et ID de l'objet. | `/corp infobulles` |
 | **Chat** | Fenêtres de discussion au style CorpUI : onglets détachés, colonne d'icônes, champ de saisie encadré, onglets par défaut, historique, copie du texte et des liens. | `/corp chat` |

@@ -38,7 +38,9 @@
     recompenses (experience et part du niveau, argent, objets, objets au
     choix ; lues sur la quete selectionnee un instant comme le journal du
     jeu, sinon par numero ; demandees au serveur si absentes, l infobulle
-    se refait), la progression du groupe, puis les aides.
+    se refait), les membres du groupe qui l ont (Groupe.lua : leurs CorpUI
+    envoient leur journal, sinon les lignes du serveur), puis les aides.
+    Sous le titre de chaque quete : "Avec : Alice, Bob" (option).
 ----------------------------------------------------------------------------]]
 
 local _, ns = ...
@@ -713,25 +715,19 @@ local function plainText(v)
     return not issecret(v) and type(v) == "string" and v ~= ""
 end
 
--- membres du groupe sur la quete et ou ils en sont, comme l infobulle du
--- suivi de Blizzard : on lit ses donnees (C_TooltipInfo) et on les ajoute a
--- la notre (SetQuestPartyProgress effacerait l infobulle)
-local function addPartyProgress(t, questID)
-    if not IsInGroup() or not C_TooltipInfo or not C_TooltipInfo.GetQuestPartyProgress then return false end
-    local on = false
-    local okN, count = pcall(GetNumSubgroupMembers)
-    for i = 1, (okN and not issecret(count) and count or 0) do
-        local ok, v = pcall(C_QuestLog.IsUnitOnQuest, "party" .. i, questID)
-        if ok and not issecret(v) and v then on = true break end
-    end
-    if not on then return false end
+-- progression du groupe donnee par le serveur, comme l infobulle du
+-- journal de Blizzard : on lit ses donnees (C_TooltipInfo) et on les
+-- ajoute a la notre (SetQuestPartyProgress effacerait l infobulle).
+-- true si au moins une ligne
+local function addServerLines(t, questID)
+    if not C_TooltipInfo or not C_TooltipInfo.GetQuestPartyProgress then return false end
     local ok, data = pcall(C_TooltipInfo.GetQuestPartyProgress, questID, true, true)
-    if not ok or issecret(data) or type(data) ~= "table" or type(data.lines) ~= "table" then return false end
-    t:AddLine(" ")
-    t:AddLine(gstr("PARTY_QUEST_STATUS_ON", L.QUESTS_PARTY), 1, 1, 1)
+    if not ok or issecret(data) or type(data) ~= "table" or issecret(data.lines) or type(data.lines) ~= "table" then return false end
+    local any = false
     for _, line in ipairs(data.lines) do
-        local text = line.leftText
+        local text = (not issecret(line) and type(line) == "table") and line.leftText
         if plainText(text) then
+            any = true
             local r, g, b = lineRGB(line.leftColor)
             if plainText(line.rightText) then
                 local rr, rg, rb = lineRGB(line.rightColor)
@@ -741,7 +737,76 @@ local function addPartyProgress(t, questID)
             end
         end
     end
+    return any
+end
+
+-- objectif d un membre : notre texte avec ses nombres ("Crocs : 3/10")
+local function memberObjective(ours, o)
+    local count = o.f .. "/" .. o.r
+    local text = type(ours) == "table" and not issecret(ours.text) and ours.text
+    if not plainText(text) then return count end
+    local out, n = text:gsub("%d+%s*/%s*%d+", count, 1)
+    if n == 0 and o.r > 1 then out = out .. " (" .. count .. ")" end
+    return out
+end
+
+local function memberColor(m)
+    if m.class and ns.ClassColor then return ns.ClassColor(m.class) end
+    return 1, 1, 1
+end
+
+-- Membres du groupe sur la quete et ou ils en sont (22/11) : ceux dont le
+-- CorpUI a envoye son journal (ns.QuestParty) avec leurs objectifs ; les
+-- autres par les lignes du serveur (sous-groupe), sinon leur nom seul
+local function addPartyProgress(t, questID)
+    local QP = ns.QuestParty
+    local members = QP and QP.Members(questID) or {}
+    if #members == 0 then return false end
+    t:AddLine(" ")
+    t:AddLine(gstr("PARTY_QUEST_STATUS_ON", L.QUESTS_PARTY), 1, 1, 1)
+    local need = false
+    for _, m in ipairs(members) do
+        if not m.entry then need = true break end
+    end
+    local server = need and addServerLines(t, questID)
+    local ours = safe(C_QuestLog and C_QuestLog.GetQuestObjectives, questID)
+    if issecret(ours) or type(ours) ~= "table" then ours = {} end
+    for _, m in ipairs(members) do
+        local r, g, b = memberColor(m)
+        if server and m.server and m.party then
+            -- deja dans les lignes du serveur
+        elseif m.entry and m.entry.done then
+            pcall(t.AddDoubleLine, t, m.name, L.QUESTS_READY, r, g, b, 0.3, 0.9, 0.3)
+        elseif m.entry then
+            t:AddLine(m.name, r, g, b)
+            for i, o in ipairs(m.entry.obj) do
+                local c = o.fin and 0.5 or 0.9
+                t:AddLine("  - " .. memberObjective(ours[i], o), c, c, c)
+            end
+        else
+            pcall(t.AddDoubleLine, t, m.name, L.QUESTS_PARTY_UNKNOWN, r, g, b, 0.5, 0.5, 0.5)
+        end
+    end
     return true
+end
+
+-- ligne du suivi sous le titre : "Avec : Alice, Bob" (couleurs de classe,
+-- coche de l appel si la quete est prete a rendre chez lui), 3 noms au plus
+local function partyNames(questID)
+    local QP = ns.QuestParty
+    local members = QP and QP.Members(questID)
+    if not members or #members == 0 then return nil end
+    local names = {}
+    for i, m in ipairs(members) do
+        if i > 3 then
+            names[#names + 1] = string.format(L.QUESTS_PARTY_MORE, #members - 3)
+            break
+        end
+        local hex = (m.class and ns.ClassHex) and ns.ClassHex(m.class) or "|cffffffff"
+        local ready = (m.entry and m.entry.done) and " |TInterface\\RaidFrame\\ReadyCheck-Ready:0|t" or ""
+        names[#names + 1] = hex .. m.name .. "|r" .. ready
+    end
+    return string.format(L.QUESTS_WITH, table.concat(names, ", "))
 end
 
 -- appel protege : toutes les valeurs rendues, ou rien
@@ -1082,6 +1147,12 @@ local function update()
             local first = n
             -- titre et niveau a droite dans la couleur de difficulte
             y = setLine(n, y, q.title, "GameFontNormal", r, g, b, 4, id, tostring(q.level), r, g, b)
+            -- membres du groupe qui l ont aussi
+            local with = db.party ~= false and partyNames(id)
+            if with then
+                n = n + 1
+                y = setLine(n, y, with, "GameFontHighlightSmall", 0.55, 0.8, 1, 14, id)
+            end
             if q.complete then
                 n = n + 1
                 y = setLine(n, y, L.QUESTS_READY, "GameFontHighlightSmall", 0.3, 0.9, 0.3, 14, id)
@@ -1201,13 +1272,15 @@ end
 local win
 
 local function buildWindow()
-    win = ns.UI.Window("CorpUIQuestsOptions", ns.TITLE .. " - " .. L.MOD_QUESTS, nil, 440, 236)
+    win = ns.UI.Window("CorpUIQuestsOptions", ns.TITLE .. " - " .. L.MOD_QUESTS, nil, 440, 262)
     -- chaque case applique elle-meme son effet (pas de onChange commun)
     local form = ns.UI.Form(win, -34)
     form:Check(L.QUESTS_OPT_ENABLE, function() return db.enabled end,
         function(v) db.enabled = v update() applyBlizzard() end)
     form:Check(L.QUESTS_OPT_BLIZZ, function() return db.hideBlizzard end,
         function(v) db.hideBlizzard = v applyBlizzard() end)
+    form:Check(L.QUESTS_OPT_PARTY, function() return db.party ~= false end,
+        function(v) db.party = v update() end)
     -- quetes acceptees / rendues seules : reglage du module Experience
     -- (CorpUIDB.xp.autoQuest, cree a sa connexion), lu par lui a chaque
     -- dialogue de PNJ : l ecrire suffit
@@ -1245,6 +1318,18 @@ ev:SetScript("OnEvent", function(_, event)
         build()
         applyBlizzard()
         update()
+        -- quetes du groupe (Groupe.lua) : liste et infobulle refaites
+        local QP = ns.QuestParty
+        if QP then
+            QP.OnChange(function()
+                if not db.enabled then return end
+                schedule()
+                C_Timer.After(0.3, function()
+                    if hoverID and blocks[hoverID] then showTip(blocks[hoverID]) end
+                end)
+            end)
+            QP.Start()
+        end
         -- placement des cadres ouvert / ferme : le suivi vide se montre / se cache
         ns.Listen(function() if db then schedule() end end)
     elseif db then

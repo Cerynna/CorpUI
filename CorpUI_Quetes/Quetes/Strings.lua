@@ -193,3 +193,27 @@ ns.AddStrings({
     zhTW = { QUESTS_TIP_LEVEL = "等級 %d", QUESTS_TIP_GROUP = "隊伍（%d）", QUESTS_TIP_MONEY_REQ = "需要金錢：%s" },
     koKR = { QUESTS_TIP_LEVEL = "레벨 %d", QUESTS_TIP_GROUP = "파티 (%d)", QUESTS_TIP_MONEY_REQ = "필요 금액: %s" },
 })
+
+-- Quetes du groupe (22/11) : ligne sous la quete, infobulle, option
+ns.AddStrings({
+    enUS = { QUESTS_WITH = "With: %s", QUESTS_PARTY_MORE = "+%d", QUESTS_PARTY_UNKNOWN = "progress unknown",
+             QUESTS_OPT_PARTY = "Group members who have the quest, under each quest" },
+    frFR = { QUESTS_WITH = "Avec : %s", QUESTS_PARTY_MORE = "+%d", QUESTS_PARTY_UNKNOWN = "progression inconnue",
+             QUESTS_OPT_PARTY = "Membres du groupe qui ont la quête, sous chaque quête" },
+    deDE = { QUESTS_WITH = "Mit: %s", QUESTS_PARTY_MORE = "+%d", QUESTS_PARTY_UNKNOWN = "Fortschritt unbekannt",
+             QUESTS_OPT_PARTY = "Gruppenmitglieder mit der Quest unter jeder Quest" },
+    esES = { QUESTS_WITH = "Con: %s", QUESTS_PARTY_MORE = "+%d", QUESTS_PARTY_UNKNOWN = "progreso desconocido",
+             QUESTS_OPT_PARTY = "Miembros del grupo con la misión, bajo cada misión" },
+    ptBR = { QUESTS_WITH = "Com: %s", QUESTS_PARTY_MORE = "+%d", QUESTS_PARTY_UNKNOWN = "progresso desconhecido",
+             QUESTS_OPT_PARTY = "Membros do grupo com a missão, sob cada missão" },
+    itIT = { QUESTS_WITH = "Con: %s", QUESTS_PARTY_MORE = "+%d", QUESTS_PARTY_UNKNOWN = "progresso sconosciuto",
+             QUESTS_OPT_PARTY = "Membri del gruppo con la missione, sotto ogni missione" },
+    ruRU = { QUESTS_WITH = "С: %s", QUESTS_PARTY_MORE = "+%d", QUESTS_PARTY_UNKNOWN = "прогресс неизвестен",
+             QUESTS_OPT_PARTY = "Участники группы с этим заданием, под каждым заданием" },
+    zhCN = { QUESTS_WITH = "同行：%s", QUESTS_PARTY_MORE = "+%d", QUESTS_PARTY_UNKNOWN = "进度未知",
+             QUESTS_OPT_PARTY = "在每个任务下显示拥有该任务的队友" },
+    zhTW = { QUESTS_WITH = "同行：%s", QUESTS_PARTY_MORE = "+%d", QUESTS_PARTY_UNKNOWN = "進度未知",
+             QUESTS_OPT_PARTY = "在每個任務下顯示擁有該任務的隊友" },
+    koKR = { QUESTS_WITH = "함께: %s", QUESTS_PARTY_MORE = "+%d", QUESTS_PARTY_UNKNOWN = "진행 상황 알 수 없음",
+             QUESTS_OPT_PARTY = "각 퀘스트 아래에 해당 퀘스트를 가진 파티원 표시" },
+})
