@@ -32,6 +32,10 @@
     la "quete a abandonner" du jeu est remise ensuite : la boite d abandon
     de Blizzard, si elle est ouverte, garde sa quete).
     Le suivi de Blizzard est range dans le cadre cache.
+
+    Infobulle d une quete : ses recompenses (22/11 : experience et part du
+    niveau, argent, objets, objets au choix ; lues par numero de quete),
+    la progression du groupe, puis les aides.
 ----------------------------------------------------------------------------]]
 
 local _, ns = ...
@@ -737,6 +741,79 @@ local function addPartyProgress(t, questID)
     return true
 end
 
+-- appel protege : toutes les valeurs rendues, ou rien
+local function call(fn, ...)
+    if type(fn) ~= "function" then return nil end
+    return (function(ok, ...) if ok then return ... end end)(pcall(fn, ...))
+end
+
+local function number(v)
+    if issecret(v) or type(v) ~= "number" then return nil end
+    return v
+end
+
+-- objet de recompense : "icone nom xN" et sa couleur de qualite, ou nil
+-- (pas encore connu du client)
+local function rewardItem(fn, i, questID)
+    local name, tex, count, quality = call(fn, i, questID)
+    if not plainText(name) then return nil end
+    local icon = (not issecret(tex) and (type(tex) == "number" or type(tex) == "string")) and ("|T" .. tex .. ":14:14|t ") or ""
+    count = number(count)
+    local text = icon .. name .. ((count and count > 1) and (" x" .. count) or "")
+    local r, g, b = 1, 1, 1
+    quality = number(quality)
+    if quality then
+        local qr, qg, qb = call(C_Item and C_Item.GetItemQualityColor, quality)
+        if number(qr) and number(qg) and number(qb) then
+            r, g, b = qr, qg, qb
+        elseif ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality] then
+            local c = ITEM_QUALITY_COLORS[quality]
+            r, g, b = c.r or 1, c.g or 1, c.b or 1
+        end
+    end
+    return { text, r, g, b }
+end
+
+-- Recompenses de la quete (22/11, demande : "au minimum l exp") :
+-- experience et sa part du niveau, argent, objets, objets au choix. Lues
+-- par numero de quete (API du journal moderne de Forever, comme le fait
+-- QuestUtils du jeu), sans selectionner la quete : aucun etat du jeu ne
+-- change. Rien d affiche si rien n est connu.
+local function addRewards(t, questID)
+    local list = {}
+    local xp = number((call(GetQuestLogRewardXP, questID)))
+    if xp and xp > 0 then
+        local text = call(BreakUpLargeNumbers, xp) or tostring(xp)
+        if not plainText(text) then text = tostring(xp) end
+        local max = number((call(UnitXPMax, "player")))
+        if max and max > 0 then
+            list[#list + 1] = { string.format(L.QUESTS_TIP_XP, text, math.floor(xp / max * 100 + 0.5)), 0.7, 0.55, 1 }
+        else
+            list[#list + 1] = { string.format(L.QUESTS_TIP_XP_ONLY, text), 0.7, 0.55, 1 }
+        end
+    end
+    local money = number((call(GetQuestLogRewardMoney, questID)))
+    if money and money > 0 then list[#list + 1] = { ns.FormatMoney(money), 1, 1, 1 } end
+    for i = 1, number((call(GetNumQuestLogRewards, questID))) or 0 do
+        local e = rewardItem(GetQuestLogRewardInfo, i, questID)
+        if e then list[#list + 1] = e end
+    end
+    local choices = {}
+    for i = 1, number((call(GetNumQuestLogChoices, questID, true))) or 0 do
+        local e = rewardItem(GetQuestLogChoiceInfo, i, questID)
+        if e then choices[#choices + 1] = e end
+    end
+    if #list == 0 and #choices == 0 then return false end
+    t:AddLine(" ")
+    t:AddLine(L.QUESTS_TIP_REWARDS, 1, 0.82, 0)
+    for _, e in ipairs(list) do t:AddLine(e[1], e[2], e[3], e[4]) end
+    if #choices > 0 then
+        t:AddLine(L.QUESTS_TIP_CHOICE, 0.8, 0.8, 0.8)
+        for _, e in ipairs(choices) do t:AddLine("  " .. e[1], e[2], e[3], e[4]) end
+    end
+    return true
+end
+
 local function showTip(blk)
     local C = ns.COLORS
     -- infobulle du cote ou il y a de la place
@@ -744,8 +821,10 @@ local function showTip(blk)
     local right = x and (x * frame:GetEffectiveScale() > UIParent:GetWidth() * UIParent:GetEffectiveScale() / 2)
     local t = ns.Tooltip(blk.first, right and "ANCHOR_LEFT" or "ANCHOR_RIGHT")
     t:AddLine(blk.title, C.gold[1], C.gold[2], C.gold[3])
-    -- groupe : un blanc entre sa progression et les aides
-    if addPartyProgress(t, blk.id) then t:AddLine(" ") end
+    -- recompenses, puis le groupe : un blanc avant les aides
+    local gap = addRewards(t, blk.id)
+    if addPartyProgress(t, blk.id) then gap = true end
+    if gap then t:AddLine(" ") end
     tipCombat = combat() and true or false
     if tipCombat then
         t:AddLine(L.QUESTS_TIP_COMBAT, 1, 0.45, 0.45)
