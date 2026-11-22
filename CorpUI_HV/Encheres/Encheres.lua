@@ -341,7 +341,8 @@ end
 
 local function currentRealmKey()
     if realmKey then return realmKey end
-    local r = str(call(GetRealmName)) or "?"
+    -- royaume vide depuis le 21/11 : le dernier connu (Core.lua)
+    local r = (ns.RealmName and ns.RealmName()) or str(call(GetRealmName)) or "?"
     local f = str(call(UnitFactionGroup, "player"))
     if not f then return r end
     realmKey = r .. "-" .. f

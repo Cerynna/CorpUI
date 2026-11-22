@@ -141,11 +141,32 @@ end
 
 local issecret = issecretvalue or function() return false end
 
+-- Royaume du personnage. Depuis le 21/11 le jeu le rend vide
+-- (GetRealmName() == "") : le dernier connu, garde dans la sauvegarde
+-- (CorpUIDB.realmName), sert alors, pour que les cles "Nom-Royaume" et
+-- "Royaume-Faction" ne changent pas. Jamais connu : "" (cles "Nom-").
+-- Les cles coupees en deux par ce changement sont refondues une fois
+-- (Royaume.lua).
+function ns.RealmName()
+    local r
+    if GetRealmName then
+        local ok, v = pcall(GetRealmName)
+        if ok and not issecret(v) and type(v) == "string" then r = v end
+    end
+    local db = type(CorpUIDB) == "table" and CorpUIDB or nil
+    if r and r ~= "" then
+        if db and db.realmName ~= r then db.realmName = r end
+        return r
+    end
+    local saved = db and db.realmName
+    if type(saved) == "string" and saved ~= "" then return saved end
+    return r or "?"
+end
+
 -- Personnage courant : "Nom-Royaume", cle des donnees par personnage
 function ns.CharKey()
     local name = UnitName("player")
-    local realm = GetRealmName and GetRealmName() or "?"
-    return (name or "?") .. "-" .. (realm or "?")
+    return (name or "?") .. "-" .. ns.RealmName()
 end
 
 ---------------------------------------------------------------------------
@@ -2528,6 +2549,12 @@ function ns.InitRoot()
         b.lang, b.minimap = nil, nil
     end
     ns.root = db
+    -- cles coupees par le royaume vide du 21/11 (Royaume.lua) : refondues
+    -- avant le profil et avant que les modules ne lisent leurs donnees
+    if ns.FixRealmKeys then
+        local ok, err = pcall(ns.FixRealmKeys, db)
+        if not ok then geterrorhandler()(err) end
+    end
     -- profil du personnage (Profils.lua) : avant toute lecture des reglages
     if ns.ProfileSwitch then ns.ProfileSwitch(db) end
     ns.RootDefaults(db)

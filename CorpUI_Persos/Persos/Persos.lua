@@ -66,7 +66,7 @@ local function snapBasics()
     local name = UnitName("player")
     local _, class = UnitClass("player")
     t.name = plain(name, t.name)
-    t.realm = plain(GetRealmName and GetRealmName(), t.realm) or "?"
+    t.realm = plain(ns.RealmName and ns.RealmName() or (GetRealmName and GetRealmName()), t.realm) or "?"
     t.class = plain(class, t.class)
     t.level = plain(UnitLevel("player"), t.level)
     t.race = plain(UnitRace and UnitRace("player"), t.race)
@@ -664,7 +664,7 @@ local function showChar(card, c)
     end
     local level = num(d.level)
     card.level:SetText(level > 0 and level or "?")
-    local myRealm = GetRealmName and GetRealmName()
+    local myRealm = ns.RealmName and ns.RealmName() or (GetRealmName and GetRealmName())
     local realm = ""
     if d.realm and d.realm ~= myRealm then realm = "  |cff888888" .. d.realm .. "|r" end
     card.name:SetText(ns.ClassHex(class) .. (d.name or "?") .. "|r" .. realm)

@@ -215,7 +215,7 @@ TIP.gold = function(t)
     title(t, L.INFO_GOLD_NAME)
     local me = ns.CharKey and ns.CharKey()
     local cur = money()
-    local realm = call(GetRealmName)
+    local realm = ns.RealmName and ns.RealmName() or call(GetRealmName)
     local list, total = {}, 0
     local alts = ns.root and ns.root.alts
     if type(alts) == "table" then
