@@ -1077,8 +1077,202 @@ local function revealFace(p, i, now)
     end
 end
 
+-- Plusieurs boosters d un coup (MANY au plus) : une seule animation, les
+-- cartes de chaque booster en colonne, en petit ; elles se retournent en
+-- vague, un clic sur le fond retourne tout le reste
+local MANY = 10
+local MINI_W, MINI_GX, MINI_GY, MINI_TOP = 66, 14, 8, -44
+local MINI_H = math.floor(MINI_W * RATIO + 0.5)
+local MINI_DEAL_GAP, MINI_FLIP_GAP = 0.025, 0.08
+
+-- une petite carte : creee a la premiere ouverture groupee (chacune porte
+-- deux modeles 3D)
+local function miniSlot(p, i)
+    local m = p.mini[i]
+    if m then return m end
+    m = CreateFrame("Frame", nil, p.show)
+    m:SetSize(MINI_W, MINI_H)
+    m.rays = m:CreateTexture(nil, "BACKGROUND")
+    m.rays:SetSize(MINI_W * 2.2, MINI_W * 2.2)
+    m.rays:SetPoint("CENTER")
+    m.rays:SetTexture(MEDIA .. "rayons")
+    pcall(m.rays.SetBlendMode, m.rays, "ADD")
+    m.rays:Hide()
+    local card = newCard(m, MINI_W)
+    card:SetPoint("CENTER")
+    card:SetScript("OnEnter", function(self) if not self.back:IsShown() then cardTooltip(self) end end)
+    card:SetScript("OnLeave", ns.HideTooltip)
+    card:SetScript("OnClick", function()
+        if reveal and reveal.multi and reveal.landed and not reveal.flip[i] then reveal.flip[i] = GetTime() end
+    end)
+    m.card = card
+    local fx = CreateFrame("Frame", nil, m)
+    fx:SetAllPoints(card)
+    fx:SetFrameLevel(card:GetFrameLevel() + 8)
+    m.flash = fx:CreateTexture(nil, "OVERLAY")
+    m.flash:SetAllPoints()
+    m.flash:SetColorTexture(1, 1, 1, 1)
+    pcall(m.flash.SetBlendMode, m.flash, "ADD")
+    m.flash:Hide()
+    p.mini[i] = m
+    return m
+end
+
+-- les petites cartes, face cachee, a leur place (une colonne par booster) ;
+-- dx, dy : du centre du booster au centre de la place
+local function setupMini(p, r)
+    local total = r.packs * MINI_W + (r.packs - 1) * MINI_GX
+    local x0 = (WIN_W - total) / 2
+    local cx, cy = WIN_W / 2, ROW_Y - REVEAL_H / 2
+    for i = 1, math.max(#p.mini, #r.ids) do
+        if i > #r.ids then
+            p.mini[i]:Hide()
+        else
+            local m = miniSlot(p, i)
+            local x = x0 + (r.col[i] - 1) * (MINI_W + MINI_GX)
+            local y = MINI_TOP - (r.row[i] - 1) * (MINI_H + MINI_GY)
+            m:ClearAllPoints()
+            m:SetPoint("TOPLEFT", p.show, "TOPLEFT", x, y)
+            m.dx, m.dy = cx - (x + MINI_W / 2), cy - (y - MINI_H / 2)
+            local card, c = m.card, P.byId[r.ids[i]]
+            card.owned = true
+            paintFaceDown(card, c)
+            card.back:ClearAllPoints()
+            card.back:SetAllPoints()
+            card.back:Show()
+            card:SetScale(1)
+            card:Hide()
+            m.rays:Hide()
+            m.flash:Hide()
+            m.flashAt, m.dealt = nil, nil
+            m:SetShown(c ~= nil)
+        end
+    end
+end
+
+-- la face surgit : eclair, rayons des rares et plus ; le son seulement pour
+-- les nouvelles et les rares et plus (cinquante cartes)
+local function revealMini(p, i, now)
+    local m = p.mini[i]
+    local card, c = m.card, P.byId[reveal.ids[i]]
+    if not c then return end
+    local res = reveal.results[i]
+    card.back:Hide()
+    paintCard(card, c, true, res and res.what == "new")
+    m.flash:Show()
+    m.flashAt = now
+    local col = rarityRGB(c.r)
+    m.rays:SetShown(c.r >= 3)
+    m.rays:SetVertexColor(col[1], col[2], col[3])
+    if c.r >= 3 then
+        P.Sound(SOUND_OF[c.r] or "coin")
+    elseif res and res.what == "new" then
+        P.Sound("coin")
+    end
+    if c.r == 4 then shake(2, 0.2) gameSound("UI_EPICLOOT_TOAST") end
+    if c.r >= 5 then
+        shake(6, 0.4)
+        gameSound("UI_LEGENDARY_LOOT_TOAST")
+        reveal.stageAt = now + 0.7
+        reveal.stageCard = c
+        reveal.nextFlipAt = math.max(reveal.nextFlipAt or 0, now + 1.2)
+    end
+end
+
+-- temps 3 et 4 de l ouverture groupee (b : secondes depuis l eclatement)
+local function updateMulti(p, now, b)
+    local r = reveal
+    local n = #r.ids
+    -- 3. les cartes jaillissent du booster vers leur place
+    if not r.landed then
+        local landed = true
+        for i = 1, n do
+            local m = p.mini[i]
+            local card = m.card
+            local k = math.min(1, math.max(0, (b - (i - 1) * MINI_DEAL_GAP) / DEAL_TIME))
+            if k < 1 then landed = false end
+            local e = easeOutBack(k)
+            local s = math.max(0.05, 0.35 + 0.65 * e)
+            card:SetShown(k > 0 and card.card ~= nil)
+            card:SetScale(s)
+            card:ClearAllPoints()
+            card:SetPoint("CENTER", m, "CENTER", m.dx * (1 - e) / s, m.dy * (1 - e) / s)
+            if k > 0 and not m.dealt then
+                m.dealt = true
+                if r.row[i] == 1 then P.Sound("coin") end
+            end
+        end
+        if not landed then return end
+        r.landed = true
+        r.nextFlipAt = now + 0.35
+    end
+    -- 4. les retournements : en vague, au clic sur une carte, ou tous
+    if not p.stage:IsShown() and now >= (r.nextFlipAt or 0) then
+        for i = 1, n do
+            if not r.flip[i] then
+                r.flip[i] = now
+                break
+            end
+        end
+        r.nextFlipAt = now + MINI_FLIP_GAP
+    end
+    local all = true
+    for i = 1, n do
+        local m = p.mini[i]
+        local card = m.card
+        local t0 = r.flip[i]
+        if not r.done[i] then
+            all = false
+            if t0 and now >= t0 then
+                local k = now - t0
+                if k < FLIP_CLOSE then
+                    local w = math.cos(k / FLIP_CLOSE * math.pi / 2)
+                    card.back:ClearAllPoints()
+                    card.back:SetPoint("CENTER")
+                    card.back:SetSize(MINI_W * math.max(0.02, w), MINI_H)
+                    card:SetScale(1 + 0.1 * (k / FLIP_CLOSE))
+                else
+                    if not r.face[i] then
+                        r.face[i] = true
+                        revealMini(p, i, now)
+                    end
+                    local q = math.min(1, (k - FLIP_CLOSE) / FLIP_POP)
+                    card:SetScale(1.28 - 0.28 * easeOutBack(q))
+                    if q >= 1 then
+                        r.done[i] = true
+                        card:SetScale(1)
+                    end
+                end
+            end
+        end
+        if m.flashAt then
+            local fa = now - m.flashAt
+            m.flash:SetAlpha(math.max(0, 0.95 - fa / 0.35))
+            if fa > 0.35 then m.flash:Hide() m.flashAt = nil end
+        end
+        local c = r.face[i] and card.card
+        if c and c.r >= 3 then
+            pcall(m.rays.SetRotation, m.rays, now * (0.3 + 0.1 * c.r))
+            m.rays:SetAlpha((0.15 + 0.12 * (c.r - 3)) + 0.08 * math.sin(now * 3 + i))
+        end
+        if c and c.r >= 4 then card.glow:SetAlpha(0.55 + 0.45 * math.abs(math.sin(now * 3))) end
+    end
+    -- legendaire : son entree, une fois l eclair passe
+    if r.stageAt and now >= r.stageAt then
+        local c = r.stageCard
+        r.stageAt, r.stageCard = nil, nil
+        showStage(p, c)
+    end
+    -- tout est retourne : le bilan et les boutons
+    if all and not r.finished then
+        r.finished = true
+        refreshPage()
+    end
+end
+
 local function buildPacks(page)
     local p = page
+    p.mini = {}
     -- liste
     p.list = CreateFrame("Frame", nil, p)
     p.list:SetAllPoints()
@@ -1091,6 +1285,8 @@ local function buildPacks(page)
     p.artCount:SetPoint("BOTTOMRIGHT", p.art, "BOTTOMRIGHT", -6, 10)
     p.open = ns.UI.Button(p.list, L.PEDO_OPEN_PACK, 170, function() P.OpenNextPack() end)
     p.open:SetPoint("TOP", p.art, "BOTTOM", 0, -14)
+    p.openMany = ns.UI.Button(p.list, "", 170, function() P.OpenPacks(MANY) end)
+    p.openMany:SetPoint("TOP", p.open, "BOTTOM", 0, -6)
     p.title = text(p.list, "GameFontNormalLarge")
     p.title:SetPoint("TOPLEFT", p.list, "TOPLEFT", 250, -20)
     p.rows = {}
@@ -1114,6 +1310,14 @@ local function buildPacks(page)
         local now = GetTime()
         if now < reveal.burstAt then reveal.burstAt = now return end
         if not reveal.landed then return end
+        -- plusieurs boosters : tout le reste se retourne, en vague rapide
+        if reveal.multi then
+            local t = now
+            for i = 1, #reveal.ids do
+                if not reveal.flip[i] then reveal.flip[i] = t t = t + 0.03 end
+            end
+            return
+        end
         for i = 1, #reveal.ids do
             if not reveal.flip[i] then reveal.flip[i] = now return end
         end
@@ -1140,6 +1344,10 @@ local function buildPacks(page)
     p.pack:SetPoint("CENTER", p.show, "TOPLEFT", cx, cy)
     p.pack:SetTexture(MEDIA .. "booster")
     p.pack:SetTexCoord(0, 1, 0, TEX_PACK)
+    -- nombre de boosters ouverts d un coup, sur le booster
+    p.packCount = text(p.packF, "GameFontNormalHuge", 30, "OUTLINE")
+    p.packCount:SetPoint("BOTTOMRIGHT", p.pack, "BOTTOMRIGHT", -8, 12)
+    p.packCount:Hide()
     p.motes = {}
     for k = 1, 10 do
         local t = p.packF:CreateTexture(nil, "OVERLAY")
@@ -1159,7 +1367,11 @@ local function buildPacks(page)
         if db() and #db().packs > 0 then P.OpenNextPack() else reveal = nil refreshPage() end
     end)
     p.nextPack:SetPoint("BOTTOM", p.show, "BOTTOM", -110, 40)
-    p.toBinder = ns.UI.Button(p.show, L.PEDO_SEE_BINDER, 200, function() reveal = nil selectTab("binder") end)
+    p.nextMany = ns.UI.Button(p.show, "", 200, function()
+        if db() and #db().packs >= 2 then P.OpenPacks(MANY) end
+    end)
+    p.nextMany:SetPoint("BOTTOM", p.show, "BOTTOM", 0, 40)
+    p.toBinder =ns.UI.Button(p.show, L.PEDO_SEE_BINDER, 200, function() reveal = nil selectTab("binder") end)
     p.toBinder:SetPoint("BOTTOM", p.show, "BOTTOM", 110, 40)
     buildStage(p)
     p.show:SetScript("OnUpdate", function()
@@ -1187,6 +1399,7 @@ local function buildPacks(page)
             pcall(p.pack.SetRotation, p.pack, math.sin(age * (18 + 30 * build)) * 0.16 * build)
             p.pack:SetAlpha(1)
             p.pack:Show()
+            p.packCount:SetShown(reveal.multi and true or false)
             local g = PACK_W * (1.6 + 0.8 * build)
             p.packGlow:SetSize(g * 1.4, g * 1.4)
             p.packGlow:SetVertexColor(tint[1], tint[2], tint[3])
@@ -1211,6 +1424,7 @@ local function buildPacks(page)
             P.Sound("f_tambour")
             shake(6, 0.3)
             for _, t in ipairs(p.motes) do t:Hide() end
+            p.packCount:Hide()
         end
         local b = now - reveal.burstAt
         p.flash:SetAlpha(math.max(0, 0.9 - b / 0.4))
@@ -1229,6 +1443,7 @@ local function buildPacks(page)
         p.burstRays:SetAlpha(0.9 * (1 - rk))
         pcall(p.burstRays.SetRotation, p.burstRays, b * 1.5)
         p.packGlow:SetAlpha(math.max(0, 0.95 * (1 - b / 0.6)))
+        if reveal.multi then updateMulti(p, now, b) return end
         -- 3. les cartes jaillissent du booster vers leur place
         local landed = true
         for i = 1, #reveal.ids do
@@ -1316,8 +1531,7 @@ local function buildPacks(page)
         -- tout est retourne : les boutons apparaissent
         if all and not reveal.finished then
             reveal.finished = true
-            p.nextPack:Show()
-            p.toBinder:Show()
+            refreshPage()
         end
     end)
 end
@@ -1328,12 +1542,25 @@ local function refreshPacks(p)
     if reveal then
         p.list:Hide()
         p.show:Show()
-        p.showTitle:SetText(reveal.title or "")
+        local title = reveal.title or ""
+        if reveal.multi and reveal.finished then
+            title = title .. "  ·  " .. string.format(L.PEDO_MANY_SUM, reveal.newN, reveal.shards)
+        end
+        p.showTitle:SetText(title)
         local left = #d.packs
         p.nextPack:SetText(left > 0 and string.format(L.PEDO_NEXT_PACK, left) or L.PEDO_DONE)
-        -- les boutons : une fois tout retourne
-        p.nextPack:SetShown(reveal.finished and true or false)
-        p.toBinder:SetShown(reveal.finished and true or false)
+        p.nextMany:SetText(string.format(L.PEDO_OPEN_MANY, math.min(MANY, left)))
+        -- les boutons : une fois tout retourne ; « Ouvrir 10 » au milieu s il
+        -- reste au moins deux boosters
+        local done = reveal.finished and true or false
+        local many = done and left >= 2
+        p.nextPack:SetShown(done)
+        p.nextMany:SetShown(many)
+        p.toBinder:SetShown(done)
+        p.nextPack:ClearAllPoints()
+        p.nextPack:SetPoint("BOTTOM", p.show, "BOTTOM", many and -215 or -110, 40)
+        p.toBinder:ClearAllPoints()
+        p.toBinder:SetPoint("BOTTOM", p.show, "BOTTOM", many and 215 or 110, 40)
         return
     end
     p.show:Hide()
@@ -1342,6 +1569,8 @@ local function refreshPacks(p)
     p.artCount:SetText(n > 0 and ("x" .. n) or "")
     p.art:SetDesaturated(n == 0)
     p.open:SetEnabled(n > 0)
+    p.openMany:SetText(string.format(L.PEDO_OPEN_MANY, math.min(MANY, math.max(2, n))))
+    p.openMany:SetShown(n >= 2)
     p.title:SetText(n > 0 and string.format(L.PEDO_PACKS_WAITING, n) or L.PEDO_NO_PACK)
     for i, fs in ipairs(p.rows) do
         local pack = d.packs[i]
@@ -1386,7 +1615,10 @@ function P.OpenNextPack()
     p.flash:Hide()
     p.burstRays:Hide()
     p.nextPack:Hide()
+    p.nextMany:Hide()
     p.toBinder:Hide()
+    p.packCount:Hide()
+    for _, m in ipairs(p.mini) do m:Hide() end
     -- les cartes, face cachee, dans le booster (elles en jaillissent)
     for i = 1, 5 do
         local slot = p.slots[i]
@@ -1409,6 +1641,53 @@ function P.OpenNextPack()
         slot.capF:SetScale(1)
         slot:SetShown(c ~= nil)
     end
+    P.Sound("f_montee")
+    if P.CheckTrophies then P.CheckTrophies() end
+    P.Changed("open")
+    if current ~= "packs" then selectTab("packs") else refreshPage() end
+end
+
+-- ouvre les n plus anciens boosters d un coup (MANY au plus) : comme un
+-- seul, les cartes sont gagnees tout de suite (une carte tiree deux fois
+-- dans le lot : la seconde est un doublon)
+function P.OpenPacks(n)
+    local d = db()
+    if not d or #d.packs == 0 then return end
+    n = math.min(n or MANY, MANY, #d.packs)
+    if n < 2 then return P.OpenNextPack() end
+    local r = { multi = true, packs = n, ids = {}, results = {}, col = {}, row = {}, newN = 0, shards = 0,
+                flip = {}, done = {}, face = {} }
+    local best = "normal"
+    for k = 1, n do
+        local pack = table.remove(d.packs, 1)
+        if (P.PACK_MIN[pack.k] or 0) > (P.PACK_MIN[best] or 0) then best = pack.k end
+        for j, id in ipairs(P.RollPack(pack.k)) do
+            local what, gain = P.Grant(id)
+            local i = #r.ids + 1
+            r.ids[i], r.results[i], r.col[i], r.row[i] = id, { what = what, gain = gain }, k, j
+            if what == "new" then r.newN = r.newN + 1 else r.shards = r.shards + (gain or 0) end
+        end
+    end
+    d.opened = (d.opened or 0) + n
+    local now = GetTime()
+    r.t0, r.burstAt = now, now + SHAKE_TIME
+    r.tint = PACK_TINT[best] or PACK_TINT.normal
+    r.title = string.format(L.PEDO_MANY_TITLE, n)
+    reveal = r
+    shakeUntil, shakeAmp = 0, 0
+    local p = pages.packs
+    p.stage:Hide()
+    p.flash:Hide()
+    p.burstRays:Hide()
+    p.nextPack:Hide()
+    p.nextMany:Hide()
+    p.toBinder:Hide()
+    for _, slot in ipairs(p.slots) do
+        slot:Hide()
+        slot.capF:Hide()
+    end
+    p.packCount:SetText("x" .. n)
+    setupMini(p, r)
     P.Sound("f_montee")
     if P.CheckTrophies then P.CheckTrophies() end
     P.Changed("open")
