@@ -1079,8 +1079,9 @@ end
 
 -- Plusieurs boosters d un coup (MANY au plus) : une seule animation, les
 -- cartes de chaque booster en colonne, en petit ; elles se retournent en
--- vague, un clic sur le fond retourne tout le reste
-local MANY = 10
+-- vague, un clic sur le fond retourne tout le reste ; au-dela de MANY (BIG
+-- au plus), seules les BEST_N meilleures cartes distinctes sont montrees
+local MANY, BIG, BEST_N = 10, 100, 50
 local MINI_W, MINI_GX, MINI_GY, MINI_TOP = 66, 14, 8, -44
 local MINI_H = math.floor(MINI_W * RATIO + 0.5)
 local MINI_DEAL_GAP, MINI_FLIP_GAP = 0.025, 0.08
@@ -1114,14 +1115,20 @@ local function miniSlot(p, i)
     m.flash:SetColorTexture(1, 1, 1, 1)
     pcall(m.flash.SetBlendMode, m.flash, "ADD")
     m.flash:Hide()
+    -- gros lot : nombre d exemplaires tires
+    m.count = text(fx, "GameFontNormal", 14, "OUTLINE")
+    m.count:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", -3, 3)
+    m.count:Hide()
     p.mini[i] = m
     return m
 end
 
--- les petites cartes, face cachee, a leur place (une colonne par booster) ;
--- dx, dy : du centre du booster au centre de la place
+-- les petites cartes, face cachee, a leur place (une colonne par booster,
+-- ou r.cols colonnes pour un gros lot) ; dx, dy : du centre du booster au
+-- centre de la place
 local function setupMini(p, r)
-    local total = r.packs * MINI_W + (r.packs - 1) * MINI_GX
+    local cols = r.cols or r.packs
+    local total = cols * MINI_W + (cols - 1) * MINI_GX
     local x0 = (WIN_W - total) / 2
     local cx, cy = WIN_W / 2, ROW_Y - REVEAL_H / 2
     for i = 1, math.max(#p.mini, #r.ids) do
@@ -1144,6 +1151,7 @@ local function setupMini(p, r)
             card:Hide()
             m.rays:Hide()
             m.flash:Hide()
+            m.count:Hide()
             m.flashAt, m.dealt = nil, nil
             m:SetShown(c ~= nil)
         end
@@ -1159,6 +1167,11 @@ local function revealMini(p, i, now)
     local res = reveal.results[i]
     card.back:Hide()
     paintCard(card, c, true, res and res.what == "new")
+    local k = reveal.counts and reveal.counts[i]
+    if k and k > 1 then
+        m.count:SetText("x" .. k)
+        m.count:Show()
+    end
     m.flash:Show()
     m.flashAt = now
     local col = rarityRGB(c.r)
@@ -1287,6 +1300,8 @@ local function buildPacks(page)
     p.open:SetPoint("TOP", p.art, "BOTTOM", 0, -14)
     p.openMany = ns.UI.Button(p.list, "", 170, function() P.OpenPacks(MANY) end)
     p.openMany:SetPoint("TOP", p.open, "BOTTOM", 0, -6)
+    p.openBig = ns.UI.Button(p.list, "", 170, function() P.OpenPacks(BIG) end)
+    p.openBig:SetPoint("TOP", p.openMany, "BOTTOM", 0, -6)
     p.title = text(p.list, "GameFontNormalLarge")
     p.title:SetPoint("TOPLEFT", p.list, "TOPLEFT", 250, -20)
     p.rows = {}
@@ -1371,6 +1386,9 @@ local function buildPacks(page)
         if db() and #db().packs >= 2 then P.OpenPacks(MANY) end
     end)
     p.nextMany:SetPoint("BOTTOM", p.show, "BOTTOM", 0, 40)
+    p.nextBig = ns.UI.Button(p.show, "", 200, function()
+        if db() and #db().packs > MANY then P.OpenPacks(BIG) end
+    end)
     p.toBinder =ns.UI.Button(p.show, L.PEDO_SEE_BINDER, 200, function() reveal = nil selectTab("binder") end)
     p.toBinder:SetPoint("BOTTOM", p.show, "BOTTOM", 110, 40)
     buildStage(p)
@@ -1550,17 +1568,24 @@ local function refreshPacks(p)
         local left = #d.packs
         p.nextPack:SetText(left > 0 and string.format(L.PEDO_NEXT_PACK, left) or L.PEDO_DONE)
         p.nextMany:SetText(string.format(L.PEDO_OPEN_MANY, math.min(MANY, left)))
+        p.nextBig:SetText(string.format(L.PEDO_OPEN_MANY, math.min(BIG, left)))
         -- les boutons : une fois tout retourne ; « Ouvrir 10 » au milieu s il
-        -- reste au moins deux boosters
+        -- reste au moins deux boosters, « Ouvrir 100 » s il en reste plus de 10
         local done = reveal.finished and true or false
         local many = done and left >= 2
+        local big = done and left > MANY
         p.nextPack:SetShown(done)
         p.nextMany:SetShown(many)
+        p.nextBig:SetShown(big)
         p.toBinder:SetShown(done)
-        p.nextPack:ClearAllPoints()
-        p.nextPack:SetPoint("BOTTOM", p.show, "BOTTOM", many and -215 or -110, 40)
-        p.toBinder:ClearAllPoints()
-        p.toBinder:SetPoint("BOTTOM", p.show, "BOTTOM", many and 215 or 110, 40)
+        local row = { p.nextPack }
+        if many then row[#row + 1] = p.nextMany end
+        if big then row[#row + 1] = p.nextBig end
+        row[#row + 1] = p.toBinder
+        for i, btn in ipairs(row) do
+            btn:ClearAllPoints()
+            btn:SetPoint("BOTTOM", p.show, "BOTTOM", (i - (#row + 1) / 2) * 220, 40)
+        end
         return
     end
     p.show:Hide()
@@ -1571,6 +1596,8 @@ local function refreshPacks(p)
     p.open:SetEnabled(n > 0)
     p.openMany:SetText(string.format(L.PEDO_OPEN_MANY, math.min(MANY, math.max(2, n))))
     p.openMany:SetShown(n >= 2)
+    p.openBig:SetText(string.format(L.PEDO_OPEN_MANY, math.min(BIG, n)))
+    p.openBig:SetShown(n > MANY)
     p.title:SetText(n > 0 and string.format(L.PEDO_PACKS_WAITING, n) or L.PEDO_NO_PACK)
     for i, fs in ipairs(p.rows) do
         local pack = d.packs[i]
@@ -1616,6 +1643,7 @@ function P.OpenNextPack()
     p.burstRays:Hide()
     p.nextPack:Hide()
     p.nextMany:Hide()
+    p.nextBig:Hide()
     p.toBinder:Hide()
     p.packCount:Hide()
     for _, m in ipairs(p.mini) do m:Hide() end
@@ -1647,32 +1675,66 @@ function P.OpenNextPack()
     if current ~= "packs" then selectTab("packs") else refreshPage() end
 end
 
--- ouvre les n plus anciens boosters d un coup (MANY au plus) : comme un
+-- gros lot : une entree par carte distincte ({ id, count, what, gain }) ;
+-- les BEST_N premieres, en grille de MANY colonnes : les nouvelles
+-- d abord, puis par rarete, puis les plus tirees
+local function fillBest(r, list)
+    table.sort(list, function(a, b)
+        local na, nb = a.what == "new", b.what == "new"
+        if na ~= nb then return na end
+        local ra, rb = P.byId[a.id].r, P.byId[b.id].r
+        if ra ~= rb then return ra > rb end
+        if a.count ~= b.count then return a.count > b.count end
+        return tostring(a.id) < tostring(b.id)
+    end)
+    local shown = math.min(#list, BEST_N)
+    r.counts = {}
+    for i = 1, shown do
+        local e = list[i]
+        r.ids[i], r.results[i], r.counts[i] = e.id, { what = e.what, gain = e.gain }, e.count
+        r.col[i], r.row[i] = (i - 1) % MANY + 1, math.floor((i - 1) / MANY) + 1
+    end
+    r.cols = math.max(1, math.min(MANY, shown))
+    local fmt = #list > shown and L.PEDO_MANY_BEST or L.PEDO_MANY_DIFF
+    r.title = r.title .. "  ·  " .. string.format(fmt, #list > shown and shown or #list, r.total)
+end
+
+-- ouvre les n plus anciens boosters d un coup (BIG au plus) : comme un
 -- seul, les cartes sont gagnees tout de suite (une carte tiree deux fois
--- dans le lot : la seconde est un doublon)
+-- dans le lot : la seconde est un doublon) ; plus de MANY : gros lot
 function P.OpenPacks(n)
     local d = db()
     if not d or #d.packs == 0 then return end
-    n = math.min(n or MANY, MANY, #d.packs)
+    n = math.min(n or MANY, BIG, #d.packs)
     if n < 2 then return P.OpenNextPack() end
+    local big = n > MANY
     local r = { multi = true, packs = n, ids = {}, results = {}, col = {}, row = {}, newN = 0, shards = 0,
-                flip = {}, done = {}, face = {} }
+                total = 0, flip = {}, done = {}, face = {}, title = string.format(L.PEDO_MANY_TITLE, n) }
     local best = "normal"
+    local seen, list = {}, {}
     for k = 1, n do
         local pack = table.remove(d.packs, 1)
         if (P.PACK_MIN[pack.k] or 0) > (P.PACK_MIN[best] or 0) then best = pack.k end
         for j, id in ipairs(P.RollPack(pack.k)) do
             local what, gain = P.Grant(id)
-            local i = #r.ids + 1
-            r.ids[i], r.results[i], r.col[i], r.row[i] = id, { what = what, gain = gain }, k, j
+            r.total = r.total + 1
             if what == "new" then r.newN = r.newN + 1 else r.shards = r.shards + (gain or 0) end
+            if not big then
+                local i = #r.ids + 1
+                r.ids[i], r.results[i], r.col[i], r.row[i] = id, { what = what, gain = gain }, k, j
+            elseif seen[id] then
+                seen[id].count = seen[id].count + 1
+            elseif P.byId[id] then
+                seen[id] = { id = id, count = 1, what = what, gain = gain }
+                list[#list + 1] = seen[id]
+            end
         end
     end
+    if big then fillBest(r, list) end
     d.opened = (d.opened or 0) + n
     local now = GetTime()
     r.t0, r.burstAt = now, now + SHAKE_TIME
     r.tint = PACK_TINT[best] or PACK_TINT.normal
-    r.title = string.format(L.PEDO_MANY_TITLE, n)
     reveal = r
     shakeUntil, shakeAmp = 0, 0
     local p = pages.packs
@@ -1681,6 +1743,7 @@ function P.OpenPacks(n)
     p.burstRays:Hide()
     p.nextPack:Hide()
     p.nextMany:Hide()
+    p.nextBig:Hide()
     p.toBinder:Hide()
     for _, slot in ipairs(p.slots) do
         slot:Hide()
@@ -1693,6 +1756,9 @@ function P.OpenPacks(n)
     P.Changed("open")
     if current ~= "packs" then selectTab("packs") else refreshPage() end
 end
+
+-- banc d essai : l ouverture en cours
+P._reveal = function() return reveal end
 
 ---------------------------------------------------------------------------
 -- Onglet Statistiques
