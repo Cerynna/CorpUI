@@ -240,12 +240,13 @@ function P.WhyText(pack)
     return string.format(fmt, kmValue(pack.d or 0))
 end
 
--- name : monstre qui l a laisse (booster de butin), si on le connait
-local function givePack(kind, period, kmv, name)
+-- name : monstre qui l a laisse (booster de butin), si on le connait ;
+-- quiet : l appelant previent lui-meme (P.Changed) apres une serie
+local function givePack(kind, period, kmv, name, quiet)
     local pack = { k = kind, p = period, d = kmv, n = name, t = time() }
     table.insert(db.packs, pack)
     if P.Announce and period ~= "slots" then P.Announce("pack", pack) end
-    P.Changed("pack")
+    if not quiet then P.Changed("pack") end
 end
 P._givePack = function(...) if db then givePack(...) end end
 

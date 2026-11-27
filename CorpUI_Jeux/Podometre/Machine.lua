@@ -1,13 +1,13 @@
 --[[--------------------------------------------------------------------------
     CorpUI - podometre : la machine a sous (onglet du classeur)
       - les eclats (doublons des boosters) ne fabriquent plus de cartes : ils
-        se jouent ici, mise 10, 20 ou 50 ;
+        se jouent ici, mise 10, 20, 50, 100, 200, 500 ou 1000 ;
       - trois rouleaux, six symboles, memes chances sur chaque rouleau :
         bottes, eclat, et quatre boosters (normal argent, rare bleu, epique
         violet, legendaire orange : variantes de booster.tga, make_boosters.js) ;
       - une seule combinaison par tour :
           trois boosters, toutes couleurs : un booster de la couleur la plus
-            basse des trois (deux ou cinq avec la mise 20 ou 50) ;
+            basse des trois (mise / 10 : deux a la mise 20, cent a 1000) ;
           trois eclats : 6 fois la mise ; trois bottes : 3 fois ;
           deux eclats : la mise rendue ;
       - retour moyen 98 %, dont 67 % en boosters (un booster compte pour les
@@ -37,7 +37,7 @@ local P = ns.Pedo
 -- Regles et tirage
 ---------------------------------------------------------------------------
 
-P.SLOT_BETS = { 10, 20, 50 }
+P.SLOT_BETS = { 10, 20, 50, 100, 200, 500, 1000 }
 P.SLOT_BASE = 10                     -- mise de reference (un booster)
 P.SLOT_SYMBOLS = {
     { key = "boots", w = 30, icon = "INV_Boots_02" },
@@ -142,7 +142,8 @@ function P.SlotSettle()
     end
     local packs = tonumber(p.packs) or 0
     if packs > 0 and SYM[p.kind] and P._givePack then
-        for _ = 1, packs do P._givePack(p.kind, "slots", 0) end
+        -- sans prevenir a chaque booster (cent a la mise 1000) : P.Changed plus bas
+        for _ = 1, packs do P._givePack(p.kind, "slots", 0, nil, true) end
         s.packs[p.kind] = (tonumber(s.packs[p.kind]) or 0) + packs
     end
     P.Changed("slots")
@@ -736,8 +737,8 @@ local function buildCabinet(p)
     local betLabel = text(m, "GameFontNormal")
     betLabel:SetText(L.PEDO_SLOT_BET)
     p.bets = {}
-    local bw = 56
-    local total = #P.SLOT_BETS * bw + (#P.SLOT_BETS - 1) * 6
+    local bw, gap = 50, 4
+    local total = #P.SLOT_BETS * bw + (#P.SLOT_BETS - 1) * gap
     for i, v in ipairs(P.SLOT_BETS) do
         local b = ns.UI.Button(m, tostring(v), bw, function()
             local s = slotsDB()
@@ -746,7 +747,7 @@ local function buildCabinet(p)
             refreshSlots()
             if not fx then idleText() end
         end)
-        b:SetPoint("BOTTOMLEFT", p.spinBtn, "TOP", -total / 2 + (i - 1) * (bw + 6) + 20, 10)
+        b:SetPoint("BOTTOMLEFT", p.spinBtn, "TOP", -total / 2 + (i - 1) * (bw + gap) + 20, 10)
         b.bet = v
         b:HookScript("OnLeave", paintBet)
         p.bets[i] = b
